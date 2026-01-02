@@ -1,0 +1,40 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Pixark"
+    },
+    {
+      "name": "permission_reason_INTERNET",
+      "value": "请求网络权限"
+    },
+    {
+      "name": "home",
+      "value": "主页"
+    },
+    {
+      "name": "rank",
+      "value": "排行"
+    },
+    {
+      "name": "favorite",
+      "value": "喜欢"
+    },
+    {
+      "name": "search",
+      "value": "搜索"
+    },
+    {
+      "name": "more",
+      "value": "更多"
+    }
+  ]
+}
