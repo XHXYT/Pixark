@@ -112,7 +112,7 @@ export class PixivAuth {
   }
 
   /**
-   * 使用用户名和密码进行登录
+   * 使用用户名和密码进行登录 (已废弃)
    * 会遍历 CREDENTIALS 列表，尝试不同的 Client ID 进行登录
    *
    * @param username Pixiv 用户名或邮箱
@@ -169,6 +169,65 @@ export class PixivAuth {
     }
     throw new Error('所有客户端凭据都无法登录');
   }
+
+  /**
+   * 使用 Web OAuth 授权码进行登录
+   *
+   * @param code 从 WebView 回调 URL 中获取的 code
+   * @param codeVerifier PKCE 流程中生成的 code_verifier (必须和请求 Web 页面时对应的 challenge 一致)
+   * @returns 返回包含 Token 和用户信息的 AuthResponse
+   */
+  async loginWithAuthCode(code: string, codeVerifier: string): Promise<PixivAuthResponse> {
+    logger.info('Login with auth code.');
+
+    const creds = this.CREDENTIALS[0]; // 使用第一组凭据
+    const now = new Date();
+    const localTime = Date2UTCTimeString(now);
+    const hashString = `${localTime}${creds.hash_secret}`;
+    const clientHash = await md5String(hashString);
+
+    try {
+      const response = await axios.post(
+        'https://oauth.secure.pixiv.net/auth/token',
+        urlQueryString({
+          client_id: creds.client_id,
+          client_secret: creds.client_secret,
+          get_secure_url: '1',
+          // 使用 authorization_code
+          grant_type: 'authorization_code',
+          code: code,
+          // 必须填入之前生成的 verifier，否则会报错
+          code_verifier: codeVerifier,
+          // 固定的回调地址（需要和请求 Web 页面时填的 redirect_uri 一致）
+          redirect_uri: 'https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback',
+          include_policy: true
+        }),
+        {
+          headers: {
+            'User-Agent': 'PixivAndroidApp/5.0.234 (Android 11; Pixel 5)',
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Client-Time': localTime,
+            'X-Client-Hash': clientHash,
+            'App-OS': 'android',
+            'App-OS-Version': '11.0',
+            'App-Version': '5.0.234',
+          },
+        }
+      );
+
+      const body: { response: PixivAuthResponse } = response.data;
+      const auth = body.response;
+
+      this.updateTokens(auth.access_token, auth.refresh_token);
+      logger.info('Auth code login successful!');
+      return auth;
+    } catch (error: any) {
+      logger.error('Auth code login failed!', error);
+      throw new Error('授权码无效或已过期');
+    }
+  }
+
 
   /**
    * 使用 Refresh Token 进行登录（刷新会话）

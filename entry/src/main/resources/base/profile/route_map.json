@@ -1,0 +1,19 @@
+{
+  "routerMap": [
+    {
+      "name": "WebLogin",
+      "pageSourceFile": "src/main/ets/view/WebLogin.ets",
+      "buildFunction": "WebLoginPage"
+    },
+    {
+      "name": "Register",
+      "pageSourceFile": "src/main/ets/view/RegisterPage.ets",
+      "buildFunction": "RegisterPage"
+    },
+    {
+      "name": "TokenLogin",
+      "pageSourceFile": "src/main/ets/view/TokenLogin.ets",
+      "buildFunction": "TokenLoginPage"
+    }
+  ]
+}

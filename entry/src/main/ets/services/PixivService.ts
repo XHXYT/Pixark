@@ -26,9 +26,14 @@ export class PixivService {
     return this.auth.isLogin();
   }
 
+  // 已废弃
   async loginWithPassword(username: string, password: string): Promise<PixivAuthResponse> {
     return this.auth.loginWithPassword(username, password);
   }
+
+  async loginWithAuthCode(code: string, codeVerifier: string): Promise<PixivAuthResponse> {
+		return this.auth.loginWithAuthCode(code, codeVerifier);
+	}
 
   async loginWithRefreshToken(refreshToken: string): Promise<PixivAuthResponse> {
     return this.auth.loginWithRefreshToken(refreshToken);

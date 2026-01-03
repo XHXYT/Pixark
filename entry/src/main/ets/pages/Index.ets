@@ -51,13 +51,23 @@ struct Index {
       // Logo
       this.LogoStartLoading()
     }
-    // 未登录显示登录页
-    else if (!PixState.isLoggedIn) {
-      Login()
-    }
     // 已登录显示内容
+    else if (PixState.isLoggedIn) {
+      Navigation(PixState.pageStack) {
+        this.MainContent()
+      }
+      .hideToolBar(true)
+      .hideTitleBar(true)
+    }
+    // 未登录显示登录页
     else {
-      this.MainContent()
+      Navigation(PixState.pageStack) {
+        Login()
+      }
+      .height('100%')
+      .width('100%')
+      .hideToolBar(true)
+      .hideTitleBar(true)
     }
   }
 

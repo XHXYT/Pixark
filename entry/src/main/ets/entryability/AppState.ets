@@ -36,6 +36,8 @@ class _PixState {
   /** @description 窗口模式 true为PC窗口模式 false为普通窗口模式 */
   @Trace windowMode: boolean = false
 
+  // 全局路由
+  @Trace pageStack: NavPathStack = new NavPathStack()
   /** @description 当前主题色(Resource) */
   @Trace CurrentAppThemeColor: Resource = $r('sys.color.icon_emphasize')
   // 当前颜色模式
