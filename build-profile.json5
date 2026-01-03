@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": ".cer",
+          "certpath": "C:\\Users\\Administrator\\.ohos\\config\\default_Pixark_q2JDp7XxJ87dxWQJhJgrMSsVc6dzlneosMt7EzL-GJw=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "",
-          "profile": ".p7b",
-          "signAlg": "",
-          "storeFile": ".p12",
-          "storePassword": ""
+          "keyPassword": "0000001B10525C72D65C02F9B0A72601855E59B5A107C14CC8039939407656C96E436B747E274ABE92E2AE",
+          "profile": "C:\\Users\\Administrator\\.ohos\\config\\default_Pixark_q2JDp7XxJ87dxWQJhJgrMSsVc6dzlneosMt7EzL-GJw=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\Administrator\\.ohos\\config\\default_Pixark_q2JDp7XxJ87dxWQJhJgrMSsVc6dzlneosMt7EzL-GJw=.p12",
+          "storePassword": "0000001B109B7F1A0B6F389B8E503DC28BE7B02E799AC7CE66CF1EB5F188C5CA3B8D8ECC5CBA2060A4CBEC"
         }
       }
     ],

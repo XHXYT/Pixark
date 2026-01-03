@@ -1,7 +1,7 @@
 import { PixivAuth } from './PixivAuth';
 import { PixivData } from './PixivData';
 import { PixivInteraction } from './PixivInteraction';
-import { PixivAuthResponse, PixivIllust, PixivSearchResult } from './PixivTypes';
+import { PixivAuthResponse, PixivIllust, PixivListResult, SpotlightResponse } from './PixivTypes';
 
 /**
  * Pixiv 服务主入口
@@ -50,15 +50,30 @@ export class PixivService {
 
   // --- 数据接口方法 ---
 
-  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivSearchResult> {
+  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivListResult> {
     return this.data.searchIllust(word, page, pageSize);
   }
 
-  async getRanking(mode: string = 'day', date?: string): Promise<PixivSearchResult> {
+  async getRanking(mode: string = 'day', date?: string): Promise<PixivListResult> {
     return this.data.getRanking(mode, date);
   }
 
-  async getRecommended(includeRanking: boolean = true): Promise<PixivSearchResult> {
+  /**
+   * 获取 Pixiv 亮点/专题文章列表
+   * 用途：通常用于 App 首页顶部的轮播图（Banner）展示。
+   *
+   * @param category 文章分类，默认 'all'。
+   *                 可选值包括：
+   *                 - 'all': 全部分类
+   *                 - 'android': 官方精选
+   *                 - 'illustration': 插画专题
+   * @returns Promise<SpotlightResponse> 返回包含文章列表和下一页 URL 的响应对象
+   */
+  async getSpotlight(category: string = 'all'): Promise<SpotlightResponse> {
+    return this.data.getSpotlight(category)
+  }
+
+  async getRecommended(includeRanking: boolean = true): Promise<PixivListResult> {
     return this.data.getRecommended(includeRanking);
   }
 
@@ -66,7 +81,7 @@ export class PixivService {
     return this.data.getIllustDetail(illustId);
   }
 
-  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivSearchResult> {
+  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivListResult> {
     return this.data.getUserIllusts(userId, type);
   }
 
@@ -84,7 +99,7 @@ export class PixivService {
   /**
    * 使用 next_url 加载下一页（通用）
    */
-  async loadNextPage(nextUrl: string): Promise<PixivSearchResult> {
+  async loadNextPage(nextUrl: string): Promise<PixivListResult> {
     return this.data.loadNextPage(nextUrl);
   }
 

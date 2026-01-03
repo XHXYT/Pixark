@@ -1,5 +1,6 @@
 import { PixivService } from "../services/PixivService"
 import { PixivIllust } from "../services/PixivTypes"
+import { ConfigurationConstant } from "@kit.AbilityKit"
 
 @ObservedV2
 class _PixState {
@@ -9,11 +10,12 @@ class _PixState {
   @Trace loginMethod: 'password' | 'token' = 'token'
   // refresh token
   @Trace refreshToken: string = ''
+  // 是否初始化
+  @Trace isInitializing: boolean = true
   // 加载状态
   @Trace isLoading: boolean = false
   // 是否登录
   @Trace isLoggedIn: boolean = false
-  @Trace illustRecommends: PixivIllust[] = []
 
   /** @description 导航栏高度 */
   @Trace bottomRectHeight: number = 0
@@ -36,6 +38,8 @@ class _PixState {
 
   /** @description 当前主题色(Resource) */
   @Trace CurrentAppThemeColor: Resource = $r('sys.color.icon_emphasize')
+  // 当前颜色模式
+  @Trace currentColorMode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET
 
 }
 

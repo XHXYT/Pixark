@@ -1,4 +1,4 @@
-import { PixivIllust, PixivSearchResult } from './PixivTypes';
+import { PixivIllust, PixivListResult, SpotlightResponse } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
 import { createLogger } from '../utils/Logger';
 
@@ -18,7 +18,7 @@ export class PixivData {
    * @param pageSize 每页数量
    * @returns 返回搜索结果列表
    */
-  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivSearchResult> {
+  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
     logger.info(`Searching: ${word}`);
 
@@ -42,7 +42,7 @@ export class PixivData {
    * @param date 指定日期 (格式: 2020-01-01)，不传则默认为最新
    * @returns 返回排行榜插画列表
    */
-  async getRanking(mode: string = 'day', date?: string): Promise<PixivSearchResult> {
+  async getRanking(mode: string = 'day', date?: string): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
 
     const params: Record<string, string> = {
@@ -58,12 +58,45 @@ export class PixivData {
   }
 
   /**
+   * 获取 Pixiv 亮点/专题文章列表
+   * 用途：通常用于 App 首页顶部的轮播图（Banner）展示。
+   *
+   * @param category 文章分类，默认 'all'。
+   *                 可选值包括：
+   *                 - 'all': 全部分类
+   *                 - 'android': 官方精选
+   *                 - 'illustration': 插画专题
+   * @returns Promise<SpotlightResponse> 返回包含文章列表和下一页 URL 的响应对象
+   */
+  async getSpotlight(category: string = 'all'): Promise<SpotlightResponse> {
+    if (!this.auth.isLogin()) {
+      throw new Error('请先登录');
+    }
+    logger.info(`Fetching spotlight articles. Category: ${category}`);
+    try {
+      const response = await this.auth.axiosInstance.get('/v1/spotlight/articles', {
+        params: {
+          category: category,
+          filter: 'for_android', // 强制使用 Android 过滤器
+          // show_lang: true // 如果需要多语言支持，可以尝试加上这个参数
+        },
+      });
+      // 返回标准化的响应对象
+      return response.data;
+    } catch (error: any) {
+      logger.error('Get spotlight failed: ' + JSON.stringify(error));
+      throw error;
+    }
+  }
+
+
+  /**
    * 获取个性化推荐
    * 根据用户的收藏和浏览历史推荐作品
    * @param includeRanking 是否在推荐中混入排行榜作品
    * @returns 返回推荐作品列表
    */
-  async getRecommended(includeRanking: boolean = true): Promise<PixivSearchResult> {
+  async getRecommended(includeRanking: boolean = true): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
 
     const response = await this.auth.axiosInstance.get('/v1/illust/recommended', {
@@ -98,7 +131,7 @@ export class PixivData {
    * @param type 作品类型 (illust: 插画, manga: 漫画)
    * @returns 返回该用户的作品列表
    */
-  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivSearchResult> {
+  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
     const response = await this.auth.axiosInstance.get('/v1/user/illusts', {
       params: { user_id: userId, type: type, filter: 'for_android' },
@@ -127,7 +160,7 @@ export class PixivData {
     restrict: 'public' | 'private' = 'public',
     tag?: string,
     maxBookmarkId?: number
-  ): Promise<PixivSearchResult> {
+  ): Promise<PixivListResult> {
     // 检查登录状态
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
@@ -169,7 +202,7 @@ export class PixivData {
    *                "https://app-api.pixiv.net/v1/search/illust?word=xxx&filter=for_android&offset=30"
    * @returns 下一页的搜索/收藏/排行等结果
    */
-  async loadNextPage(nextUrl: string): Promise<PixivSearchResult> {
+  async loadNextPage(nextUrl: string): Promise<PixivListResult> {
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
     }

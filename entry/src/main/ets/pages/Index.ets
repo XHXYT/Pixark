@@ -3,7 +3,6 @@ import { createLogger } from '../utils/Logger';
 import { PixState } from '../entryability/AppState';
 import { EventHub, EventKey } from '../utils/EventHub';
 import { toastUtil } from '../utils/ToastUtils';
-import { Login } from './login';
 import { kvDbUtil } from '../utils/KVdbUtil';
 import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition,
   TabTitleFontSize,
@@ -20,6 +19,8 @@ import { Home } from './Home';
 import { SearchPage } from './Search';
 import { Favorite } from './Favorite';
 import { Rank } from './Rank';
+import { homeViewModel } from '../viewmodel/HomeViewModel';
+import { Login } from './Login';
 
 const logger = createLogger('Index')
 
@@ -28,7 +29,6 @@ const logger = createLogger('Index')
 struct Index {
 
   @Local currentTab: number = 0
-  @Local isInitializing: boolean = true;
 
   private tabsController: TabsController = new TabsController()
 
@@ -39,13 +39,15 @@ struct Index {
     EventHub.on(EventKey.FetchData, () => {
       this.loadData()
     })
-    // 页面加载时立即开始检查
-    this.loadData();
+    // 首次进入刷新数据
+    setTimeout(() => {
+      this.loadData()
+    }, 600)
   }
 
   build() {
     // 初始化中，显示过渡界面
-    if (this.isInitializing) {
+    if (PixState.isInitializing) {
       // Logo
       this.LogoStartLoading()
     }
@@ -98,7 +100,7 @@ struct Index {
   }
 
   @Builder
-  CustomTabBarBuilder(title: ResourceStr, index: number, TabIcon: Resource) {
+  CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
     Flex({
       direction: FlexDirection.Column,
       justifyContent: TabBarJustifyContent(PixState.widthBp, PixState.heightBp),
@@ -106,7 +108,7 @@ struct Index {
       space: { main: LengthMetrics.vp(3) }
     })
     {
-      SymbolGlyph(TabIcon)
+      SymbolGlyph(this.currentTab === index ? currentTabIcon : tabIcon)
         .fontColor([this.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY) // 分层颜色
         .fontSize(TabIconFontSize(PixState.widthBp, PixState.heightBp))
@@ -132,7 +134,7 @@ struct Index {
         TabContent() {
           this.TabContentBuilder(index)
         }
-        .tabBar(this.CustomTabBarBuilder(item.name, index, item.icon))
+        .tabBar(this.CustomTabBarBuilder(item.name, index, item.icon, item.icon_fill))
         .gesture(
           // 二级Tabs第一个页签向左拖动时，触发手势事件，当Tab栏竖排时不触发
           PanGesture({
@@ -201,10 +203,11 @@ struct Index {
   async loadData() {
     PixState.isLoading = true;
     // 开始初始化，标记为 true，显示过渡页
-    this.isInitializing = true;
+    PixState.isInitializing = true;
     try {
       // 尝试获取本地 Token
       if (!PixState.refreshToken) {
+        logger.info('refresh token not found saved, trying to getData...');
         PixState.refreshToken = await kvDbUtil.getData<string>('refresh_token', '');
       }
       // 存在本地 Token 且当前未登录，尝试登录
@@ -227,11 +230,11 @@ struct Index {
           return;
         }
       }
-      // 登录成功（或者原本就处于登录状态），获取推荐数据
-      // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 也会自动刷新并成功
+      // 登录成功（或者原本就处于登录状态），获取各数据
+      // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
       if (PixState.pixiv.isLogin()) {
-        const rec = await PixState.pixiv.getRecommended(true);
-        PixState.illustRecommends = rec.illusts;
+        // 加载主页内容
+        await homeViewModel.loadHomeData()
       } else {
         logger.warn('User not logged in, cannot load data.');
       }
@@ -241,17 +244,17 @@ struct Index {
     } finally {
       // 统一关闭 Loading
       PixState.isLoading = false;
-      this.isInitializing = false
+      PixState.isInitializing = false
     }
   }
 
   getTabList(): TabBuild[] {
     const tabList: TabBuild[] = [
-      { name: $r('app.string.home'), icon: $r('sys.symbol.house_fill') },
-      { name: $r('app.string.rank'), icon: $r('sys.symbol.ranking_badge_bolt') },
-      { name: $r('app.string.favorite'), icon: $r('sys.symbol.folder_fill') },
-      { name: $r('app.string.search'), icon: $r('sys.symbol.AI_search') },
-      { name: $r('app.string.more'), icon: $r('sys.symbol.square_fill_grid_2x2') }
+      { name: $r('app.string.home'), icon: $r('sys.symbol.house'), icon_fill: $r('sys.symbol.house_fill') },
+      { name: $r('app.string.rank'), icon: $r('sys.symbol.ranking_badge_bolt'), icon_fill: $r('sys.symbol.ranking_badge_bolt') },
+      { name: $r('app.string.favorite'), icon: $r('sys.symbol.heart'), icon_fill: $r('sys.symbol.heart_fill') },
+      { name: $r('app.string.search'), icon: $r('sys.symbol.curve_magnifyingglass'), icon_fill: $r('sys.symbol.AI_search') },
+      { name: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
     ]
     return tabList
   }

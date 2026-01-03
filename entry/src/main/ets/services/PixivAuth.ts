@@ -217,7 +217,7 @@ export class PixivAuth {
       logger.info('Refresh token login successful!');
       return auth;
     } catch (error: any) {
-      logger.error('Refresh token login failed!');
+      logger.error('Refresh token login failed!', error);
       throw new Error('Refresh token 无效或已过期');
     }
   }

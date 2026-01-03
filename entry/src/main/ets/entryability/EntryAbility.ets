@@ -7,6 +7,8 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { AvoidanceManager, SmartAvoidance } from '../utils/AvoidManager';
 import { PixState } from './AppState';
 import { Logger } from '../utils/Logger';
+import { ImageKnife } from '@ohos/imageknifepro';
+import { settingManager } from './SettingManager';
 
 const logger = Logger.getInstance();
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -28,6 +30,7 @@ export default class EntryAbility extends UIAbility {
       await preferenceUtil.init(this.context, 'pixark_preference');
       // 初始化KV数据库
       await kvDbUtil.initKVManager(this.context, 'pixark')
+      await settingManager.loadAll();
       logger.info('Init', 'preferenceUtil and kvDbUtil initialized successfully.');
     } catch (error) {
       logger.error('Init', 'preferenceUtil or kvDbUtil initialization failed.', error);
@@ -39,7 +42,11 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       logger.error('ColorMode', 'Failed to set colorMode.', err);
     }
-    logger.info('Lifecycle', 'EntryAbility onCreate');
+    // 初始化 ImageKnife 文件缓存
+    await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
+    // 全局添加 Pixiv 必需的 Referer
+    ImageKnife.getInstance().addHeader('Referer', 'https://www.pixiv.net/') ;
+    logger.info('Lifecycle', 'EntryAbility onCreate End');
   }
 
   onDestroy(): void {
