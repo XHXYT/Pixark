@@ -78,8 +78,8 @@ export class PixivService {
     return this.data.getSpotlight(category)
   }
 
-  async getRecommended(includeRanking: boolean = true): Promise<PixivListResult> {
-    return this.data.getRecommended(includeRanking);
+  async getRecommended(includeRanking: boolean = true, url?: string): Promise<PixivListResult> {
+    return this.data.getRecommended(includeRanking, url);
   }
 
   async getIllustDetail(illustId: number): Promise<PixivIllust> {

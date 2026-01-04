@@ -35,6 +35,18 @@
     {
       "name": "more",
       "value": "更多"
+    },
+    {
+      "name": "recommend_not_tips",
+      "value": "没有更多推荐可加载了"
+    },
+    {
+      "name": "loading_failed",
+      "value": "加载失败，请重试"
+    },
+    {
+      "name": "loading_more",
+      "value": "加载更多数据中..."
     }
   ]
 }

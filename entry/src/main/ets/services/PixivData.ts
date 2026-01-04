@@ -89,27 +89,42 @@ export class PixivData {
     }
   }
 
-
   /**
    * 获取个性化推荐
-   * 根据用户的收藏和浏览历史推荐作品
-   * @param includeRanking 是否在推荐中混入排行榜作品
+   * @param includeRanking 是否在推荐中混入排行榜作品 (默认: true)
+   * @param url 分页的 next_url (可选，如果传入了 url，includeRanking 参数将被忽略)
    * @returns 返回推荐作品列表
    */
-  async getRecommended(includeRanking: boolean = true): Promise<PixivListResult> {
+  async getRecommended(includeRanking: boolean = true, url?: string): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
 
-    const response = await this.auth.axiosInstance.get('/v1/illust/recommended', {
-      params: {
+    let requestUrl = '/v1/illust/recommended';
+    let params: Record<string, any> | undefined = undefined;
+    if (url) {
+      // --- 优先处理分页 URL ---
+      // 兼容处理：完整URL、相对路径、纯参数字符串
+      if (url.startsWith('http')) {
+        requestUrl = url;
+      } else if (url.startsWith('/')) {
+        requestUrl = url;
+      } else {
+        // 兜底：如果是类似 "filter=xxx" 的参数串
+        requestUrl = `/v1/illust/recommended?${url}`;
+      }
+    } else {
+      // --- 常规加载 ---
+      params = {
         filter: 'for_android',
         include_ranking_illusts: String(includeRanking),
-      },
-    });
+      };
+    }
+    const response = await this.auth.axiosInstance.get(requestUrl, { params });
     return {
       illusts: response.data.illusts || [],
       next_url: response.data.next_url || null,
     };
   }
+
 
   /**
    * 获取作品详情

@@ -110,7 +110,7 @@ struct Index {
   }
 
   @Builder
-  CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
+  TabBarButton(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
     Flex({
       direction: FlexDirection.Column,
       justifyContent: TabBarJustifyContent(PixState.widthBp, PixState.heightBp),
@@ -133,6 +133,26 @@ struct Index {
     .width('100%')
     .height('100%')
     .padding({ top: 8 })
+  }
+  @Builder
+  CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
+    if (this.currentTab === 0) {
+      // 绑定双击事件
+      Column() {
+        this.TabBarButton(title, index, tabIcon, currentTabIcon)
+      }
+      .priorityGesture(
+        TapGesture({ count: 2 })
+          .onAction(() => {
+            // 双击刷新主页推荐图片数据
+            homeViewModel.refreshRecommended()
+          })
+      );
+    } else {
+      Column() {
+        this.TabBarButton(title, index, tabIcon, currentTabIcon)
+      }
+    }
   }
   @Builder
   CustomTab() {
@@ -175,17 +195,17 @@ struct Index {
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         this.currentTab = index
-      },AnimationSpeed_300, 'app', 0)
+      }, AnimationSpeed_300, 'app', 0)
     })
-    .onChange((index) => {
-      animation.animTo(() => {
-        this.currentTab = index
-      },AnimationSpeed_300, 'app', 0)
-    })
+    // .onChange((index) => {
+    //   animation.animTo(() => {
+    //     this.currentTab = index
+    //   },AnimationSpeed_300, 'app', 0)
+    // })
     .onAnimationStart((index: number, targetIndex: number) => {
       animation.animTo(() => {
         this.currentTab = targetIndex;
-      },AnimationSpeed_300, 'app', 0)
+      }, AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
       this.tabsController.changeIndex(this.currentTab)

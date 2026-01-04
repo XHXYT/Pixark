@@ -26,11 +26,13 @@ export struct PixivImage {
         progressListener: (progress: number) => {
           // console.log('下载进度：' + progress + '%')
           this.progress(progress)
+        },
+        border: {
+          radius: this.imageBorderRadius
         }
       }
     })
       .clip(true)
       .size({ width: this.imageWidth, height: this.imageHeight})
-      .borderRadius(this.imageBorderRadius)
   }
 }
