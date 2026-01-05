@@ -16,7 +16,10 @@ export struct Home {
       List({ scroller: homeViewModel.listScroller }) {
         // 顶部亮点 (全部分类)
         ListItem() {
-          BannerView({ bannerList: homeViewModel.spotlightList })
+          BannerView({
+            bannerList: homeViewModel.spotlightList,
+            swiperMargin: PixState.widthBp < 2 ? ListItemMarginValue(PixState.widthBp, PixState.heightBp) - 9 : 0
+          })
         }
 
         // 推荐作者 (横向滚动 List)
@@ -49,6 +52,7 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
+        .margin(({ left: ListItemMarginValue(PixState.widthBp, PixState.heightBp), right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)}))
 
         ListItem() {
           Column() {
@@ -81,10 +85,10 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
+        .margin({ left: ListItemMarginValue(PixState.widthBp, PixState.heightBp), right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)})
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
-      .padding({ left: ListItemMarginValue(PixState.widthBp, PixState.heightBp), right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)})
     }
     .onRefreshing(async () => {
       // 下拉刷新所有主页数据

@@ -32,7 +32,6 @@ export struct PixivImage {
         }
       }
     })
-      .clip(true)
       .size({ width: this.imageWidth, height: this.imageHeight})
   }
 }

@@ -10,7 +10,9 @@ import { PixState } from "../entryability/AppState";
 @ComponentV2
 export struct BannerView {
 
+  @Param swiperMargin: Length = 12
   @Param @Require bannerList: SpotlightArticle[]
+
   private bannerDataSource: BannerDataSource = new BannerDataSource([])
 
   aboutToAppear(): void {
@@ -24,7 +26,6 @@ export struct BannerView {
       }, (item: SpotlightArticle) => item.id + item.title)
     }.loop(true)
     .width('100%')
-    .itemSpace(9)
     .autoPlay(true)
     .interval(6000)
     .indicator(false)
@@ -43,7 +44,6 @@ export struct BannerView {
       })
         .layoutWeight(1)
         .aspectRatio(1.75)
-        .shadow({ radius: 16, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
       // 遮罩
       Row()
         .zIndex(10)
@@ -51,6 +51,7 @@ export struct BannerView {
         .borderRadius(16)
         .aspectRatio(1.75)
         .backgroundColor(PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
+        .shadow({ radius: 16, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
       // 标题
       Text(article.title)
         .fontColor(Color.White)
@@ -62,13 +63,13 @@ export struct BannerView {
         .alignSelf(ItemAlign.Start)
     }
     .clip(true)
-    .padding({ top: 16, bottom: 16 })
+    .padding({ top: 16, bottom: 16, left: 9, right: 9 })
     .onClick(() => {
       console.log(' 点击图片 ')
 
     })
+    .margin(({ left: this.swiperMargin, right: this.swiperMargin }))
   }
-
 }
 
 class BannerDataSource extends BaseDataSource<SpotlightArticle> {

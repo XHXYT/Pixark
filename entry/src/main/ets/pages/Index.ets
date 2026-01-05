@@ -58,6 +58,7 @@ struct Index {
       }
       .hideToolBar(true)
       .hideTitleBar(true)
+      .mode(NavigationMode.Stack)
     }
     // 未登录显示登录页
     else {
@@ -68,6 +69,7 @@ struct Index {
       .width('100%')
       .hideToolBar(true)
       .hideTitleBar(true)
+      .mode(NavigationMode.Stack)
     }
   }
 
@@ -136,23 +138,17 @@ struct Index {
   }
   @Builder
   CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
-    if (this.currentTab === 0) {
-      // 绑定双击事件
-      Column() {
-        this.TabBarButton(title, index, tabIcon, currentTabIcon)
-      }
-      .priorityGesture(
-        TapGesture({ count: 2 })
-          .onAction(() => {
-            // 双击刷新主页推荐图片数据
-            homeViewModel.refreshRecommended()
-          })
-      );
-    } else {
-      Column() {
-        this.TabBarButton(title, index, tabIcon, currentTabIcon)
-      }
+    // 绑定双击事件
+    Column() {
+      this.TabBarButton(title, index, tabIcon, currentTabIcon)
     }
+    .gesture(
+      TapGesture({ count: 2 })
+        .onAction(() => {
+          // 双击刷新主页推荐图片数据
+          homeViewModel.refreshRecommended()
+        })
+    );
   }
   @Builder
   CustomTab() {
