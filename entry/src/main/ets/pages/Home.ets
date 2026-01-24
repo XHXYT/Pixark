@@ -1,10 +1,14 @@
 import { BannerView } from "../components/BannerView";
-import { PixivImage } from "../components/PixivImage";
+import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, PixivUser } from "../services/PixivTypes";
 import { ListItemMarginValue, WaterFlowColumnsTemplate } from "../utils/breakpoint/BreakPoint";
 import { createLogger } from "../utils/Logger";
+import { SnapShotUtils } from "../utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
+import { image } from "@kit.ImageKit";
+import { DetailPageParams } from "../entity/IllustDetailEntity";
+import { CardUtil } from "../utils/CardUtil";
 
 const logger = createLogger('Home')
 
@@ -30,7 +34,7 @@ export struct Home {
               ForEach(homeViewModel.recommendedUsers, (user: PixivUser) => {
                 ListItem() {
                   Column() {
-                    PixivImage({
+                    PixivImageComponent({
                       imageUrl: user.profile_image_urls.medium,
                       imageWidth: 50, imageHeight: 50,
                       imageBorderRadius: 50
@@ -61,13 +65,18 @@ export struct Home {
             WaterFlow() {
               ForEach(homeViewModel.recommendedIllusts, (illust: PixivIllust) => {
                 FlowItem() {
-                  PixivImage({
+                  PixivImageComponent({
                     imageUrl: illust.image_urls.medium,
                     imageObjectFit: ImageFit.Auto,
-                    imageBorderRadius: 16
+                    imageBorderRadius: 16,
                   })
+                    .id(CardUtil.getFlowItemIdByIndex(illust.id))
+                    // .visibility(homeViewModel.hiddenIllustId === illust.id ? Visibility.None : Visibility.Visible)
                 }
-              })
+                .onClick(() => {
+                  this.onCardClick(illust)
+                })
+              }, (iilust: PixivIllust) => `${iilust.id}${iilust.title}`)
             }
             .rowsGap(5)
             .columnsGap(10)
@@ -103,6 +112,40 @@ export struct Home {
       .fontSize(18)
       .fontWeight(FontWeight.Bold)
       .margin({ bottom: 8})
+  }
+
+  // 点击处理逻辑
+  private async onCardClick(illust: PixivIllust) {
+    const sourceCardId = CardUtil.getFlowItemIdByIndex(illust.id)
+    try {
+      // 获取截图
+      this.getUIContext().getComponentSnapshot().get(sourceCardId, (err: BusinessError, pixelMap: image.PixelMap) => {
+        if (err) {
+          logger.error('截图失败，使用普通跳转', JSON.stringify(err));
+          this.normalPush(illust);
+          return;
+        }
+        // 截图成功
+        SnapShotUtils.pixelMap = pixelMap;
+        // 通知 ViewModel 隐藏卡片
+        homeViewModel.hideCard(illust.id);
+        const params: DetailPageParams = {
+          id: illust.id,
+          fromId: sourceCardId,
+          illust: illust
+        }
+        // 跳转详情页，带上 fromId
+        PixState.pageStack.pushPathByName('illust_detail', params, true);
+      });
+    } catch (e) {
+      logger.error('点击处理异常', JSON.stringify(e));
+      this.normalPush(illust);
+    }
+  }
+
+  // 兜底的普通跳转
+  private normalPush(illust: PixivIllust) {
+    homeViewModel.pushTo('illust', illust);
   }
 
 }

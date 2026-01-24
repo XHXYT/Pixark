@@ -1,9 +1,10 @@
 import { PixivService } from "../services/PixivService"
 import { PixivIllust } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
+import { window } from "@kit.ArkUI"
 
 @ObservedV2
-class _PixState {
+export class _PixState {
   // Pixiv
   @Trace pixiv = new PixivService()
   // 登录方式
@@ -17,6 +18,16 @@ class _PixState {
   // 是否登录
   @Trace isLoggedIn: boolean = false
 
+  // 窗口对象
+  public static window: window.Window;
+  /** @description 窗口高度 -px */
+  public static windowWidth_px: number;
+  /** @description 窗口高度 -px */
+  public static windowHeight_px: number;
+  /** @description 状态栏高度 -px */
+  public static topAvoidAreaHeight_px: number;
+  /** @description 导航栏高度 -px */
+  public static navigationIndicatorHeight_px: number;
   /** @description 导航栏高度 */
   @Trace bottomRectHeight: number = 0
   /** @description 状态栏高度 */
@@ -25,9 +36,9 @@ class _PixState {
   @Trace leftAvoidWidth: number = 0
   /** @description 右侧避让宽度 */
   @Trace rightAvoidWidth: number = 0
-  /** @description 窗口高度 */
+  /** @description 窗口高度 -vp */
   @Trace windowHeight: number = 0
-  /** @description 窗口宽度 */
+  /** @description 窗口宽度 -vp */
   @Trace windowWidth: number = 0
   /** @description 当前宽度断点 */
   @Trace widthBp: number = 0

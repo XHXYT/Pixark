@@ -39,12 +39,8 @@ export interface PixivIllust {
   type: string;               // 作品类型 (例如: illust, manga)
   caption: string;            // 作品描述/简介
   user: PixivUser;
-  image_urls: {               // 图片 URL 列表 (注意：这只是封面或单图，多图需看 meta_pages)
-    large: string;            // 大图 URL
-    medium: string;           // 中图 URL
-    square_medium: string;    // 方形中图 URL (常用于列表封面)
-  };
-  tags: Array<{ tag: string }>; // 作品标签列表
+  image_urls: PixivImage;
+  tags: Array<PixivTag>;      // 作品标签列表
   tools: string[];            // 使用的绘图工具 (如 SAI, Photoshop)
   created_time: string;       // 创建时间
   width: number;              // 图片宽度
@@ -54,6 +50,29 @@ export interface PixivIllust {
 
   // 仅在收藏接口返回的作品里存在：
   bookmark_id?: number;       // 标记该作品在用户收藏列表中的 ID，用于分页
+
+  /**
+   * 多图页面数据
+   * 注意：只有当 meta_pages.length > 1 时，或者详情页接口返回的数据里，才会有此字段
+   * 列表接口通常为了省流量不返回此字段
+   *
+   * 结构说明：
+   * meta_pages 是一个数组，每个元素代表一页。
+   */
+  meta_pages?: Array<PixivImage>;
+}
+
+export interface PixivImage {
+  large: string;            // 大图 URL
+  medium: string;           // 中图 URL
+  square_medium: string;    // 方形中图 URL (常用于列表封面)
+  original?: string;        // 原图，一般存在于详情页
+}
+
+// 标签接口
+export interface PixivTag {
+  name: string;
+  translated_name?: string | null;
 }
 
 /**

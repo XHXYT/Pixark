@@ -86,6 +86,10 @@ export class PixivService {
     return this.data.getIllustDetail(illustId);
   }
 
+  async getRelatedIllusts(illustId: number): Promise<PixivListResult> {
+    return this.data.getRelatedIllusts(illustId);
+  }
+
   async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivListResult> {
     return this.data.getUserIllusts(userId, type);
   }

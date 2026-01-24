@@ -125,7 +125,6 @@ export class PixivData {
     };
   }
 
-
   /**
    * 获取作品详情
    * 包含图片的高清地址、标签、画师信息等
@@ -139,6 +138,30 @@ export class PixivData {
     });
     return response.data.illust;
   }
+
+  /**
+   * 获取相关推荐作品
+   * @param illustId 当前插画 ID
+   * @returns 返回相关推荐作品列表
+   */
+  async getRelatedIllusts(illustId: number): Promise<PixivListResult> {
+    if (!this.auth.isLogin()) throw new Error('请先登录');
+    logger.info(`Fetching related illusts for ID: ${illustId}`);
+    // 使用 v2 接口获取相关推荐，功能比 v1 更全
+    const response = await this.auth.axiosInstance.get('/v2/illust/related', {
+      params: {
+        illust_id: illustId,
+        filter: 'for_android',
+        // seed: illustId // 可选，有时为了结果稳定性可以加上
+      },
+    });
+
+    return {
+      illusts: response.data.illusts || [],
+      next_url: response.data.next_url || null,
+    };
+  }
+
 
   /**
    * 获取用户的作品列表

@@ -16,6 +16,8 @@ class HomeViewModel {
 
   // 存储下一页的 URL，用于加载更多
   @Trace nextRecommendedUrl: string = '';
+  // 记录当前被点击隐藏的 ID，-1 表示没有
+  @Trace hiddenIllustId: number = -1
 
   isRefreshRecommend: boolean = false
   // 是否正在加载更多（用于防止滚动到底部重复触发）
@@ -32,6 +34,27 @@ class HomeViewModel {
       scrollForward: NestedScrollMode.PARENT_FIRST,
       scrollBackward: NestedScrollMode.SELF_FIRST,
     };
+  }
+
+  pushTo(page: 'spot' | 'author' | 'illust', data: SpotlightArticle | PixivUser | PixivIllust) {
+    switch (page) {
+      case 'spot':
+        break
+      case 'author':
+        break
+      default:
+        PixState.pageStack.pushPathByName('illust_detail', data, true)
+    }
+  }
+
+  // 隐藏指定 ID 的卡片
+  hideCard(id: number) {
+    this.hiddenIllustId = id;
+  }
+
+  // 恢复卡片显示（用于动画结束后）
+  restoreIllustVisibility() {
+    this.hiddenIllustId = -1;
   }
 
   async loadHomeData() {

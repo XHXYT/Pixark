@@ -1,19 +1,24 @@
 {
   "routerMap": [
     {
-      "name": "WebLogin",
+      "name": "web_login",
       "pageSourceFile": "src/main/ets/view/WebLogin.ets",
       "buildFunction": "WebLoginPage"
     },
     {
-      "name": "Register",
+      "name": "register",
       "pageSourceFile": "src/main/ets/view/RegisterPage.ets",
       "buildFunction": "RegisterPage"
     },
     {
-      "name": "TokenLogin",
+      "name": "token_login",
       "pageSourceFile": "src/main/ets/view/TokenLogin.ets",
       "buildFunction": "TokenLoginPage"
+    },
+    {
+      "name": "illust_detail",
+      "pageSourceFile": "src/main/ets/view/IllustDetailPage.ets",
+      "buildFunction": "IllustDetailBuilder"
     }
   ]
 }

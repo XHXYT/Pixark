@@ -1,7 +1,7 @@
 
 import { ConfigurationConstant } from "@kit.AbilityKit";
 import { BaseDataSource } from "../viewmodel/BaseDataSource";
-import { PixivImage } from "./PixivImage";
+import { PixivImageComponent } from "./PixivImage";
 import { SpotlightArticle } from "../services/PixivTypes";
 import { HomeBannerBannerMargin, HomeBannerDisplayCount } from "../utils/breakpoint/BreakPoint";
 import { PixState } from "../entryability/AppState";
@@ -38,7 +38,7 @@ export struct BannerView {
   @Builder BannerItem(article: SpotlightArticle) {
     Stack({ alignContent: Alignment.BottomStart }) {
       // 封面
-      PixivImage({
+      PixivImageComponent({
         imageUrl: article.thumbnail,
         imageBorderRadius: 16
       })

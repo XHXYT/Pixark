@@ -131,6 +131,13 @@ export const WaterFlowColumnsTemplate = BreakpointFunction<string>({
   ['xl']: "1fr 1fr 1fr 1fr 1fr 1fr"
 })
 
+export const GridColumnsTemplate = BreakpointFunction<string>({
+  ['sm']: "1fr 1fr 1fr",
+  ['md']: "1fr 1fr 1fr 1fr 1fr",
+  ['lg']: "1fr 1fr 1fr 1fr 1fr 1fr",
+  ['xl']: "1fr 1fr 1fr 1fr 1fr 1fr 1fr"
+})
+
 /**列表列数（代理页）*/
 export const ProxyListLanes = BreakpointFunction2D<number>({
   ['sm']: {['hsm']: 2, ['hmd']: 2, ['hlg']: 2},

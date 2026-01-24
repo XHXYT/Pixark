@@ -19,7 +19,7 @@ export struct Login {
         .margin({ bottom: 20 })
         .onClick(() => {
           // 跳转到 Web 登录页
-          PixState.pageStack.pushPathByName('WebLogin', null);
+          PixState.pageStack.pushPathByName('web_login', null);
         })
 
       // 注册账号 (跳转到注册页)
@@ -30,7 +30,7 @@ export struct Login {
         .margin({ bottom: 20 })
         .onClick(() => {
           // 跳转到注册页
-          PixState.pageStack.pushPathByName('Register', null);
+          PixState.pageStack.pushPathByName('register', null);
         })
 
       // Token 登录 (跳转到 Token 输入页)
@@ -42,7 +42,7 @@ export struct Login {
         .fontColor('#333333')
         .onClick(() => {
           // 跳转到 Token 登录页
-          PixState.pageStack.pushPathByName('TokenLogin', null);
+          PixState.pageStack.pushPathByName('token_login', null);
         })
     }
     .width('100%')

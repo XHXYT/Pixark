@@ -5,7 +5,7 @@ import { kvDbUtil } from '../utils/KVdbUtil';
 import { toastUtil } from '../utils/ToastUtils';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { AvoidanceManager, SmartAvoidance } from '../utils/AvoidManager';
-import { PixState } from './AppState';
+import { PixState, _PixState } from './AppState';
 import { Logger } from '../utils/Logger';
 import { ImageKnife } from '@ohos/imageknifepro';
 import { settingManager } from './SettingManager';
@@ -127,6 +127,10 @@ export default class EntryAbility extends UIAbility {
         let WindowHeight = UIContext.px2vp(rect.height)
         let WindowWidth = UIContext.px2vp(rect.width)
         const widthBp: WidthBreakpoint = UIContext.getWindowWidthBreakpoint()
+        // 获取窗口宽度和高度
+        _PixState.window = windowStage.getMainWindowSync();
+        _PixState.windowWidth_px = rect.width;
+        _PixState.windowHeight_px = rect.height;
         PixState.widthBp = widthBp
         PixState.windowHeight = WindowHeight
         PixState.windowWidth = WindowWidth
@@ -142,6 +146,8 @@ export default class EntryAbility extends UIAbility {
             // 980px 约等于 512vp
             PixState.windowHeight = WindowHeight
             PixState.windowWidth = WindowWidth
+            _PixState.windowWidth_px = data.width;
+            _PixState.windowHeight_px = data.height;
             // 动态监听断点
             this.onWidthBpChange(UIContext)
             this.onHeightBpChange(WindowHeight, WindowWidth)

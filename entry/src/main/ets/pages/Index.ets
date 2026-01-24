@@ -14,13 +14,14 @@ import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition
 import { LengthMetrics } from '@kit.ArkUI';
 import { animation } from '../utils/AnimationUtil';
 import { TabBuild } from '../entity/IndexEntity';
-import { AnimationSpeed_300 } from '../entity/Constants';
 import { Home } from './Home';
 import { SearchPage } from './Search';
 import { Favorite } from './Favorite';
 import { Rank } from './Rank';
 import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { Login } from './Login';
+import Constants from '../entity/Constants';
+import { AnimateCallback, CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
 
 const logger = createLogger('Index')
 
@@ -29,8 +30,17 @@ const logger = createLogger('Index')
 struct Index {
 
   @Local currentTab: number = 0
+  @Local isEnabled: boolean = true
 
   private tabsController: TabsController = new TabsController()
+  // 允许自定义转换的页面的名称 自
+  private allowedCustomTransitionFromPageNames: string[] =
+    ['illust_detail',
+    ];
+  // 允许自定义转换的页面的名称 至
+  private allowedCustomTransitionToPageNames: string[] =
+    ['illust_detail',
+    ];
 
   aboutToAppear() {
     logger.info('Page aboutToAppear');
@@ -58,7 +68,69 @@ struct Index {
       }
       .hideToolBar(true)
       .hideTitleBar(true)
+      // .enabled(this.isEnabled)
       .mode(NavigationMode.Stack)
+    /*  .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
+        if ((!from || !to) || (!from.name || !to.name) || (!from.navDestinationId || !to.navDestinationId)) {
+          return undefined;
+        }
+        let fromParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(from.navDestinationId);
+        let toParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(to.navDestinationId);
+        CustomTransition.getInstance().operation = operation;
+        // Follow the hand interaction transition.
+        if (CustomTransition.getInstance().isInteractive) {
+          let customAnimation: NavigationAnimatedTransition = {
+            onTransitionEnd: () => {
+              this.isEnabled = true;
+              CustomTransition.getInstance().recoverState();
+              CustomTransition.getInstance().proxy = undefined;
+            },
+            transition: (transitionProxy: NavigationTransitionProxy) => {
+              CustomTransition.getInstance().proxy = transitionProxy;
+              this.isEnabled = false;
+              if (fromParam.onInteractive) {
+                fromParam.onInteractive();
+              }
+              if (toParam.onInteractive) {
+                toParam.onInteractive();
+              }
+            },
+            isInteractive: true
+          };
+          return customAnimation;
+        }
+
+        // User-defined transition routes are controlled by the from and to names.
+        if (!this.isCustomTransitionEnabled(from.name, to.name)) {
+          return undefined;
+        }
+
+        // For the scene where button A is clicked to go to the custom transition and button B is clicked to go to the default transition,
+        // it is necessary to judge whether the animation is registered to decide whether to go to the custom transition.
+        // fromPage and toPage registerNavParam do not pass animation parameters, go to the default transition.
+        if (!fromParam.animation && !toParam.animation) {
+          return undefined;
+        }
+
+        // After all judgments are completed, construct customAnimation to the system side call, execute the custom transition animation.
+        let customAnimation: NavigationAnimatedTransition = {
+          onTransitionEnd: (isSuccess: boolean) => {
+            logger.info(`current transition result is ${isSuccess}`);
+            this.isEnabled = true;
+          },
+          timeout: 1000,
+          transition: (transitionProxy: NavigationTransitionProxy) => {
+            this.isEnabled = false;
+            if (fromParam.animation) {
+              fromParam.animation(transitionProxy);
+            }
+            if (toParam.animation) {
+              toParam.animation(transitionProxy);
+            }
+          }
+        };
+        return customAnimation;
+      })*/
     }
     // 未登录显示登录页
     else {
@@ -181,27 +253,21 @@ struct Index {
       })
     }
     .zIndex(1)
+    .barOverlap(true)
+    .barBackgroundBlurStyle(BlurStyle.Thin)
     .backgroundColor($r('sys.color.background_primary'))
-    .barOverlap(false)
-    // .scrollable(!this.isSecondary)
     .vertical(TabBarVertical(PixState.widthBp, PixState.heightBp))
-    .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) :
-      TabBarWidth(PixState.widthBp, PixState.heightBp))
+    .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
     .barHeight((PixState.widthBp <= 2 && !PixState.windowMode) ? TabBarHeight(PixState.widthBp, PixState.heightBp) : TabBarAvoidHeight(PixState.widthBp, PixState.heightBp))
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         this.currentTab = index
-      }, AnimationSpeed_300, 'app', 0)
+      }, Constants.AnimationSpeed_300, 'app', 0)
     })
-    // .onChange((index) => {
-    //   animation.animTo(() => {
-    //     this.currentTab = index
-    //   },AnimationSpeed_300, 'app', 0)
-    // })
     .onAnimationStart((index: number, targetIndex: number) => {
       animation.animTo(() => {
         this.currentTab = targetIndex;
-      }, AnimationSpeed_300, 'app', 0)
+      }, Constants.AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
       this.tabsController.changeIndex(this.currentTab)
@@ -283,6 +349,17 @@ struct Index {
       { name: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
     ]
     return tabList
+  }
+
+  private isCustomTransitionEnabled(fromName: string, toName: string): boolean {
+    // Both click and return require custom transitions, so they need to be judged separately.
+    if ((this.allowedCustomTransitionFromPageNames.includes(fromName)
+      && this.allowedCustomTransitionToPageNames.includes(toName))
+      || (this.allowedCustomTransitionFromPageNames.includes(toName)
+        && this.allowedCustomTransitionToPageNames.includes(fromName))) {
+      return true;
+    }
+    return false;
   }
 
 }
