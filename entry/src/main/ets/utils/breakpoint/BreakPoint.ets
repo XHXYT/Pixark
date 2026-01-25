@@ -11,6 +11,8 @@ export const HomeBannerBannerMargin = BreakpointFunction<number>({
   ['sm']: 0, ['md']: 12, ['lg']: 64, ['xl']: 64
 })
 
+export const Window_BAR_HEIGHT = 73;
+
 /**Tab栏竖向方式*/
 export const TabBarJustifyContent = BreakpointFunction2D<number>({
   ['sm']: {['hsm']: FlexAlign.Start, ['hmd']: FlexAlign.Start, ['hlg']: FlexAlign.Start},
@@ -61,7 +63,7 @@ export const WindowTabBarWidth = BreakpointFunction2D<string>({
 
 /**Tab栏高度-避让底部*/
 export const TabBarAvoidHeight = BreakpointFunction2D<string>({
-  ['sm']: {['hsm']: '67vp', ['hmd']: '77vp', ['hlg']: '77vp'},
+  ['sm']: {['hsm']: '67vp', ['hmd']: '67vp', ['hlg']: '77vp'},
   ['md']: {['hsm']: '100%', ['hmd']: '77vp', ['hlg']: '77vp'},
   ['lg']: {['hsm']: '100%', ['hmd']: '100%', ['hlg']: '100%'},
   ['xl']: {['hsm']: '100%', ['hmd']: '100%', ['hlg']: '100%'},

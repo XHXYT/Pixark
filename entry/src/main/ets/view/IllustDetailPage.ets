@@ -26,64 +26,59 @@ struct IllustDetail {
         TopBuilder({
           pageInfos: PixState.pageStack
         })
-        // 内容
-        List({ scroller: this.scroller, space: 10 }) {
-          // 图片列表
-          ForEach(iDV.imageList, (illust: PixivImage, index: number) => {
-            ListItem() {
-              PixivImageComponent({
-                imageUrl: illust.medium,
-                imageObjectFit: ImageFit.Auto,
-                imageBorderRadius: 0,
-              })
-              // 给第一张图设置固定的 ID，用于计算动画终点位置
-                .id(index === 0 ? iDV.sharedId : '')
-            }
-          }, (url: PixivImage) => url.medium)
-
-          // 详情信息卡片 (白色背景)
-          ListItem() {
-            this.InfoCard()
-          }
-
-          // 评论入口
-          ListItem() {
-            Row() {
-              Row({ space: 8 }) {
-                SymbolGlyph($r('sys.symbol.ellipsis_message_1'))
-                  .fontSize(19)
-                Text('查看评论')
-                  .fontSize(16)
+        Row() {
+          // 插画内容 + (信息内容)
+          List({ scroller: this.scroller, space: 10 }) {
+            // 图片列表
+            ForEach(iDV.imageList, (illust: PixivImage, index: number) => {
+              ListItem() {
+                PixivImageComponent({
+                  imageUrl: illust.medium,
+                  imageObjectFit: ImageFit.Auto,
+                  imageBorderRadius: 0,
+                })
+                // 给第一张图设置固定的 ID，用于计算动画终点位置
+                  .id(index === 0 ? iDV.sharedId : illust.medium)
               }
-              Blank()
-              SymbolGlyph($r('sys.symbol.chevron_right'))
-                .fontSize(19)
-            }
-            .width('100%')
-            .backgroundColor(Color.White)
-            .borderRadius(12)
-            .onClick(() => {
-              // TODO: 跳转到评论页或弹出评论层
-              toastUtil.showToast({ message: '开发中-弹出评论区半模态窗口' })
             })
-          }
 
-          // 相关推荐
-          ListItem() {
-            this.RelatedSection()
+            if (PixState.widthBp < 2) {
+              this.IntroContent()
+            }
+          }
+          .height('100%')
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .contentStartOffset(56 + PixState.topRectHeight)
+          .contentEndOffset(PixState.bottomRectHeight == 0 ?
+            ListItemMarginValue(PixState.widthBp, PixState.heightBp) : PixState.bottomRectHeight)
+          .padding(({
+            left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
+            right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
+          }))
+          .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
+
+          // (信息内容)
+          if (PixState.widthBp >= 2) {
+            List({ space: 10 }) {
+              this.IntroContent()
+            }
+            .height('100%')
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.Spring)
+            .contentEndOffset(PixState.bottomRectHeight == 0 ?
+              ListItemMarginValue(PixState.widthBp, PixState.heightBp) : PixState.bottomRectHeight)
+            .contentStartOffset(56 + PixState.topRectHeight)
+            .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
+            .padding(({
+              left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
+              right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
+            }))
+            .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
           }
 
         }
-        .width('100%')
-        .height('100%')
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
-        .contentEndOffset(PixState.bottomRectHeight)
-        .contentStartOffset(56 + PixState.topRectHeight)
-        .padding(({
-          left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
-          right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
-        }))
+        .justifyContent(FlexAlign.SpaceBetween)
       }
       .alignContent(Alignment.TopStart)
 /*      // 核心布局：使用 Stack 实现层叠效果
@@ -149,6 +144,23 @@ struct IllustDetail {
   }
 
   @Builder
+  IntroContent() {
+    // 详情信息卡片
+    ListItem() {
+      this.InfoCard()
+    }
+    // 评论入口
+    ListItem() {
+      this.Comment()
+    }
+    // 相关推荐
+    ListItem() {
+      this.RelatedSection()
+    }
+  }
+
+  /** 详情信息卡片 */
+  @Builder
   InfoCard() {
     Column({ space: 12 }) {
       // 标题
@@ -166,7 +178,7 @@ struct IllustDetail {
           .fontSize(12)
           .fontColor('#888')
         // 格式化时间
-        Text(iDV.formatDate(iDV.detailData!.created_time))
+        Text(iDV.formatDate(iDV.detailData!.create_date))
           .fontSize(12)
           .fontColor('#888')
       }
@@ -235,6 +247,30 @@ struct IllustDetail {
     .borderRadius(12)
   }
 
+  /** 评论入口 */
+  @Builder
+  Comment() {
+    Row() {
+      Row({ space: 8 }) {
+        SymbolGlyph($r('sys.symbol.ellipsis_message_1'))
+          .fontSize(19)
+        Text('查看评论')
+          .fontSize(16)
+      }
+      Blank()
+      SymbolGlyph($r('sys.symbol.chevron_right'))
+        .fontSize(19)
+    }
+    .width('100%')
+    .backgroundColor(Color.White)
+    .borderRadius(12)
+    .onClick(() => {
+      // TODO: 跳转到评论页或弹出评论层
+      toastUtil.showToast({ message: '开发中-弹出评论区半模态窗口' })
+    })
+  }
+
+  /** 相关推荐 */
   @Builder
   RelatedSection() {
     Column({ space: 12 }) {

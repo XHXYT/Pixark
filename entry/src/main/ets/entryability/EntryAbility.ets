@@ -103,6 +103,13 @@ export default class EntryAbility extends UIAbility {
 
   // 初始化窗口
   async intRectWindow(windowStage: window.WindowStage, UIContext: UIContext) {
+    // 设置自动记忆最后关闭的窗口大小(仅2in1设备生效)
+    try {
+      await windowStage.setWindowRectAutoSave(true);
+      logger.info("WindowAutoSave", 'Succeeded in setting window rect auto-save')
+    } catch (exception) {
+      logger.error("WindowAutoSave", `Failed to set window rect auto-save. Cause code: ${exception.code} smessage: ${exception.message}` )
+    }
     // 获取应用主窗口
     try {
       const windowClass: window.Window = windowStage.getMainWindowSync();
@@ -135,26 +142,24 @@ export default class EntryAbility extends UIAbility {
         PixState.windowHeight = WindowHeight
         PixState.windowWidth = WindowWidth
         logger.info('WindowRect', `窗口高度：${rect.height} px 宽度：${rect.width} px`)
+        // 初始化设备窗口模式
+        // this.onWindowModeChange(windowStage, windowClass)
         // 监听窗口大小变化
-        try {
-          windowClass.on('windowSizeChange', async (data) => {
-            // 动态监听设备窗口模式
-            this.onWindowModeChange(windowStage, windowClass)
-            logger.info('WindowChange', 'Succeeded in enabling the listener for window size changes. Data: ' + JSON.stringify(data))
-            WindowWidth = UIContext.px2vp(data.width)!
-            WindowHeight = UIContext.px2vp(data.height)!
-            // 980px 约等于 512vp
-            PixState.windowHeight = WindowHeight
-            PixState.windowWidth = WindowWidth
-            _PixState.windowWidth_px = data.width;
-            _PixState.windowHeight_px = data.height;
-            // 动态监听断点
-            this.onWidthBpChange(UIContext)
-            this.onHeightBpChange(WindowHeight, WindowWidth)
-          })
-        } catch (exception) {
-          logger.error('WindowChange', `#intRectWindow Failed to enable the listener for window size changes.`, exception)
-        }
+        windowClass.on('windowSizeChange', async (data) => {
+          // 动态监听设备窗口模式
+          this.onWindowModeChange(windowStage, windowClass)
+          logger.info('WindowChange', 'Succeeded in enabling the listener for window size changes. Data: ' + JSON.stringify(data))
+          WindowWidth = UIContext.px2vp(data.width)!
+          WindowHeight = UIContext.px2vp(data.height)!
+          // 980px 约等于 512vp
+          PixState.windowHeight = WindowHeight
+          PixState.windowWidth = WindowWidth
+          _PixState.windowWidth_px = data.width;
+          _PixState.windowHeight_px = data.height;
+          // 动态监听断点
+          this.onWidthBpChange(UIContext)
+          this.onHeightBpChange(WindowHeight, WindowWidth)
+        })
       } catch (error) {
         logger.error('WindowChange', `#intRectWindow Failed to getWindowProperties.`, error)
       }
@@ -189,11 +194,9 @@ export default class EntryAbility extends UIAbility {
       // 设置默认标题栏是否显示
       windowClass.setWindowDecorVisible(false)
       // 设置默认标题栏功能按钮是否显示
-      // windowClass.setWindowTitleButtonVisible(false, false, false)
+      windowClass.setWindowTitleButtonVisible(true, true, true)
       // 全屏时鼠标移动至顶部不显示标题栏和dock栏，平板自由多窗则是无法唤起状态栏
-      windowClass.setTitleAndDockHoverShown(false, false).catch((err: Error) => {
-        logger.error('WindowMode', 'setTitleAndDockHoverShown 失败', err)
-      })
+      await windowClass.setTitleAndDockHoverShown(false, false)
       /*      try {
               if (this.isFirstStart) {
                 const systemLimits = windowClass.getWindowLimits()
@@ -212,12 +215,12 @@ export default class EntryAbility extends UIAbility {
               console.error(`WindowMode Failed to change the window limits. Cause code: ${exception.code}, message: ${exception.message}`);
             }*/
       // 设置标题栏高度
-      logger.info("WindowMode", '当前为PC窗口模式')
       PixState.windowMode = true
+      logger.info("WindowMode", `当前为PC窗口模式 bottom: ${PixState.bottomRectHeight} mode: ${PixState.windowMode}`)
     } catch (exception) {
-      logger.error("WindowMode", '当前为普通模式', exception)
-      AppStorage.setOrCreate('WindowMode', false)
+      logger.error("WindowMode", `#onWindowModeChange error: ${JSON.stringify(exception)}`)
       PixState.windowMode = false
+      logger.info("WindowMode", `当前为普通窗口模式 bottom: ${PixState.bottomRectHeight} mode: ${PixState.windowMode}`)
     }
   }
 

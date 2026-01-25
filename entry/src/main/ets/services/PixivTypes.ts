@@ -42,7 +42,7 @@ export interface PixivIllust {
   image_urls: PixivImage;
   tags: Array<PixivTag>;      // 作品标签列表
   tools: string[];            // 使用的绘图工具 (如 SAI, Photoshop)
-  created_time: string;       // 创建时间
+  create_date: string;       // 创建时间
   width: number;              // 图片宽度
   height: number;             // 图片高度
   total_view: number;         // 总浏览量
@@ -59,7 +59,7 @@ export interface PixivIllust {
    * 结构说明：
    * meta_pages 是一个数组，每个元素代表一页。
    */
-  meta_pages?: Array<PixivImage>;
+  meta_pages?: Array<{ image_urls: PixivImage }>;
 }
 
 export interface PixivImage {

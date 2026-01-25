@@ -10,7 +10,8 @@ import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition
   TabBarWidth,
   WindowTabBarWidth,
   TabBarHeight,
-  TabBarAvoidHeight} from '../utils/breakpoint/BreakPoint';
+  TabBarAvoidHeight,
+  Window_BAR_HEIGHT} from '../utils/breakpoint/BreakPoint';
 import { LengthMetrics } from '@kit.ArkUI';
 import { animation } from '../utils/AnimationUtil';
 import { TabBuild } from '../entity/IndexEntity';
@@ -246,19 +247,19 @@ struct Index {
               if (PixState.windowHeight > PixState.windowWidth) {
                 if (this.currentTab == 0) {
                   this.tabsController.changeIndex(1)
-                  console.info('Pan end')
+                  console.debug('Pan end')
                 }
               }
             }))
       })
     }
     .zIndex(1)
-    .barOverlap(true)
-    .barBackgroundBlurStyle(BlurStyle.Thin)
     .backgroundColor($r('sys.color.background_primary'))
+    .barOverlap(!TabBarVertical(PixState.widthBp, PixState.heightBp))
+    .barBackgroundBlurStyle(!TabBarVertical(PixState.widthBp, PixState.heightBp) ? BlurStyle.Thin : undefined)
     .vertical(TabBarVertical(PixState.widthBp, PixState.heightBp))
     .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
-    .barHeight((PixState.widthBp <= 2 && !PixState.windowMode) ? TabBarHeight(PixState.widthBp, PixState.heightBp) : TabBarAvoidHeight(PixState.widthBp, PixState.heightBp))
+    .barHeight(this.getBarHeight())
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         this.currentTab = index
@@ -274,7 +275,11 @@ struct Index {
     })
     .width('100%').height('100%')
     .fadingEdge(true)
-    .padding({ top: PixState.topRectHeight, bottom: PixState.bottomRectHeight == 0 ? PixState.bottomRectHeight / 2 : 0 })
+    .margin({ top: PixState.windowMode ? 39 : 0 })
+    .padding({
+      top: PixState.topRectHeight,
+      bottom: PixState.bottomRectHeight == 0 ? PixState.bottomRectHeight / 2 : 0
+    })
   }
   @Builder
   TabContentBuilder(index: number) {
@@ -349,6 +354,20 @@ struct Index {
       { name: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
     ]
     return tabList
+  }
+
+  getBarHeight(): number | string {
+    const isVerticalTab = TabBarVertical(PixState.widthBp, PixState.heightBp);
+    // 窗口模式 + 横向 TabBar (TabBar在底部)
+    if (PixState.windowMode && !isVerticalTab) {
+      return Window_BAR_HEIGHT;
+    }
+    // 普通窗口，不避让安全区
+    if (PixState.bottomRectHeight === 0) {
+      return TabBarHeight(PixState.widthBp, PixState.heightBp);
+    }
+    // 普通窗口，避让安全区域高度 (沉浸式 + 安全区)
+    return TabBarAvoidHeight(PixState.widthBp, PixState.heightBp);
   }
 
   private isCustomTransitionEnabled(fromName: string, toName: string): boolean {

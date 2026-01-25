@@ -225,7 +225,6 @@ struct WebLoginPageComponent {
   }
 
   // --- 工具函数区域 ---
-
   private stringToUint8Array(str: string): Uint8Array {
     return new Uint8Array(buffer.from(str, 'utf-8').buffer);
   }

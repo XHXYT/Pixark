@@ -2,7 +2,10 @@ import { BannerView } from "../components/BannerView";
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, PixivUser } from "../services/PixivTypes";
-import { ListItemMarginValue, WaterFlowColumnsTemplate } from "../utils/breakpoint/BreakPoint";
+import { ListItemMarginValue, TabBarVertical,
+  TabBarWidth,
+  WaterFlowColumnsTemplate,
+  WindowTabBarWidth } from "../utils/breakpoint/BreakPoint";
 import { createLogger } from "../utils/Logger";
 import { SnapShotUtils } from "../utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
@@ -98,6 +101,10 @@ export struct Home {
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
+      .margin({
+        right: PixState.rightAvoidWidth,
+        left: PixState.leftAvoidWidth
+      })
     }
     .onRefreshing(async () => {
       // 下拉刷新所有主页数据

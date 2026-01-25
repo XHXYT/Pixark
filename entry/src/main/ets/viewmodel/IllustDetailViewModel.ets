@@ -27,7 +27,7 @@ class IllustDetailViewModel {
     if (!this.detailData) return [];
     // 检查是否有 meta_pages (多图)
     if (this.detailData.meta_pages && this.detailData.meta_pages.length > 0) {
-      return this.detailData.meta_pages;
+      return this.detailData.meta_pages.map(page => page.image_urls);
     }
     // 单图情况，取 image_urls.large
     if (this.detailData.image_urls?.large) {
@@ -40,7 +40,7 @@ class IllustDetailViewModel {
     try {
       logger.debug(`>>> 开始加载插画详情, ID: ${id}`);
       this.detailData = await PixState.pixiv.getIllustDetail(id);
-      logger.debug(`>>> 详情加载完毕, 图片数: ${this.imageList.length}`);
+      logger.debug(`>>> 详情加载完毕, 图片: ${JSON.stringify(this.imageList.map(image => image.medium))}`);
     } catch (e) {
       logger.error(`!!! 加载详情失败: ${JSON.stringify(e)}`);
     }
@@ -107,11 +107,28 @@ class IllustDetailViewModel {
   }
 
   /**
-   * 简单格式化日期字符串 2023-01-01T00:00:00+09:00 -> 2023-01-01
+   * 格式化日期字符串 2026-01-01T00:00:00+09:00 -> 2023-01-01 00:00:00
    */
   formatDate(dateStr: string): string {
+    logger.debug(`>>> 初始时间, dateStr: ${JSON.stringify(dateStr)}`);
     if (!dateStr) return '';
-    return dateStr.split('T')[0];
+    // 将字符串转换为 Date 对象 (会自动处理时区，转换为你设备的本地时间)
+    const date = new Date(dateStr);
+    // 防止无效日期
+    if (isNaN(date.getTime())) return dateStr;
+    // 定义补零函数 (例如 5 -> "05")
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    // 提取各个时间部分
+    const year = date.getFullYear();
+    // getMonth() 返回 0-11，所以要 +1
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    // 拼接返回
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
 }
