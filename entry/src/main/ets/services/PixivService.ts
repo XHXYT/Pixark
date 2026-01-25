@@ -54,9 +54,23 @@ export class PixivService {
 
 
   // --- 数据接口方法 ---
-
+  /**
+   * 搜索插画
+   * @param word 搜索关键词
+   * @param page 页码 (从 1 开始)
+   * @param pageSize 每页数量
+   * @returns 返回搜索结果列表
+   */
   async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivListResult> {
     return this.data.searchIllust(word, page, pageSize);
+  }
+
+  /**
+   * 获取热门标签（用于搜索页推荐）
+   * @returns 返回热门标签列表
+   */
+  async getTrendingTags() {
+    return this.data.getTrendingTags()
   }
 
   async getRanking(mode: string = 'day', date?: string): Promise<PixivListResult> {

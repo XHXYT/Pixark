@@ -22,6 +22,8 @@ export interface PixivUser {
   name: string;
   /** 用户账号 ID (登录用的账号，通常不展示) */
   account: string;
+  /** 当前用户是否已关注该画师 */
+  is_followed: boolean;
   /** 用户头像 URL 列表 */
   profile_image_urls: {
     /** 头像中图 URL */
@@ -50,7 +52,7 @@ export interface PixivIllust {
 
   // 仅在收藏接口返回的作品里存在：
   bookmark_id?: number;       // 标记该作品在用户收藏列表中的 ID，用于分页
-
+  is_bookmarked: boolean;     // 该插画是否被当前登录用户收藏
   /**
    * 多图页面数据
    * 注意：只有当 meta_pages.length > 1 时，或者详情页接口返回的数据里，才会有此字段
@@ -76,12 +78,23 @@ export interface PixivTag {
 }
 
 /**
- * Pixiv 搜索结果接口
- * 定义了搜索或排行榜等接口返回的列表数据结构
+ * Pixiv 热门标签
+ * 对应 /v1/trending-tags/illust 接口返回的单个标签对象
  */
-export interface PixivListResult {
-  illusts: PixivIllust[];     // 插画作品列表
-  next_url: string | null;    // 下一页的 URL，如果为 null 表示没有下一页
+export interface PixivTrendingTag {
+  /** 标签名 */
+  tag: string;
+  /** 标签翻译名（中文/英文等，取决于请求头或 API 返回） */
+  translated_name?: string | null;
+  /** 该标签下的关联插画（用作封面展示） */
+  illust: {
+    id: number;
+    title: string;
+    image_urls: {
+      /** 方形中图，正好适合标签推荐卡片 */
+      square_medium: string;
+    };
+  };
 }
 
 /**
@@ -107,6 +120,25 @@ export interface SpotlightArticle {
   author_name: string;
   /** 文章主图大图 URL（可选字段，尺寸较大） */
   main_image?: string;
+}
+
+
+/**
+ * 热门标签响应
+ * 对应 /v1/trending-tags/illust 接口返回的根对象
+ */
+export interface PixivTrendingTagsResponse {
+  /** 热门标签列表 */
+  trend_tags: PixivTrendingTag[];
+}
+
+/**
+ * Pixiv 搜索结果接口
+ * 定义了搜索或排行榜等接口返回的列表数据结构
+ */
+export interface PixivListResult {
+  illusts: PixivIllust[];     // 插画作品列表
+  next_url: string | null;    // 下一页的 URL，如果为 null 表示没有下一页
 }
 
 /**

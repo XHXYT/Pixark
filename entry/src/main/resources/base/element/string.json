@@ -47,6 +47,54 @@
     {
       "name": "loading_more",
       "value": "加载更多数据中..."
+    },
+    {
+      "name": "collection",
+      "value": "收藏"
+    },
+    {
+      "name": "trend",
+      "value": "动态"
+    },
+    {
+      "name": "follow",
+      "value": "关注"
+    },
+    {
+      "name": "unfollow",
+      "value": "取消关注"
+    },
+    {
+      "name": "followed",
+      "value": "已关注"
+    },
+    {
+      "name": "all",
+      "value": "全部"
+    },
+    {
+      "name": "public",
+      "value": "公开"
+    },
+    {
+      "name": "private",
+      "value": "私密"
+    },
+    {
+      "name": "recommend_author",
+      "value": "推荐作者"
+    },
+    {
+      "name": "recommend_illust",
+      "value": "推荐插画"
+    },
+    {
+      "name": "search_placeholder_1",
+      "value": "搜索插画标题或画师昵称"
+    },
+    {
+      "name": "recommend_tag",
+      "value": "推荐标签"
     }
   ]
 }

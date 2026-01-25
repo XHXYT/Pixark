@@ -185,7 +185,7 @@ struct Index {
   }
 
   @Builder
-  TabBarButton(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
+  TabBarButton(title: ResourceStr, index: number, tabIcon?: Resource, currentTabIcon?: Resource) {
     Flex({
       direction: FlexDirection.Column,
       justifyContent: TabBarJustifyContent(PixState.widthBp, PixState.heightBp),
@@ -210,7 +210,7 @@ struct Index {
     .padding({ top: 8 })
   }
   @Builder
-  CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon: Resource, currentTabIcon: Resource) {
+  CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon?: Resource, currentTabIcon?: Resource) {
     // 绑定双击事件
     Column() {
       this.TabBarButton(title, index, tabIcon, currentTabIcon)
@@ -275,7 +275,7 @@ struct Index {
     })
     .width('100%').height('100%')
     .fadingEdge(true)
-    .margin({ top: PixState.windowMode ? 39 : 0 })
+    .margin({ top: PixState.windowMode ? 42 : 0 })
     .padding({
       top: PixState.topRectHeight,
       bottom: PixState.bottomRectHeight == 0 ? PixState.bottomRectHeight / 2 : 0

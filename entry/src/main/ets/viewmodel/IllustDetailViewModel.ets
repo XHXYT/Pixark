@@ -6,6 +6,7 @@ import { CustomTransition } from '../utils/customtransition/CustomNavigationUtil
 import { homeViewModel } from './HomeViewModel';
 import { DetailPageParams } from '../entity/IllustDetailEntity';
 import { CardUtil } from '../utils/CardUtil';
+import { toastUtil } from '../utils/ToastUtils';
 
 const logger = createLogger('IllustDetailViewModel')
 
@@ -16,7 +17,10 @@ class IllustDetailViewModel {
   private nextRelatedUrl: string | null = null
   // 相关图片推荐
   @Trace relatedIllusts: PixivIllust[] = []
+
+  // 关注状态（本地缓存，用于 UI 响应）
   @Trace isFollow: boolean = false
+
   // 当前浏览的大图索引（瀑布流列表索引）
   @Trace currentIndex: number = 0;
   @Trace sharedId: string = ''
@@ -40,6 +44,10 @@ class IllustDetailViewModel {
     try {
       logger.debug(`>>> 开始加载插画详情, ID: ${id}`);
       this.detailData = await PixState.pixiv.getIllustDetail(id);
+      // 同步本地关注状态，确保按钮显示正确
+      if (this.detailData && this.detailData.user) {
+        this.isFollow = this.detailData.user.is_followed;
+      }
       logger.debug(`>>> 详情加载完毕, 图片: ${JSON.stringify(this.imageList.map(image => image.medium))}`);
     } catch (e) {
       logger.error(`!!! 加载详情失败: ${JSON.stringify(e)}`);
@@ -83,6 +91,10 @@ class IllustDetailViewModel {
     try {
       const params: DetailPageParams = ctx?.pathInfo?.param as DetailPageParams
       this.detailData = params.illust
+      // 同步初始关注状态
+      if (this.detailData && this.detailData.user) {
+        this.isFollow = this.detailData.user.is_followed;
+      }
       this.handleTransitionReady(ctx, params)
       // 使用插画id加载插画列表
       this.loadIllustDetail(params.id)
@@ -94,15 +106,46 @@ class IllustDetailViewModel {
     }
   }
 
+  // 关注/取消关注
   async followOrCancel() {
-    if (this.isFollow) {
-      // 取消关注
-      await PixState.pixiv.unfollowUser(this.detailData?.user.id)
-      this.isFollow = false
-    } else {
-      // 关注
-      await PixState.pixiv.followUser(this.detailData?.user.id)
-      this.isFollow = true
+    if (!this.detailData?.user.id) return;
+    const userId = this.detailData.user.id;
+    try {
+      if (this.isFollow) {
+        // 取消关注
+        // 默认 public 关注
+        await PixState.pixiv.unfollowUser(userId, 'public');
+        this.isFollow = false;
+        this.detailData.user.is_followed = false;
+      } else {
+        // 关注
+        await PixState.pixiv.followUser(userId, 'public');
+        this.isFollow = true;
+        this.detailData.user.is_followed = true;
+      }
+    } catch (e) {
+      logger.error(`!!! 关注操作失败: ${JSON.stringify(e)}`);
+      toastUtil.showToast({ message: "关注失败" })
+    }
+  }
+
+  // 收藏/取消收藏
+  async bookmarkOrCancel() {
+    if (!this.detailData) return;
+    const illustId = this.detailData.id;
+    try {
+      if (this.detailData.is_bookmarked) {
+        // 取消收藏
+        await PixState.pixiv.deleteBookmark(illustId);
+        this.detailData.is_bookmarked = false;
+      } else {
+        // 收藏 (默认公开收藏)
+        await PixState.pixiv.addBookmark(illustId, 'public');
+        this.detailData.is_bookmarked = true;
+      }
+    } catch (e) {
+      logger.error(`!!! 收藏操作失败: ${JSON.stringify(e)}`);
+      toastUtil.showToast({ message: "收藏失败" })
     }
   }
 

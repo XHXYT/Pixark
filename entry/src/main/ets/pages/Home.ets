@@ -2,16 +2,14 @@ import { BannerView } from "../components/BannerView";
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, PixivUser } from "../services/PixivTypes";
-import { ListItemMarginValue, TabBarVertical,
-  TabBarWidth,
-  WaterFlowColumnsTemplate,
-  WindowTabBarWidth } from "../utils/breakpoint/BreakPoint";
+import { ListItemMarginValue} from "../utils/breakpoint/BreakPoint";
 import { createLogger } from "../utils/Logger";
 import { SnapShotUtils } from "../utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { image } from "@kit.ImageKit";
 import { DetailPageParams } from "../entity/IllustDetailEntity";
 import { CardUtil } from "../utils/CardUtil";
+import { WaterFlowView } from "../components/WaterFlowView";
 
 const logger = createLogger('Home')
 
@@ -32,7 +30,7 @@ export struct Home {
         // 推荐作者 (横向滚动 List)
         ListItem() {
           Column() {
-            this.Title('推荐作者')
+            this.Title($r('app.string.recommend_author'))
             List({ space: 5 }) {
               ForEach(homeViewModel.recommendedUsers, (user: PixivUser) => {
                 ListItem() {
@@ -64,8 +62,19 @@ export struct Home {
         ListItem() {
           Column() {
             // 推荐插画
-            this.Title('推荐插画')
-            WaterFlow() {
+            this.Title($r('app.string.recommend_illust'))
+            WaterFlowView({
+              illustList: homeViewModel.recommendedIllusts,
+              nestedScroll: homeViewModel.nestedScrollOptions,
+              onCardClick: (illust) => {
+                this.onCardClick(illust)
+              },
+              onReachEnd: () => {
+                // 只有不在加载中、且有下一页数据时才会触发数据更新
+                homeViewModel.loadMoreRecommended();
+              }
+            })
+         /*   WaterFlow() {
               ForEach(homeViewModel.recommendedIllusts, (illust: PixivIllust) => {
                 FlowItem() {
                   PixivImageComponent({
@@ -77,7 +86,7 @@ export struct Home {
                     // .visibility(homeViewModel.hiddenIllustId === illust.id ? Visibility.None : Visibility.Visible)
                 }
                 .onClick(() => {
-                  this.onCardClick(illust)
+
                 })
               }, (iilust: PixivIllust) => `${iilust.id}${iilust.title}`)
             }
@@ -89,10 +98,10 @@ export struct Home {
             .nestedScroll(homeViewModel.nestedScrollOptions)
             .columnsTemplate(WaterFlowColumnsTemplate(PixState.widthBp)) // 瀑布流列数
             .onReachEnd(() => {
-              // 只有不在加载中、且有下一页数据时才会触发数据更新
+
               logger.debug('WaterFlow 滚动到底部，开始加载更多');
-              homeViewModel.loadMoreRecommended();
-            })
+
+            })*/
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)

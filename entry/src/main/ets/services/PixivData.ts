@@ -1,4 +1,4 @@
-import { PixivIllust, PixivListResult, SpotlightResponse } from './PixivTypes';
+import { PixivIllust, PixivListResult, PixivTrendingTag, SpotlightResponse } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
 import { createLogger } from '../utils/Logger';
 
@@ -34,6 +34,15 @@ export class PixivData {
       illusts: response.data.illusts || [],
       next_url: response.data.next_url || null,
     };
+  }
+
+  /**
+   * 获取热门标签（用于搜索页推荐）
+   * @returns 返回热门标签列表
+   */
+  async getTrendingTags(): Promise<PixivTrendingTag[]> {
+    const response = await this.auth.axiosInstance.get('/v1/trending-tags/illust');
+    return response.data.trend_tags || [];
   }
 
   /**
@@ -126,6 +135,47 @@ export class PixivData {
   }
 
   /**
+   * 获取关注用户的插画动态流
+   * @param restrict 关注类型：'public'=公开关注，'private'=私密关注（仅在 nextUrl 为空时生效）
+   * @param nextUrl 分页 URL（可选，传入后会忽略 restrict 参数，直接用该 URL 请求）
+   * @returns 返回插画列表和下一页 URL
+   */
+  async getFollowIllusts(restrict: 'public' | 'private' = 'public', nextUrl?: string): Promise<PixivListResult> {
+    if (!this.auth.isLogin()) {
+      throw new Error('请先登录');
+    }
+
+    let requestUrl = '/v2/illust/follow';
+    let params: Record<string, any> | undefined = undefined;
+
+    if (nextUrl) {
+      // --- 优先处理分页 URL ---
+      // 兼容处理：完整URL、相对路径、纯参数字符串
+      if (nextUrl.startsWith('http')) {
+        requestUrl = nextUrl;
+      } else if (nextUrl.startsWith('/')) {
+        requestUrl = nextUrl;
+      } else {
+        // 兜底：纯参数串
+        requestUrl = `/v2/illust/follow?${nextUrl}`;
+      }
+    } else {
+      // --- 常规加载 ---
+      params = {
+        restrict: restrict,
+        filter: 'for_android',
+      };
+    }
+
+    const response = await this.auth.axiosInstance.get(requestUrl, { params });
+
+    return {
+      illusts: response.data.illusts || [],
+      next_url: response.data.next_url || null,
+    };
+  }
+
+  /**
    * 获取作品详情
    * 包含图片的高清地址、标签、画师信息等
    * @param illustId 作品 ID
@@ -161,7 +211,6 @@ export class PixivData {
       next_url: response.data.next_url || null,
     };
   }
-
 
   /**
    * 获取用户的作品列表
