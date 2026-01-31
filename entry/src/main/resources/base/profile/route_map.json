@@ -19,6 +19,11 @@
       "name": "illust_detail",
       "pageSourceFile": "src/main/ets/view/IllustDetailPage.ets",
       "buildFunction": "IllustDetailBuilder"
+    },
+    {
+      "name": "searching_page",
+      "pageSourceFile": "src/main/ets/view/SearchingPage.ets",
+      "buildFunction": "SearchingPageBuilder"
     }
   ]
 }

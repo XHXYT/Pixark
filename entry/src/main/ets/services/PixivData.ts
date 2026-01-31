@@ -1,4 +1,6 @@
-import { PixivIllust, PixivListResult, PixivTrendingTag, SpotlightResponse } from './PixivTypes';
+import { PixivIllust, PixivListResult, PixivTrendingTag,
+  SearchFilterOptions,
+  SearchUserResult, SpotlightResponse } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
 import { createLogger } from '../utils/Logger';
 
@@ -12,27 +14,78 @@ export class PixivData {
   constructor(private auth: PixivAuth) {}
 
   /**
-   * 搜索插画
-   * @param word 搜索关键词
-   * @param page 页码 (从 1 开始)
-   * @param pageSize 每页数量
-   * @returns 返回搜索结果列表
+   * 搜索插画 (支持高级筛选)
+   * @param word 关键词
+   * @param nextUrl 分页 URL (用于加载更多)
+   * @param options 筛选选项 (仅在 nextUrl 为空时生效)
    */
-  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivListResult> {
+  async searchIllust(word: string, nextUrl?: string, options?: SearchFilterOptions): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
-    logger.info(`Searching: ${word}`);
 
-    const response = await this.auth.axiosInstance.get('/v1/search/illust', {
-      params: {
+    let url = '/v1/search/illust';
+    let params: Record<string, any> | undefined = undefined;
+
+    if (nextUrl) {
+      // --- 加载更多 ---
+      // nextUrl 已经包含了 word, sort, minBookmark 等所有参数，直接用即可
+      url = nextUrl;
+      params = undefined;
+    } else {
+      // --- 新搜索 (带上筛选参数) ---
+      logger.info(`Searching: ${word}, Options: ${JSON.stringify(options)}`);
+      params = {
         word: word,
-        page: page,
-        per_page: pageSize,
         filter: 'for_android',
-      },
-    });
+      };
+      // 处理排序 (默认最新)
+      params.sort = options?.sort || 'date_desc';
+      // 处理匹配范围 (默认部分标签匹配)
+      params.search_target = options?.searchTarget || 'partial_match_for_tags';
+      // 处理时间范围
+      if (options?.startDate) params.start_date = options.startDate;
+      if (options?.endDate) params.end_date = options.endDate;
+      // 处理收藏数筛选
+      if (options?.minBookmark && options.minBookmark > 0) {
+        params.bookmark_count_min = options.minBookmark;
+      }
+      // 处理 AI 筛选 (可选)
+      if (options?.aiType !== undefined) {
+        params.search_ai_type = options.aiType;
+      }
+    }
+    const response = await this.auth.axiosInstance.get<PixivListResult>(url, { params });
     return {
       illusts: response.data.illusts || [],
       next_url: response.data.next_url || null,
+    };
+  }
+
+  /**
+   * 搜索用户（画师）
+   * @param word 搜索词（作者名 / 账号名）
+   * @param nextUrl 可选，用于翻页
+   */
+  async searchUser(word: string, nextUrl?: string): Promise<SearchUserResult> {
+    if (!this.auth.isLogin()) {
+      throw new Error('请先登录');
+    }
+    let url = '/v1/search/user';
+    let params: Record<string, string> | undefined = undefined;
+    if (nextUrl) {
+      // 加载更多
+      url = nextUrl;
+      params = undefined;
+    } else {
+      // 搜索
+      params = {
+        word,
+        filter: 'for_android',
+      };
+    }
+    const resp = await this.auth.axiosInstance.get<SearchUserResult>(url, { params });
+    return {
+      user_previews: resp.data.user_previews || [],
+      next_url: resp.data.next_url || null,
     };
   }
 

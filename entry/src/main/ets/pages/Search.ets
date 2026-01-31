@@ -1,22 +1,33 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivTrendingTag } from "../services/PixivTypes";
-import { GridColumnsTemplate, ListItemMarginValue, TabBarVertical } from "../utils/breakpoint/BreakPoint";
+import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
 import { createLogger } from "../utils/Logger";
 import { toastUtil } from "../utils/ToastUtils";
 import { searchVM } from "../viewmodel/SearchViewModel";
+import { curves } from "@kit.ArkUI";
 
 const logger = createLogger('SearchPage')
 
 @ComponentV2
 export struct SearchPage {
 
-  @Local keyword: string = '';
-
   build() {
     Column({space: 10}) {
+      Text($r('app.string.search'))
+        .fontSize(22)
+        .fontWeight(FontWeight.Bold)
       Search({ placeholder: $r('app.string.search_placeholder_1') })
+        .geometryTransition('SEARCH_TRANSITION_ID', { follow: true })
         .searchButton($r('sys.symbol.picture_star_fill'))
+        .defaultFocus(false)
+        .focusOnTouch(false)
+        .focusable(false)
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Up) {
+            this.showSearchPage();
+          }
+        })
         .onSubmit(() => {
           // TODO 拉起图片选择以图搜图
           toastUtil.showToast({ message: '开发中-以图搜图' })
@@ -33,7 +44,8 @@ export struct SearchPage {
               PixivImageComponent({
                 imageUrl: item.illust.image_urls.square_medium,
                 imageAspectRatio: 1,
-                imageBorderRadius: 12
+                imageBorderRadius: 12,
+                needMask: true
               })
               // 标签名
               Text() {
@@ -50,16 +62,27 @@ export struct SearchPage {
         })
       }
       .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
       // .nestedScroll(searchVM.nestedScrollOptions)
-      .contentEndOffset((TabBarVertical(PixState.widthBp, PixState.heightBp) ? 135 : 156) + PixState.bottomRectHeight)
+      .contentEndOffset((PixState.TabBarVertical ? 125 : 185) + PixState.bottomRectHeight)
       .columnsTemplate(GridColumnsTemplate(PixState.widthBp))
       .columnsGap(6)
       .rowsGap(8)
+      .onReachStart(() => {
+        if (PixState.currentTab == 3 && PixState.TabBarVertical) {
+          PixState.tabsController.changeIndex(2)
+        }
+      })
+      .onReachEnd(() => {
+        if (PixState.currentTab == 3 && PixState.TabBarVertical) {
+          PixState.tabsController.changeIndex(4)
+        }
+      })
     }
     .alignItems(HorizontalAlign.Start)
     .padding(({
-      left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
-      right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
+      left: PixState.PageMarginValue,
+      right: PixState.PageMarginValue
     }))
   }
 
@@ -67,22 +90,13 @@ export struct SearchPage {
     searchVM.loadTrendingTags()
   }
 
-  async doSearch() {
-    logger.info('doSearch start.');
-    if (!this.keyword) {
-      logger.warn('Search keyword is empty.');
-      return;
-    }
-    PixState.isLoading = true;
-    try {
-      const res = await PixState.pixiv.searchIllust(this.keyword);
-      // this.results = res.illusts;
-      // logger.info('Search data loaded. Count: ' + this.results.length);
-    } catch (e) {
-      logger.error('Search process error: ' + JSON.stringify(e));
-    } finally {
-      PixState.isLoading = false;
-    }
+  private showSearchPage(): void {
+    PixState.transitionEffect = TransitionEffect.OPACITY;
+    toastUtil.animateTo({
+      curve: curves.interpolatingSpring(0, 1, 342, 38)
+    }, () => {
+      PixState.pageStack.pushPath({ name: 'searching_page' }, false);
+    })
   }
 
 }

@@ -23,7 +23,7 @@ export struct Home {
         ListItem() {
           BannerView({
             bannerList: homeViewModel.spotlightList,
-            swiperMargin: PixState.widthBp < 2 ? ListItemMarginValue(PixState.widthBp, PixState.heightBp) - 9 : 0
+            swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0
           })
         }
 
@@ -57,21 +57,24 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-        .margin(({ left: ListItemMarginValue(PixState.widthBp, PixState.heightBp), right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)}))
+        .margin(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue}))
 
         ListItem() {
           Column() {
             // 推荐插画
             this.Title($r('app.string.recommend_illust'))
             WaterFlowView({
+              contentEndOffset: 52,
               illustList: homeViewModel.recommendedIllusts,
               nestedScroll: homeViewModel.nestedScrollOptions,
               onCardClick: (illust) => {
                 this.onCardClick(illust)
               },
               onReachEnd: () => {
-                // 只有不在加载中、且有下一页数据时才会触发数据更新
-                homeViewModel.loadMoreRecommended();
+                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
+                if (!PixState.isTest) {
+                  homeViewModel.loadMoreRecommended();
+                }
               }
             })
          /*   WaterFlow() {
@@ -106,7 +109,7 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-        .margin({ left: ListItemMarginValue(PixState.widthBp, PixState.heightBp), right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)})
+        .margin({ left: PixState.PageMarginValue, right: PixState.PageMarginValue})
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
@@ -138,7 +141,6 @@ export struct Home {
       this.getUIContext().getComponentSnapshot().get(sourceCardId, (err: BusinessError, pixelMap: image.PixelMap) => {
         if (err) {
           logger.error('截图失败，使用普通跳转', JSON.stringify(err));
-          this.normalPush(illust);
           return;
         }
         // 截图成功
@@ -155,13 +157,7 @@ export struct Home {
       });
     } catch (e) {
       logger.error('点击处理异常', JSON.stringify(e));
-      this.normalPush(illust);
     }
-  }
-
-  // 兜底的普通跳转
-  private normalPush(illust: PixivIllust) {
-    homeViewModel.pushTo('illust', illust);
   }
 
 }

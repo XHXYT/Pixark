@@ -38,7 +38,11 @@
     },
     {
       "name": "recommend_not_tips",
-      "value": "没有更多推荐可加载了"
+      "value": "没有更多推荐可加载了哦"
+    },
+    {
+      "name": "search_not_tips",
+      "value": "没有更多搜索结果了哦"
     },
     {
       "name": "loading_failed",
@@ -95,6 +99,18 @@
     {
       "name": "recommend_tag",
       "value": "推荐标签"
+    },
+    {
+      "name": "illust",
+      "value": "插画"
+    },
+    {
+      "name": "user_author",
+      "value": "画师"
+    },
+    {
+      "name": "user",
+      "value": "用户"
     }
   ]
 }

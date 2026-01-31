@@ -2,6 +2,7 @@ import { PixivService } from "../services/PixivService"
 import { PixivIllust } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
+import { ListItemMarginValue, PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
 
 @ObservedV2
 export class _PixState {
@@ -47,12 +48,27 @@ export class _PixState {
   /** @description 窗口模式 true为PC窗口模式 false为普通窗口模式 */
   @Trace windowMode: boolean = false
 
+  isTest: boolean = false
+
+  @Trace currentTab: number = 0
   // 全局路由
   @Trace pageStack: NavPathStack = new NavPathStack()
+  @Trace tabsController: TabsController = new TabsController()
+  @Trace transitionEffect: TransitionEffect = TransitionEffect.IDENTITY;
   /** @description 当前主题色(Resource) */
   @Trace CurrentAppThemeColor: Resource = $r('sys.color.icon_emphasize')
   // 当前颜色模式
   @Trace currentColorMode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET
+
+  @Computed
+  get TabBarVertical() {
+    return TabBarVertical(this.widthBp, this.heightBp)
+  }
+
+  @Computed
+  get PageMarginValue() {
+    return PageMargin(this.widthBp, this.heightBp)
+  }
 
 }
 

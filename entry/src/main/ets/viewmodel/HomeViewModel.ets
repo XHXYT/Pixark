@@ -4,6 +4,7 @@ import { createLogger } from '../utils/Logger';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { toastUtil } from '../utils/ToastUtils';
 import { shuffleArray } from '../utils/FisherYates';
+import { MockData } from '../services/MockData';
 
 const logger = createLogger('HomeViewModel')
 
@@ -43,7 +44,7 @@ class HomeViewModel {
       case 'author':
         break
       default:
-        PixState.pageStack.pushPathByName('illust_detail', data, true)
+        // PixState.pageStack.pushPathByName('illust_detail', data, true)
     }
   }
 
@@ -66,16 +67,25 @@ class HomeViewModel {
     this.isRefreshing = true
     try {
       // 检查登录状态
-      if (!PixState.pixiv.isLogin()) {
+      if (!PixState.pixiv.isLogin() && !PixState.isTest) {
         logger.warn('>>> 用户未登录，停止加载');
         return;
       }
       logger.debug('>>> 用户已登录，开始并发请求推荐接口');
       // 构建并发任务
-      const tasks: [Promise<SpotlightResponse>, Promise<PixivListResult>] = [
-        PixState.pixiv.getSpotlight(),
-        PixState.pixiv.getRecommended(true)
-      ];
+      let tasks: [Promise<SpotlightResponse>, Promise<PixivListResult>]
+      if (PixState.isTest) {
+        // 调试用数据
+        tasks= [
+          MockData.getSpotlight(),
+          MockData.getRecommended(true)
+        ];
+      } else {
+        tasks = [
+          PixState.pixiv.getSpotlight(),
+          PixState.pixiv.getRecommended(true)
+        ];
+      }
       // 等待所有任务完成
       const results: [SpotlightResponse, PixivListResult] = await Promise.all(tasks);
       logger.debug('>>> 所有接口请求成功返回');

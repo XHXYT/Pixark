@@ -13,6 +13,7 @@ const logger = createLogger('WaterFlowView')
 @ComponentV2
 export struct WaterFlowView {
 
+  @Param contentEndOffset: number = 0
   @Param illustList: PixivIllust[] = []
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
 
@@ -42,6 +43,7 @@ export struct WaterFlowView {
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
     .nestedScroll(this.nestedScroll)
+    .contentEndOffset(PixState.bottomRectHeight + this.contentEndOffset)
     .columnsTemplate(WaterFlowColumnsTemplate(PixState.widthBp)) // 瀑布流列数
     .onReachEnd(() => {
       logger.debug('滚动到瀑布流底部，开始加载更多');

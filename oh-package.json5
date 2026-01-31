@@ -4,7 +4,8 @@
   "dependencies": {
     "@ohos/axios": "^2.2.6",
     "@kingtous/reqwest": "^1.0.0",
-    "@ohos/imageknifepro": "^1.0.10"
+    "@ohos/imageknifepro": "^1.0.10",
+    "@hmanimations/ezcustomtransition": "^1.2.9"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.24",

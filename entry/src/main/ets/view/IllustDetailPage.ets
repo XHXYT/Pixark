@@ -1,6 +1,6 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
-import { GridColumnsTemplate, ListItemMarginValue } from "../utils/breakpoint/BreakPoint";
+import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
 import { iDV } from "../viewmodel/IllustDetailViewModel";
 import { SnapShotUtils } from "../utils/SnapShotUtils"; // 截图工具
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
@@ -51,10 +51,10 @@ struct IllustDetail {
           .edgeEffect(EdgeEffect.Spring)
           .contentStartOffset(56 + PixState.topRectHeight)
           .contentEndOffset(PixState.bottomRectHeight == 0 ?
-            ListItemMarginValue(PixState.widthBp, PixState.heightBp) : PixState.bottomRectHeight)
+            PixState.PageMarginValue : PixState.bottomRectHeight)
           .padding(({
-            left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
-            right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
+            left: PixState.PageMarginValue,
+            right: PixState.PageMarginValue
           }))
           .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
 
@@ -67,12 +67,12 @@ struct IllustDetail {
             .scrollBar(BarState.Off)
             .edgeEffect(EdgeEffect.Spring)
             .contentEndOffset(PixState.bottomRectHeight == 0 ?
-              ListItemMarginValue(PixState.widthBp, PixState.heightBp) : PixState.bottomRectHeight)
+              PixState.PageMarginValue : PixState.bottomRectHeight)
             .contentStartOffset(56 + PixState.topRectHeight)
             .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
             .padding(({
-              left: ListItemMarginValue(PixState.widthBp, PixState.heightBp),
-              right: ListItemMarginValue(PixState.widthBp, PixState.heightBp)
+              left: PixState.PageMarginValue,
+              right: PixState.PageMarginValue
             }))
             .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
           }

@@ -12,11 +12,19 @@ class ToastUtils {
     this.context = context
   }
 
-  showToast(options: promptAction.ShowToastOptions){
+  showToast(options: promptAction.ShowToastOptions) {
     try {
       this.UIContext?.getPromptAction().showToast(options)
     } catch (error) {
       console.error(`发送通知失败 code: ${error.code} message: ${error.message}`)
+    }
+  }
+
+  animateTo(value: AnimateParam, event: () => void) {
+    try {
+      this.UIContext?.animateTo(value, event)
+    } catch (error) {
+      console.error(`执行函数失败 code: ${error.code} message: ${error.message}`)
     }
   }
 

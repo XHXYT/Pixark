@@ -1,4 +1,4 @@
-import { AbilityConstant, common, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, common, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { preferenceUtil } from '../utils/PreferenceUtil';
 import { kvDbUtil } from '../utils/KVdbUtil';
@@ -9,6 +9,7 @@ import { PixState, _PixState } from './AppState';
 import { Logger } from '../utils/Logger';
 import { ImageKnife } from '@ohos/imageknifepro';
 import { settingManager } from './SettingManager';
+import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 
 const logger = Logger.getInstance();
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -56,7 +57,7 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     // Main window is created, set main page for this ability
     logger.info('Lifecycle', 'EntryAbility onWindowStageCreate');
-
+    ezCustomTransition.init(windowStage)
     windowStage.loadContent('pages/Index', async (err) => {
       if (err.code) {
         logger.error('WindowStage', 'Failed to load the content.', err);
@@ -73,6 +74,10 @@ export default class EntryAbility extends UIAbility {
       }
       logger.info('WindowStage', 'Succeeded in loading the content.');
     });
+  }
+
+  onConfigurationUpdate(newConfig: Configuration): void {
+    ezCustomTransition.onConfigurationChanged()
   }
 
   onWindowStageWillDestroy(windowStage: window.WindowStage): void {

@@ -1,5 +1,4 @@
 import { PixState } from "../entryability/AppState"
-import { PageMargin } from "../utils/breakpoint/BreakPoint"
 
 
 @ComponentV2
@@ -33,8 +32,8 @@ export struct TopBuilder {
     .height(this.topHeight ? PixState.topRectHeight + this.topHeight : PixState.topRectHeight)
     .padding(({
       top: PixState.topRectHeight,
-      left: PageMargin(PixState.widthBp, PixState.heightBp),
-      right: PageMargin(PixState.widthBp, PixState.heightBp)
+      left: PixState.PageMarginValue,
+      right: PixState.PageMarginValue
     }))
   }
 

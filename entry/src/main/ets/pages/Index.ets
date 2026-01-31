@@ -6,7 +6,6 @@ import { toastUtil } from '../utils/ToastUtils';
 import { kvDbUtil } from '../utils/KVdbUtil';
 import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition,
   TabTitleFontSize,
-  TabBarVertical,
   TabBarWidth,
   WindowTabBarWidth,
   TabBarHeight,
@@ -23,6 +22,7 @@ import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { Login } from './Login';
 import Constants from '../entity/Constants';
 import { AnimateCallback, CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
+import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 
 const logger = createLogger('Index')
 
@@ -30,10 +30,8 @@ const logger = createLogger('Index')
 @ComponentV2
 struct Index {
 
-  @Local currentTab: number = 0
   @Local isEnabled: boolean = true
 
-  private tabsController: TabsController = new TabsController()
   // 允许自定义转换的页面的名称 自
   private allowedCustomTransitionFromPageNames: string[] =
     ['illust_detail',
@@ -69,68 +67,19 @@ struct Index {
       }
       .hideToolBar(true)
       .hideTitleBar(true)
-      // .enabled(this.isEnabled)
+      // .enabled(this.isEnabled) // 转场过程中不响应手势事件
       .mode(NavigationMode.Stack)
-    /*  .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
-        if ((!from || !to) || (!from.name || !to.name) || (!from.navDestinationId || !to.navDestinationId)) {
-          return undefined;
-        }
-        let fromParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(from.navDestinationId);
-        let toParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(to.navDestinationId);
-        CustomTransition.getInstance().operation = operation;
-        // Follow the hand interaction transition.
-        if (CustomTransition.getInstance().isInteractive) {
-          let customAnimation: NavigationAnimatedTransition = {
-            onTransitionEnd: () => {
-              this.isEnabled = true;
-              CustomTransition.getInstance().recoverState();
-              CustomTransition.getInstance().proxy = undefined;
-            },
-            transition: (transitionProxy: NavigationTransitionProxy) => {
-              CustomTransition.getInstance().proxy = transitionProxy;
-              this.isEnabled = false;
-              if (fromParam.onInteractive) {
-                fromParam.onInteractive();
-              }
-              if (toParam.onInteractive) {
-                toParam.onInteractive();
-              }
-            },
-            isInteractive: true
-          };
-          return customAnimation;
-        }
-
-        // User-defined transition routes are controlled by the from and to names.
-        if (!this.isCustomTransitionEnabled(from.name, to.name)) {
-          return undefined;
-        }
-
-        // For the scene where button A is clicked to go to the custom transition and button B is clicked to go to the default transition,
-        // it is necessary to judge whether the animation is registered to decide whether to go to the custom transition.
-        // fromPage and toPage registerNavParam do not pass animation parameters, go to the default transition.
-        if (!fromParam.animation && !toParam.animation) {
-          return undefined;
-        }
-
-        // After all judgments are completed, construct customAnimation to the system side call, execute the custom transition animation.
-        let customAnimation: NavigationAnimatedTransition = {
-          onTransitionEnd: (isSuccess: boolean) => {
-            logger.info(`current transition result is ${isSuccess}`);
-            this.isEnabled = true;
-          },
-          timeout: 1000,
-          transition: (transitionProxy: NavigationTransitionProxy) => {
+      .transition(TransitionEffect.OPACITY)
+/*      .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
+        return ezCustomTransition.customNavContentTransition(from, to, operation, {
+          // 自定义转场过程中禁用手势，避免出现体验问题
+          onTransitionStart: () => {
             this.isEnabled = false;
-            if (fromParam.animation) {
-              fromParam.animation(transitionProxy);
-            }
-            if (toParam.animation) {
-              toParam.animation(transitionProxy);
-            }
+          },
+          onTransitionEnd: () => {
+            this.isEnabled = true;
           }
-        };
-        return customAnimation;
+        });
       })*/
     }
     // 未登录显示登录页
@@ -193,14 +142,14 @@ struct Index {
       space: { main: LengthMetrics.vp(3) }
     })
     {
-      SymbolGlyph(this.currentTab === index ? currentTabIcon : tabIcon)
-        .fontColor([this.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary')])
+      SymbolGlyph(PixState.currentTab === index ? currentTabIcon : tabIcon)
+        .fontColor([PixState.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY) // 分层颜色
         .fontSize(TabIconFontSize(PixState.widthBp, PixState.heightBp))
         .transition(animation.isTranslate())
-        .translate({ y: this.currentTab == index ? -3 : 0 })
+        .translate({ y: PixState.currentTab == index ? -3 : 0 })
       Text(title)
-        .fontColor(this.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary'))
+        .fontColor(PixState.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary'))
         .fontWeight(FontWeight.Medium)
         .fontSize(TabTitleFontSize(PixState.widthBp, PixState.heightBp))
         .transition(animation.isTranslate())
@@ -227,7 +176,7 @@ struct Index {
   CustomTab() {
     Tabs({
       barPosition: TabBarPosition(PixState.widthBp, PixState.heightBp),
-      controller: this.tabsController
+      controller: PixState.tabsController
     }) {
       ForEach(this.getTabList(), (item: TabBuild, index: number) => {
         TabContent() {
@@ -237,7 +186,7 @@ struct Index {
         .gesture(
           // 二级Tabs第一个页签向左拖动时，触发手势事件，当Tab栏竖排时不触发
           PanGesture({
-            direction: !TabBarVertical(PixState.widthBp, PixState.heightBp) ? PanDirection.Down : PanDirection.None
+            direction: !PixState.TabBarVertical ? PanDirection.Down : PanDirection.None
           })
             .onActionStart((event?: GestureEvent) => {
               console.info('Pan start')
@@ -245,8 +194,8 @@ struct Index {
             // 通过Tab组件的TabsController的实例，改变其index，达到跳转一级Tabs的效果
             .onActionEnd(() => {
               if (PixState.windowHeight > PixState.windowWidth) {
-                if (this.currentTab == 0) {
-                  this.tabsController.changeIndex(1)
+                if (PixState.currentTab == 0) {
+                  PixState.tabsController.changeIndex(1)
                   console.debug('Pan end')
                 }
               }
@@ -255,23 +204,23 @@ struct Index {
     }
     .zIndex(1)
     .backgroundColor($r('sys.color.background_primary'))
-    .barOverlap(!TabBarVertical(PixState.widthBp, PixState.heightBp))
-    .barBackgroundBlurStyle(!TabBarVertical(PixState.widthBp, PixState.heightBp) ? BlurStyle.Thin : undefined)
-    .vertical(TabBarVertical(PixState.widthBp, PixState.heightBp))
+    .barOverlap(!PixState.TabBarVertical)
+    .barBackgroundBlurStyle(!PixState.TabBarVertical ? BlurStyle.Thin : undefined)
+    .vertical(PixState.TabBarVertical)
     .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
     .barHeight(this.getBarHeight())
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
-        this.currentTab = index
+        PixState.currentTab = index
       }, Constants.AnimationSpeed_300, 'app', 0)
     })
     .onAnimationStart((index: number, targetIndex: number) => {
       animation.animTo(() => {
-        this.currentTab = targetIndex;
+        PixState.currentTab = targetIndex;
       }, Constants.AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
-      this.tabsController.changeIndex(this.currentTab)
+      PixState.tabsController.changeIndex(PixState.currentTab)
     })
     .width('100%').height('100%')
     .fadingEdge(true)
@@ -302,38 +251,44 @@ struct Index {
     // 开始初始化，标记为 true，显示过渡页
     PixState.isInitializing = true;
     try {
-      // 尝试获取本地 Token
-      if (!PixState.refreshToken) {
-        logger.info('refresh token not found saved, trying to getData...');
-        PixState.refreshToken = await kvDbUtil.getData<string>('refresh_token', '');
-      }
-      // 存在本地 Token 且当前未登录，尝试登录
-      if (PixState.refreshToken && !PixState.pixiv.isLogin()) {
-        logger.info('Found saved refresh token, trying to login...');
-        try {
-          await PixState.pixiv.loadRefreshToken(PixState.refreshToken);
-          PixState.isLoggedIn = true;
-          logger.info('Auto-login successful!');
-          // 保存新的 RefreshToken
-          const newToken = PixState.pixiv.getCurrentRefreshToken();
-          if (newToken !== PixState.refreshToken) {
-            await kvDbUtil.putData('refresh_token', newToken);
-            PixState.refreshToken = newToken;
-          }
-        } catch (e) {
-          logger.warn('Auto-login failed, token may be expired.', e);
-          // 登录失败后，不再继续请求数据
-          toastUtil.showToast({ message: "登录已过期，请重新登录" })
-          return;
+      if (!PixState.isTest) {
+        // 尝试获取本地 Token
+        if (!PixState.refreshToken) {
+          logger.info('refresh token not found saved, trying to getData...');
+          PixState.refreshToken = await kvDbUtil.getData<string>('refresh_token', '');
         }
-      }
-      // 登录成功（或者原本就处于登录状态），获取各数据
-      // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
-      if (PixState.pixiv.isLogin()) {
+        // 存在本地 Token 且当前未登录，尝试登录
+        if (PixState.refreshToken && !PixState.pixiv.isLogin()) {
+          logger.info('Found saved refresh token, trying to login...');
+          try {
+            await PixState.pixiv.loadRefreshToken(PixState.refreshToken);
+            PixState.isLoggedIn = true;
+            logger.info('Auto-login successful!');
+            // 保存新的 RefreshToken
+            const newToken = PixState.pixiv.getCurrentRefreshToken();
+            if (newToken !== PixState.refreshToken) {
+              await kvDbUtil.putData('refresh_token', newToken);
+              PixState.refreshToken = newToken;
+            }
+          } catch (e) {
+            logger.warn('Auto-login failed, token may be expired.', e);
+            // 登录失败后，不再继续请求数据
+            toastUtil.showToast({ message: "登录已过期，请重新登录" })
+            return;
+          }
+        }
+        // 登录成功（或者原本就处于登录状态），获取各数据
+        // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
+        if (PixState.pixiv.isLogin()) {
+          // 加载主页内容
+          await homeViewModel.loadHomeData()
+        } else {
+          logger.warn('User not logged in, cannot load data.');
+        }
+      } else {
         // 加载主页内容
         await homeViewModel.loadHomeData()
-      } else {
-        logger.warn('User not logged in, cannot load data.');
+        PixState.isLoggedIn = true
       }
     } catch (e) {
       // 捕获 getRecommended 过程中的其他网络错误
@@ -357,7 +312,7 @@ struct Index {
   }
 
   getBarHeight(): number | string {
-    const isVerticalTab = TabBarVertical(PixState.widthBp, PixState.heightBp);
+    const isVerticalTab = PixState.TabBarVertical;
     // 窗口模式 + 横向 TabBar (TabBar在底部)
     if (PixState.windowMode && !isVerticalTab) {
       return Window_BAR_HEIGHT;

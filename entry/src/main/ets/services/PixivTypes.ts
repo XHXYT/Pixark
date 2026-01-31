@@ -78,6 +78,16 @@ export interface PixivTag {
 }
 
 /**
+ * 用户预览（用于 /v1/search/user）
+ * 包含用户信息 + 若干预览作品
+ */
+export type UserPreview = {
+  user: PixivUser;
+  illusts: PixivIllust[];
+  novels?: any[]; // 小说，预留
+};
+
+/**
  * Pixiv 热门标签
  * 对应 /v1/trending-tags/illust 接口返回的单个标签对象
  */
@@ -96,6 +106,7 @@ export interface PixivTrendingTag {
     };
   };
 }
+
 
 /**
  * Pixiv 亮点/专题文章
@@ -122,6 +133,37 @@ export interface SpotlightArticle {
   main_image?: string;
 }
 
+/**
+ * 搜索筛选项
+ */
+export interface SearchFilterOptions {
+  // 基础
+  sort?: 'date_desc' | 'date_asc' | 'popular_desc'; // 排序方式：最新、最早、热门
+
+  // 匹配范围
+  searchTarget?: 'partial_match_for_tags' | 'exact_match_for_tags' | 'title_and_caption';
+  // partial_match_for_tags: 部分标签匹配(默认)
+  // exact_match_for_tags: 精确标签匹配
+  // title_and_caption: 包含标题和简介
+
+  // 高级筛选
+  startDate?: string; // 格式 '2023-01-01'
+  endDate?: string;   // 格式 '2023-12-31'
+  minBookmark?: number; // 最小收藏数
+
+  // 可选：AI 筛选
+  aiType?: 0 | 1 | 2; // 0: 全部, 1: 排除AI, 2: 仅AI
+}
+
+
+/**
+ * 搜索用户结果
+ * 对应 /v1/search/user 的返回结构
+ */
+export type SearchUserResult = {
+  user_previews: UserPreview[];
+  next_url: string | null;
+};
 
 /**
  * 热门标签响应

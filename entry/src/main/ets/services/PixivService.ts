@@ -1,7 +1,9 @@
 import { PixivAuth } from './PixivAuth';
 import { PixivData } from './PixivData';
 import { PixivInteraction } from './PixivInteraction';
-import { PixivAuthResponse, PixivIllust, PixivListResult, SpotlightResponse } from './PixivTypes';
+import { PixivAuthResponse, PixivIllust, PixivListResult,
+  SearchFilterOptions,
+  SearchUserResult, SpotlightResponse } from './PixivTypes';
 
 /**
  * Pixiv 服务主入口
@@ -61,8 +63,17 @@ export class PixivService {
    * @param pageSize 每页数量
    * @returns 返回搜索结果列表
    */
-  async searchIllust(word: string, page: number = 1, pageSize: number = 30): Promise<PixivListResult> {
-    return this.data.searchIllust(word, page, pageSize);
+  async searchIllust(word: string, nextUrl?: string, options?: SearchFilterOptions): Promise<PixivListResult> {
+    return this.data.searchIllust(word, nextUrl, options);
+  }
+
+  /**
+   * 搜索用户（画师）
+   * @param word 搜索词（作者名 / 账号名）
+   * @param nextUrl 可选，用于翻页
+   */
+  async searchUser(word: string, nextUrl?: string): Promise<SearchUserResult> {
+    return this.data.searchUser(word, nextUrl);
   }
 
   /**
