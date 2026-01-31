@@ -20,6 +20,7 @@ class SearchViewModel {
 
   keyword: string = '';
   @Trace searchType: 'illust' | 'user' = 'illust';
+
   // 嵌套滚动配置
   get nestedScrollOptions(): NestedScrollOptions {
     return {
@@ -43,7 +44,11 @@ class SearchViewModel {
   }
 
   async doSearch() {
-    if (!this.keyword) return;
+    if (!this.keyword) {
+      logger.warn('搜索关键词为空，忽略搜索请求');
+      return;
+    }
+    logger.debug(`[开始搜索] 类型: ${this.searchType}, 关键词: "${this.keyword}"`);
     try {
       if (this.searchType === 'illust') {
         // 搜插画
@@ -53,17 +58,21 @@ class SearchViewModel {
           minBookmark: 1000,         // 收藏数
           searchTarget: 'exact_match_for_tags' // 匹配标签
         };
+        logger.debug(`[插画搜索] 发起请求，筛选参数: ${JSON.stringify(options)}`);
         const data = await PixState.pixiv.searchIllust(this.keyword, undefined, options);
+        logger.info(`[插画搜索] 请求成功，结果数量: ${data.illusts.length}, 下一页URL: ${data.next_url ? '存在' : '空'}`);
         this.resultIllusts = data.illusts;
         this.IllustNextUrl = data.next_url || '';
       } else {
         // 搜作者
+        logger.debug(`[用户搜索] 发起请求，关键词: "${this.keyword}"`);
         const data = await PixState.pixiv.searchUser(this.keyword);
+        logger.debug(`[用户搜索] 请求成功，结果数量: ${data.user_previews.length}`);
         this.resultUsers = data.user_previews;
         this.userNextUrl = data.next_url || '';
       }
     } catch (e) {
-      console.error('搜索失败:', e);
+      logger.error(`[搜索异常] 错误详情: ${JSON.stringify(e)}`);
     }
   }
 
@@ -85,7 +94,7 @@ class SearchViewModel {
         this.userNextUrl = data.next_url || '';
       }
     } catch (e) {
-      console.error('加载更多失败:', e);
+      logger.error(`[加载更多失败] 错误详情: ${JSON.stringify(e)}`);
     }
   }
 

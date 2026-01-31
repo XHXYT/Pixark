@@ -70,17 +70,67 @@ struct Index {
       // .enabled(this.isEnabled) // 转场过程中不响应手势事件
       .mode(NavigationMode.Stack)
       .transition(TransitionEffect.OPACITY)
-/*      .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
-        return ezCustomTransition.customNavContentTransition(from, to, operation, {
-          // 自定义转场过程中禁用手势，避免出现体验问题
-          onTransitionStart: () => {
-            this.isEnabled = false;
-          },
-          onTransitionEnd: () => {
+      .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
+        if ((!from || !to) || (!from.name || !to.name) || (!from.navDestinationId || !to.navDestinationId)) {
+          return undefined;
+        }
+        let fromParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(from.navDestinationId);
+        let toParam: AnimateCallback = CustomTransition.getInstance().getAnimateParam(to.navDestinationId);
+        CustomTransition.getInstance().operation = operation;
+        // Follow the hand interaction transition.
+        if (CustomTransition.getInstance().isInteractive) {
+          let customAnimation: NavigationAnimatedTransition = {
+            onTransitionEnd: () => {
+              this.isEnabled = true;
+              CustomTransition.getInstance().recoverState();
+              CustomTransition.getInstance().proxy = undefined;
+            },
+            transition: (transitionProxy: NavigationTransitionProxy) => {
+              CustomTransition.getInstance().proxy = transitionProxy;
+              this.isEnabled = false;
+              if (fromParam.onInteractive) {
+                fromParam.onInteractive();
+              }
+              if (toParam.onInteractive) {
+                toParam.onInteractive();
+              }
+            },
+            isInteractive: true
+          };
+          return customAnimation;
+        }
+
+        // User-defined transition routes are controlled by the from and to names.
+        if (!this.isCustomTransitionEnabled(from.name, to.name)) {
+          return undefined;
+        }
+
+        // For the scene where button A is clicked to go to the custom transition and button B is clicked to go to the default transition,
+        // it is necessary to judge whether the animation is registered to decide whether to go to the custom transition.
+        // fromPage and toPage registerNavParam do not pass animation parameters, go to the default transition.
+        if (!fromParam.animation && !toParam.animation) {
+          return undefined;
+        }
+
+        // After all judgments are completed, construct customAnimation to the system side call, execute the custom transition animation.
+        let customAnimation: NavigationAnimatedTransition = {
+          onTransitionEnd: (isSuccess: boolean) => {
+            logger.debug(`current transition result is ${isSuccess}`);
             this.isEnabled = true;
+          },
+          timeout: 1000,
+          transition: (transitionProxy: NavigationTransitionProxy) => {
+            this.isEnabled = false;
+            if (fromParam.animation) {
+              fromParam.animation(transitionProxy);
+            }
+            if (toParam.animation) {
+              toParam.animation(transitionProxy);
+            }
           }
-        });
-      })*/
+        };
+        return customAnimation;
+      })
     }
     // 未登录显示登录页
     else {

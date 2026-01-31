@@ -1,4 +1,4 @@
-import { curves, LengthMetrics, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
+import { curves, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { WaterFlowView } from '../components/WaterFlowView';
 import { DetailPageParams } from '../entity/IllustDetailEntity';
 import { PixState } from '../entryability/AppState';
@@ -18,51 +18,68 @@ export default struct SearchingPage {
     { text: $r('app.string.user_author') },
   ]);
   @Local searchTypeSelectedIndex: number = 0;
+
   private pageInfos: NavPathStack = new NavPathStack();
 
   build() {
     NavDestination() {
       Column() {
         // 搜索栏
-        Flex({ direction: FlexDirection.Row, space: { main: LengthMetrics.vp(8) }, alignItems: ItemAlign.Center }) {
+        Row({space: 5}) {
           // 返回图标
           Button({ type: ButtonType.Circle, stateEffect: false }) {
             SymbolGlyph($r('sys.symbol.chevron_left'))
               .fontSize(28)
-          }.width(40).height(40)
-          .backgroundColor($r('sys.color.button_background_color_transparent'))
-          .onClick(() => {
-            this.onArrowClicked();
-          })
+          }
           .transition(TransitionEffect.asymmetric(
             TransitionEffect.OPACITY
               .animation({ duration: 200, delay: 150, curve: curves.cubicBezierCurve(0.33, 0, 0.67, 1) }),
             TransitionEffect.OPACITY
               .animation({ duration: 200, curve: curves.cubicBezierCurve(0.33, 0, 0.67, 1) })
           ))
+          .backgroundColor($r('sys.color.button_background_color_transparent'))
+          .width(40).height(40)
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Up) {
+              this.getUIContext().animateTo({
+                curve: curves.interpolatingSpring(0, 1, 342, 38)
+              }, () => {
+                this.pageInfos.pop(false)
+              })
+            }
+          })
           Search({ value: searchVM.keyword!!, placeholder: $r('app.string.search_placeholder_1') })
             .placeholderColor($r('sys.color.mask_secondary'))
-            .geometryTransition('SEARCH_TRANSITION_ID')
             .transition(TransitionEffect.opacity(0.99))
             .backgroundColor('#0D000000').height(40)
+            .geometryTransition('SEARCH_ID')
             .defaultFocus(true)
             .focusOnTouch(true)
             .onSubmit(() => {
               searchVM.doSearch()
             })
+            .layoutWeight(1)
+            .id('SEARCH_ID')
         }
-        .width('100%')
-        .height(50)
-
+        .width('100%').height(56)
         // 结果栏
-        TabSegmentButtonV2({
-          items: this.searchTypeItems,
-          selectedIndex: this.searchTypeSelectedIndex!!,
-        })
+        Row() {
+          TabSegmentButtonV2({
+            items: this.searchTypeItems,
+            selectedIndex: this.searchTypeSelectedIndex!!,
+          })
+        }
+        .margin({ bottom: 10 })
+        .transition(TransitionEffect.asymmetric(
+          TransitionEffect.OPACITY
+            .combine(TransitionEffect.translate({ y: 100 })),
+          TransitionEffect.OPACITY.animation({ duration: 0 })
+        ))
         // 筛选栏(仅插画)
         WaterFlowView({
           illustList: searchVM.resultIllusts,
           onCardClick: (illust) => {
+            // searchVM.onSearchPageBack(false)
             const params: DetailPageParams = {
               id: illust.id,
               illust: illust
@@ -77,36 +94,34 @@ export default struct SearchingPage {
             }
           }
         })
+          .transition(TransitionEffect.asymmetric(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 100 })),
+            TransitionEffect.OPACITY.animation({ duration: 0 })
+          ))
       }
-      .margin({ top: PixState.topRectHeight })
+      .backgroundColor($r('sys.color.background_primary'))
       .size({ width: '100%', height: '100%' })
       .padding(({
         left: PixState.PageMarginValue,
         right: PixState.PageMarginValue
       }))
     }
-    .transition(TransitionEffect.OPACITY)
     .hideToolBar(true)
     .hideTitleBar(true)
-    .onReady((context: NavDestinationContext) => {
-      this.pageInfos = context.pathStack;
-    })
+    .transition(TransitionEffect.OPACITY)
     .onBackPressed(() => {
-      toastUtil.animateTo({
+      this.getUIContext().animateTo({
         curve: curves.interpolatingSpring(0, 1, 342, 38),
       }, () => {
-        this.pageInfos.pop(false);
+        this.pageInfos.pop(false)
       })
       return true;
     })
-  }
-
-  private onArrowClicked(): void {
-    toastUtil.animateTo({
-      curve: curves.interpolatingSpring(0, 1, 342, 38)
-    }, () => {
-      this.pageInfos.pop(false);
+    .onReady((context: NavDestinationContext) => {
+      this.pageInfos = context.pathStack;
     })
+
   }
 
 }

@@ -8,6 +8,7 @@ import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { toastUtil } from "../utils/ToastUtils";
 import { TopBuilder } from "../components/TopBuilder";
+import { searchVM } from "../viewmodel/SearchViewModel";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {

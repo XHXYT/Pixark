@@ -3,6 +3,7 @@ import { PixivIllust } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
 import { ListItemMarginValue, PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
+import { searchVM } from "../viewmodel/SearchViewModel"
 
 @ObservedV2
 export class _PixState {
@@ -68,6 +69,13 @@ export class _PixState {
   @Computed
   get PageMarginValue() {
     return PageMargin(this.widthBp, this.heightBp)
+  }
+
+  @Monitor('pageStack')
+  onPageStackChange() {
+    if (this.currentTab == 3 && this.pageStack.size() <= 1 ) {
+      searchVM.searchingAlphaValue = 1
+    }
   }
 
 }
