@@ -4,11 +4,13 @@ import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
 import { iDV } from "../viewmodel/IllustDetailViewModel";
 import { SnapShotUtils } from "../utils/SnapShotUtils"; // 截图工具
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
-import { LengthMetrics } from "@kit.ArkUI";
+import { LengthMetrics, SymbolGlyphModifier } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { toastUtil } from "../utils/ToastUtils";
 import { TopBuilder } from "../components/TopBuilder";
 import { searchVM } from "../viewmodel/SearchViewModel";
+import { photoAccessHelper } from "@kit.MediaLibraryKit";
+import { fileIo } from "@kit.CoreFileKit";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -25,7 +27,8 @@ struct IllustDetail {
       Stack() {
         // 标题栏
         TopBuilder({
-          pageInfos: PixState.pageStack
+          pageInfos: PixState.pageStack,
+          images:iDV.imageList
         })
         Row() {
           // 插画内容 + (信息内容)

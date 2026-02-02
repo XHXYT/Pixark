@@ -74,8 +74,7 @@ export class _PixState {
   @Monitor('pageStack')
   onPageStackChange() {
     if (this.currentTab == 3 && this.pageStack.size() <= 1 ) {
-      searchVM.searchingAlphaValue = 1
-    }
+      }
   }
 
 }
