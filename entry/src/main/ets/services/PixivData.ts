@@ -11,6 +11,7 @@ const logger = createLogger('PixivData')
  * 处理各种数据获取接口：搜索、排行、推荐等
  */
 export class PixivData {
+
   constructor(private auth: PixivAuth) {}
 
   /**
@@ -87,6 +88,44 @@ export class PixivData {
       user_previews: resp.data.user_previews || [],
       next_url: resp.data.next_url || null,
     };
+  }
+
+  /**
+   * 获取当前用户关注的所有用户 ID (全量)
+   * @param userId 当前登录用户的 ID（必填）
+   * @param restrict 'public' | 'private'，默认 'public'
+   * @returns 返回 ID 数组
+   */
+  async getFollowingIds(userId: number, restrict: 'public' | 'private' = 'public'): Promise<string[]> {
+    if (!this.auth.isLogin()) {
+      throw new Error('请先登录');
+    }
+
+    logger.info(`[getFollowingIds] userId=${userId}, restrict=${restrict}`);
+    let nextUrl: string | null = '/v1/user/following';
+    const allIds: string[] = [];
+    try {
+      // 循环翻页，直到拿完所有数据
+      while (nextUrl) {
+        const params: Record<string, any> = nextUrl === '/v1/user/following'
+          ? { user_id: userId, restrict: restrict, filter: 'for_android' }
+          : undefined;
+        const response = await this.auth.axiosInstance.get(nextUrl, { params });
+        const userPreviews = response.data.user_previews || [];
+        userPreviews.forEach((item: any) => {
+          if (item.user && item.user.id) {
+            allIds.push(String(item.user.id));
+          }
+        });
+        // 检查是否有下一页
+        nextUrl = response.data.next_url || null;
+      }
+      logger.info(`[getFollowingIds] 同步完成，共 ${allIds.length} 位`);
+      return allIds;
+    } catch (e) {
+      logger.error('[getFollowingIds] 请求失败: ' + JSON.stringify(e));
+      throw e;
+    }
   }
 
   /**

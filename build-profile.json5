@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\liluo\\.ohos\\config\\default_Pixark_rFqSbTS17kJUQO7BkDXG46bncDCjTMvObG6SSxETPlQ=.cer",
+          "certpath": "",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B3A6264C2EA4D35AB9AAADEEFE00B150416BF1B380565DC8D6E36F6B80F13321F916C3671247575",
-          "profile": "C:\\Users\\liluo\\.ohos\\config\\default_Pixark_rFqSbTS17kJUQO7BkDXG46bncDCjTMvObG6SSxETPlQ=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\liluo\\.ohos\\config\\default_Pixark_rFqSbTS17kJUQO7BkDXG46bncDCjTMvObG6SSxETPlQ=.p12",
-          "storePassword": "0000001BB3EBE3F05933DFFBD325376D38DD1D3F19C4118C7F3ADEEAB42735DC953121CF6980FA7943686A"
+          "keyPassword": "",
+          "profile": "b",
+          "signAlg": "",
+          "storeFile": "",
+          "storePassword": ""
         }
       }
     ],

@@ -3,7 +3,7 @@ import { createLogger } from '../utils/Logger';
 import { md5String } from '../utils/MD5';
 import { Date2UTCTimeString } from '../utils/TimeUtils';
 import { urlQueryString } from '../utils/Url2String';
-import { PixivAuthResponse } from './PixivTypes';
+import { PixivAuthResponse, PixivUser } from './PixivTypes';
 
 const logger = createLogger('PixivAuth')
 
@@ -17,6 +17,8 @@ export class PixivAuth {
   private accessToken: string = '';
   private refreshToken: string = '';
   private isLoggedIn: boolean = false;
+  // 当前登录用户
+  private currentUser: PixivUser
 
   // 用于存储正在进行的刷新 Promise，防止并发刷新
   private refreshingPromise: Promise<PixivAuthResponse> | null = null;
@@ -159,6 +161,8 @@ export class PixivAuth {
 
         this.updateTokens(auth.access_token, auth.refresh_token);
         logger.info('Password login successful!');
+        // 保存用户
+        this.currentUser = auth.user;
         return auth;
       } catch (error: any) {
         if (i < this.CREDENTIALS.length - 1) continue;
@@ -215,6 +219,8 @@ export class PixivAuth {
     const auth = body.response;
 
     this.updateTokens(auth.access_token, auth.refresh_token);
+    // 保存用户 ID
+    this.currentUser = auth.user;
     logger.info('Auth code login successful!');
     return auth;
   }
@@ -263,6 +269,8 @@ export class PixivAuth {
     const auth = body.response;
 
     this.updateTokens(auth.access_token, auth.refresh_token);
+    // 保存用户 ID
+    this.currentUser = auth.user;
     logger.info('Refresh token login successful!');
     return auth;
   }
@@ -273,6 +281,13 @@ export class PixivAuth {
    */
   getCurrentRefreshToken(): string {
     return this.refreshToken;
+  }
+
+  /**
+   * 获取当前登录用户信息
+   */
+  getCurrentUser(): PixivUser {
+    return this.currentUser;
   }
 
   /**

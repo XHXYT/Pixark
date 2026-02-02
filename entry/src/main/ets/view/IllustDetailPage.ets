@@ -39,7 +39,7 @@ struct IllustDetail {
                 PixivImageComponent({
                   imageUrl: illust.medium,
                   imageObjectFit: ImageFit.Auto,
-                  imageBorderRadius: 0,
+                  imageBorder: { radius: 0 },
                 })
                 // 给第一张图设置固定的 ID，用于计算动画终点位置
                   .id(index === 0 ? iDV.sharedId : illust.medium)
@@ -207,7 +207,7 @@ struct IllustDetail {
         PixivImageComponent({
           imageUrl: iDV.detailData!.user.profile_image_urls.medium,
           imageWidth: 50, imageHeight: 50,
-          imageBorderRadius: 50
+          imageBorder: { radius: 50 }
         })
         // 名称
         Text(iDV.detailData!.user.name)

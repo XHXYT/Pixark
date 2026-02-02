@@ -38,7 +38,7 @@ export struct Home {
                     PixivImageComponent({
                       imageUrl: user.profile_image_urls.medium,
                       imageWidth: 50, imageHeight: 50,
-                      imageBorderRadius: 50
+                      imageBorder: { radius: 50 }
                     })
                     Text(user.name)
                       .constraintSize({ maxWidth: 65 })

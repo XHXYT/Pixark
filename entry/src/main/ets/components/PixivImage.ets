@@ -12,9 +12,11 @@ export struct PixivImageComponent {
   @Param imageWidth: Length | undefined = undefined
   @Param imageHeight: Length | undefined = undefined
   @Param imageAspectRatio: number | undefined = undefined
-  @Param imageBorderRadius:  Length | BorderRadiuses | LocalizedBorderRadiuses | undefined = undefined
+  @Param imageBorder:  BorderOptions | undefined = undefined
 
   @Event progress:  (progress: number) => void
+  @Event onImageLongPress: (url: string) => void
+  @Event onImageClick: (url: string) => void
 
   build() {
     if (this.needMask) {
@@ -34,9 +36,7 @@ export struct PixivImageComponent {
               // console.log('下载进度：' + progress + '%')
               this.progress(progress)
             },
-            border: {
-              radius: this.imageBorderRadius
-            }
+            border: this.imageBorder
           }
         })
           .id(this.imageID || this.imageUrl)
@@ -45,10 +45,10 @@ export struct PixivImageComponent {
         // 遮罩
         Row()
           .width('100%')
-          .borderRadius(this.imageBorderRadius)
+          .borderRadius(this.imageBorder?.radius)
           .aspectRatio(this.imageAspectRatio)
           .backgroundColor(PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
-          .shadow({ radius: typeof this.imageBorderRadius == 'number' ? this.imageBorderRadius : undefined, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
+          .shadow({ radius: typeof this.imageBorder?.radius == 'number' ? this.imageBorder.radius: undefined, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
       }
     } else {
       ImageKnifeComponent({
@@ -66,9 +66,7 @@ export struct PixivImageComponent {
             // console.log('下载进度：' + progress + '%')
             this.progress(progress)
           },
-          border: {
-            radius: this.imageBorderRadius
-          }
+          border: this.imageBorder
         }
       })
         .id(this.imageID || this.imageUrl)

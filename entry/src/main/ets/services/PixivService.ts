@@ -2,6 +2,7 @@ import { PixivAuth } from './PixivAuth';
 import { PixivData } from './PixivData';
 import { PixivInteraction } from './PixivInteraction';
 import { PixivAuthResponse, PixivIllust, PixivListResult,
+  PixivUser,
   SearchFilterOptions,
   SearchUserResult, SpotlightResponse } from './PixivTypes';
 
@@ -26,6 +27,10 @@ export class PixivService {
 
   isLogin(): boolean {
     return this.auth.isLogin();
+  }
+
+  getCurrentUser(): PixivUser {
+    return this.auth.getCurrentUser();
   }
 
   // 已废弃
@@ -74,6 +79,22 @@ export class PixivService {
    */
   async searchUser(word: string, nextUrl?: string): Promise<SearchUserResult> {
     return this.data.searchUser(word, nextUrl);
+  }
+
+  /**
+   * 获取当前用户关注的所有用户 ID (返回 Set 供 UI 层使用)
+   * @param restrict 'public' | 'private'，默认 'public'
+   * @returns 返回 ID 的 Set 集合
+   */
+  async syncFollowingStatus(userId: number, restrict: 'public' | 'private' = 'public'): Promise<string[]> {
+    try {
+      // 获取原始 ID 数组
+      const ids = await this.data.getFollowingIds(userId, restrict);
+      return ids;
+    } catch (e) {
+      console.error('Get following ids failed', e);
+      throw e;
+    }
   }
 
   /**

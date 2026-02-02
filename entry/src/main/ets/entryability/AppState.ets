@@ -1,14 +1,20 @@
 import { PixivService } from "../services/PixivService"
-import { PixivIllust } from "../services/PixivTypes"
+import { PixivIllust, PixivUser } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
-import { ListItemMarginValue, PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
-import { searchVM } from "../viewmodel/SearchViewModel"
+import { PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
+import { createLogger } from "../utils/Logger"
+
+const logger = createLogger('PixivState')
 
 @ObservedV2
 export class _PixState {
   // Pixiv
   @Trace pixiv = new PixivService()
+  // 当前登录用户
+  @Trace currentUser: PixivUser | null = null
+  // 关注用户 ID 集合
+  followingUserIds: Set<string> = new Set<string>();
   // 登录方式
   @Trace loginMethod: 'password' | 'token' = 'token'
   // refresh token
@@ -69,6 +75,23 @@ export class _PixState {
   @Computed
   get PageMarginValue() {
     return PageMargin(this.widthBp, this.heightBp)
+  }
+
+  async syncFollowing() {
+    if (!this.pixiv.isLogin()) {
+      logger.warn('未登录，跳过关注状态同步');
+      return;
+    }
+    try {
+      logger.info(`[syncFollowing] 当前登录用户ID ${this.currentUser?.id}`);
+      // 获取关注用户ID
+      const pub = await this.pixiv.syncFollowingStatus(this.currentUser?.id, 'public');
+      const priv = await this.pixiv.syncFollowingStatus(this.currentUser?.id, 'private');
+      this.followingUserIds = new Set([...pub, ...priv]);
+      logger.info(`[syncFollowing] 关注状态同步完成，共关注 ${this.followingUserIds.size} 位作者`);
+    } catch (e) {
+      logger.error('[syncFollowing] 关注状态同步失败', e);
+    }
   }
 
   @Monitor('pageStack')

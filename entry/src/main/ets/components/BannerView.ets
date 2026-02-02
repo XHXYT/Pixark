@@ -40,7 +40,7 @@ export struct BannerView {
       // 封面
       PixivImageComponent({
         imageUrl: article.thumbnail,
-        imageBorderRadius: 16
+        imageBorder: { radius: 16 }
       })
         .layoutWeight(1)
         .aspectRatio(1.75)

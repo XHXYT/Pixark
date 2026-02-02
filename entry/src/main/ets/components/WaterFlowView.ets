@@ -27,7 +27,7 @@ export struct WaterFlowView {
           PixivImageComponent({
             imageUrl: illust.image_urls.medium,
             imageObjectFit: ImageFit.Auto,
-            imageBorderRadius: 16,
+            imageBorder: { radius: 16 },
           })
             .id(CardUtil.getFlowItemIdByIndex(illust.id))
           // .visibility(homeViewModel.hiddenIllustId === illust.id ? Visibility.None : Visibility.Visible)

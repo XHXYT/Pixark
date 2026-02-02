@@ -133,6 +133,14 @@ export const WaterFlowColumnsTemplate = BreakpointFunction<string>({
   ['xl']: "1fr 1fr 1fr 1fr 1fr 1fr"
 })
 
+/**列表列数（List）*/
+export const ListColumnsTemplate = BreakpointFunction<number>({
+  ['sm']: 1,
+  ['md']: 2,
+  ['lg']: 3,
+  ['xl']: 4
+})
+
 export const GridColumnsTemplate = BreakpointFunction<string>({
   ['sm']: "1fr 1fr 1fr",
   ['md']: "1fr 1fr 1fr 1fr 1fr",

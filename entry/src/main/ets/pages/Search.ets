@@ -78,7 +78,7 @@ export struct SearchContent {
                 PixivImageComponent({
                   imageUrl: item.illust.image_urls.square_medium,
                   imageAspectRatio: 1,
-                  imageBorderRadius: 12,
+                  imageBorder: { radius: 12 },
                   needMask: true
                 })
                 // 标签名
