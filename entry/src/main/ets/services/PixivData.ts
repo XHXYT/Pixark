@@ -1,6 +1,7 @@
 import { PixivIllust, PixivListResult, PixivTrendingTag,
   SearchFilterOptions,
-  SearchUserResult, SpotlightResponse } from './PixivTypes';
+  SearchUserResult, SpotlightResponse,
+  UserPreview } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
 import { createLogger } from '../utils/Logger';
 
@@ -94,16 +95,16 @@ export class PixivData {
    * 获取当前用户关注的所有用户 ID (全量)
    * @param userId 当前登录用户的 ID（必填）
    * @param restrict 'public' | 'private'，默认 'public'
-   * @returns 返回 ID 数组
+   * @returns 返回 用户预览 数组
    */
-  async getFollowingIds(userId: number, restrict: 'public' | 'private' = 'public'): Promise<string[]> {
+  async getFollowings(userId: number, restrict: 'public' | 'private' = 'public'): Promise<UserPreview[]> {
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
     }
 
     logger.info(`[getFollowingIds] userId=${userId}, restrict=${restrict}`);
     let nextUrl: string | null = '/v1/user/following';
-    const allIds: string[] = [];
+    const allUsers: UserPreview[] = [];
     try {
       // 循环翻页，直到拿完所有数据
       while (nextUrl) {
@@ -114,14 +115,14 @@ export class PixivData {
         const userPreviews = response.data.user_previews || [];
         userPreviews.forEach((item: any) => {
           if (item.user && item.user.id) {
-            allIds.push(String(item.user.id));
+            allUsers.push(item);
           }
         });
         // 检查是否有下一页
         nextUrl = response.data.next_url || null;
       }
-      logger.info(`[getFollowingIds] 同步完成，共 ${allIds.length} 位`);
-      return allIds;
+      logger.info(`[getFollowingIds] 同步完成，共 ${allUsers.length} 位`);
+      return allUsers;
     } catch (e) {
       logger.error('[getFollowingIds] 请求失败: ' + JSON.stringify(e));
       throw e;

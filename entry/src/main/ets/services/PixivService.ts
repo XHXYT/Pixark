@@ -4,7 +4,8 @@ import { PixivInteraction } from './PixivInteraction';
 import { PixivAuthResponse, PixivIllust, PixivListResult,
   PixivUser,
   SearchFilterOptions,
-  SearchUserResult, SpotlightResponse } from './PixivTypes';
+  SearchUserResult, SpotlightResponse,
+  UserPreview } from './PixivTypes';
 
 /**
  * Pixiv 服务主入口
@@ -82,17 +83,16 @@ export class PixivService {
   }
 
   /**
-   * 获取当前用户关注的所有用户 ID (返回 Set 供 UI 层使用)
+   * 获取当前用户关注的所有用户 ID
    * @param restrict 'public' | 'private'，默认 'public'
-   * @returns 返回 ID 的 Set 集合
+   * @returns 返回 用户预览 的数组集合
    */
-  async syncFollowingStatus(userId: number, restrict: 'public' | 'private' = 'public'): Promise<string[]> {
+  async syncFollowingStatus(userId: number, restrict: 'public' | 'private' = 'public'): Promise<UserPreview[]> {
     try {
-      // 获取原始 ID 数组
-      const ids = await this.data.getFollowingIds(userId, restrict);
-      return ids;
+      const users = await this.data.getFollowings(userId, restrict);
+      return users;
     } catch (e) {
-      console.error('Get following ids failed', e);
+      console.error('Get following users failed', e);
       throw e;
     }
   }

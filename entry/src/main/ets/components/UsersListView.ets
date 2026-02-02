@@ -62,7 +62,7 @@ export struct UserListView {
                 this.onAuthorClick(userPre.user.id)
               })
               Blank()
-              Button(PixState.followingUserIds.has(userPre.user.id.toString()) ? $r('app.string.followed') : $r('app.string.follow'))
+              Button(userPre.user.is_followed ? $r('app.string.followed') : $r('app.string.follow'))
                 .type(ButtonType.Normal)
                 .fontSize(12)
                 .height(28)

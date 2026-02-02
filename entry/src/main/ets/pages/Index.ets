@@ -332,8 +332,6 @@ struct Index {
         // 登录成功（或者原本就处于登录状态），获取各数据
         // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
         if (PixState.pixiv.isLogin()) {
-          // 初始化关注列表
-          PixState.syncFollowing()
           // 加载主页内容
           await homeViewModel.loadHomeData()
         } else {
