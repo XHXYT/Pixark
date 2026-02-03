@@ -93,6 +93,18 @@ export struct SearchContent {
               }
               .alignContent(Alignment.Bottom)
             }
+            .onClick(() => {
+              // 设置搜索关键词为标签名（优先使用翻译名）
+              searchVM.keyword = item.translated_name || item.tag;
+              // 执行搜索
+              searchVM.doSearch();
+              // 使用动画跳转到搜索结果页面
+              this.getUIContext().animateTo({
+                curve: curves.interpolatingSpring(0, 1, 342, 38)
+              }, () => {
+                this.pageInfos.pushPath({ name: 'searching_page' }, false);
+              })
+            })
           })
         }
         .scrollBar(BarState.Off)
