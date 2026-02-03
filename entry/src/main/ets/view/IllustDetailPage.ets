@@ -11,6 +11,7 @@ import { TopBuilder } from "../components/TopBuilder";
 import { searchVM } from "../viewmodel/SearchViewModel";
 import { photoAccessHelper } from "@kit.MediaLibraryKit";
 import { fileIo } from "@kit.CoreFileKit";
+import { DetailPageParams } from "../entity/IllustDetailEntity";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -293,6 +294,17 @@ struct IllustDetail {
               imageAspectRatio: 1
             })
           }
+          .onClick(() => {
+            // TODO 只有跳转到第2个路由栈页时，返回无过渡动画
+
+            // 构造详情页参数
+            const params: DetailPageParams = {
+              id: item.id,
+              illust: item
+            }
+            // 跳转到详情页
+            PixState.pageStack.pushPathByName('illust_detail', params, true);
+          })
         })
       }
       .columnsTemplate(GridColumnsTemplate(PixState.widthBp))
