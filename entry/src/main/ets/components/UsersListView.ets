@@ -1,5 +1,5 @@
 import { PixState } from "../entryability/AppState"
-import { UserPreview } from "../services/PixivTypes"
+import { PixivIllust, UserPreview } from "../services/PixivTypes"
 import { ListColumnsTemplate } from "../utils/breakpoint/BreakPoint"
 import { createLogger } from "../utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
@@ -18,7 +18,6 @@ export struct UserListView {
   @Param userPres: UserPreview[] = []
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
 
-  @Event onCardClick: (userPre: UserPreview) => void
   @Event onAuthorClick: (id: number) => void
   @Event onButtonClick: (id: number) => void
   @Event onReachEnd: () => void

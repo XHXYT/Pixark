@@ -13,13 +13,18 @@ class SearchViewModel {
   @Trace trendingTags: PixivTrendingTag[] = [];
   // 搜索结果(插画)
   @Trace resultIllusts: PixivIllust[] = []
-  private IllustNextUrl: string = '';
   // 搜索结果(画师)
   @Trace resultUsers: UserPreview[] = []
-  private userNextUrl: string = '';
 
-  keyword: string = '';
+  private IllustNextUrl: string = '';
+  private userNextUrl: string = '';
+  @Trace keyword: string = '';
+
   @Trace searchType: 'illust' | 'user' = 'illust';
+
+  // 缓存记录：上一次针对该类型搜索的关键词
+  private lastSearchedIllustKeyword: string = '';
+  private lastSearchedUserKeyword: string = '';
 
   // 嵌套滚动配置
   get nestedScrollOptions(): NestedScrollOptions {
@@ -43,43 +48,58 @@ class SearchViewModel {
     }
   }
 
-  async doSearch() {
+  async doSearch(force: boolean = false) {
     if (!this.keyword) {
-      logger.warn('搜索关键词为空，忽略搜索请求');
+      return;
+    }
+    // 判断是否需要发起请求
+    // 如果不是强制刷新(force=false)，且当前关键词和缓存一致，则跳过请求（直接利用历史数据）
+    let shouldRequest = true;
+    if (!force) {
+      if (this.searchType === 'illust') {
+        if (this.keyword === this.lastSearchedIllustKeyword) {
+          logger.debug(`[doSearch] 缓存命中，跳过插画搜索: ${this.keyword}`);
+          shouldRequest = false;
+        }
+      } else {
+        if (this.keyword === this.lastSearchedUserKeyword) {
+          logger.debug(`[doSearch] 缓存命中，跳过画师搜索: ${this.keyword}`);
+          shouldRequest = false;
+        }
+      }
+    }
+    if (!shouldRequest) {
       return;
     }
     logger.debug(`[开始搜索] 类型: ${this.searchType}, 关键词: "${this.keyword}"`);
     try {
       if (this.searchType === 'illust') {
-        // 搜插画
-        // 构建筛选参数 TODO 可选持久化
-        const options: SearchFilterOptions = {
-          sort: 'popular_desc',      // 热度降序
-          minBookmark: 1000,         // 收藏数
-          searchTarget: 'exact_match_for_tags' // 匹配标签
-        };
-        logger.debug(`[插画搜索] 发起请求，筛选参数: ${JSON.stringify(options)}`);
-        const data = await PixState.pixiv.searchIllust(this.keyword, undefined, options);
-        logger.info(`[插画搜索] 请求成功，结果数量: ${data.illusts.length}, 下一页URL: ${data.next_url ? '存在' : '空'}`);
+        const data = await PixState.pixiv.searchIllust(this.keyword, undefined, {
+          sort: 'popular_desc',
+          minBookmark: 1000,
+          searchTarget: 'exact_match_for_tags'
+        });
         this.resultIllusts = data.illusts;
         this.IllustNextUrl = data.next_url || '';
+        // 更新缓存
+        this.lastSearchedIllustKeyword = this.keyword;
       } else {
-        // 搜作者
-        logger.debug(`[用户搜索] 发起请求，关键词: "${this.keyword}"`);
         const data = await PixState.pixiv.searchUser(this.keyword);
-        logger.debug(`[用户搜索] 请求成功，结果数量: ${data.user_previews.length}`);
         this.resultUsers = data.user_previews;
         this.userNextUrl = data.next_url || '';
+        // 更新缓存
+        this.lastSearchedUserKeyword = this.keyword;
       }
     } catch (e) {
-      logger.error(`[搜索异常] 错误详情: ${JSON.stringify(e)}`);
+      logger.error(`[搜索异常] ${JSON.stringify(e)}`);
     }
   }
+
 
   // 加载更多
   async loadMoreSearchResult() {
     const nextUrl = this.searchType === 'illust' ? this.IllustNextUrl : this.userNextUrl;
-    if (!nextUrl) {
+    if (!nextUrl && this.resultIllusts.length > 0 && this.resultUsers.length > 0) {
       toastUtil.showToast({ message: $r('app.string.search_not_tips') });
       return;
     }

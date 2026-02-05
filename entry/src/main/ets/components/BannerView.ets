@@ -15,6 +15,11 @@ export struct BannerView {
 
   private bannerDataSource: BannerDataSource = new BannerDataSource([])
 
+  @Monitor('bannerList')
+  onBannerListChange() {
+    this.bannerDataSource.pushData(this.bannerList)
+  }
+
   aboutToAppear(): void {
     this.bannerDataSource.pushData(this.bannerList)
   }
@@ -90,7 +95,7 @@ class BannerDataSource extends BaseDataSource<SpotlightArticle> {
 
   public pushData(data: SpotlightArticle[]): void {
     this.dataArray = data
-    this.notifyDataAdd(this.dataArray.length - 1)
+    this.refresh()
   }
 
   // 删除全部数据

@@ -49,6 +49,7 @@ export struct Home {
                 }
               })
             }
+            .padding(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue }))
             .listDirection(Axis.Horizontal) // 横向
             .scrollBar(BarState.Off)
             .margin({ bottom: 5 })
@@ -57,7 +58,6 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-        .margin(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue}))
 
         ListItem() {
           Column() {
@@ -109,7 +109,6 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-        .margin({ left: PixState.PageMarginValue, right: PixState.PageMarginValue})
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
@@ -130,7 +129,7 @@ export struct Home {
     Text(title)
       .fontSize(18)
       .fontWeight(FontWeight.Bold)
-      .margin({ bottom: 8})
+      .margin(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue, bottom: 8 }))
   }
 
   // 点击处理逻辑

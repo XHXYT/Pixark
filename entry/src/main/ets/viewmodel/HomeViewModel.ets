@@ -20,11 +20,11 @@ class HomeViewModel {
   // 记录当前被点击隐藏的 ID，-1 表示没有
   @Trace hiddenIllustId: number = -1
 
-  isRefreshRecommend: boolean = false
+  @Trace isRefreshRecommend: boolean = false
   // 是否正在加载更多（用于防止滚动到底部重复触发）
-  isLoadingMore: boolean = false;
+  @Trace isLoadingMore: boolean = false;
   // 是否正在刷新加载所有数据
-  isRefreshing: boolean = false
+  @Trace isRefreshing: boolean = false
 
   // 外层 List 的滚动控制器
   listScroller: Scroller = new Scroller();

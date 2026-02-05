@@ -65,8 +65,8 @@ export class PixivService {
   /**
    * 搜索插画
    * @param word 搜索关键词
-   * @param page 页码 (从 1 开始)
-   * @param pageSize 每页数量
+   * @param nextUrl 可选，用于翻页
+   * @param options 搜索配置
    * @returns 返回搜索结果列表
    */
   async searchIllust(word: string, nextUrl?: string, options?: SearchFilterOptions): Promise<PixivListResult> {

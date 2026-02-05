@@ -43,6 +43,7 @@ export struct WaterFlowView {
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
     .nestedScroll(this.nestedScroll)
+    .margin({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
     .contentEndOffset(PixState.bottomRectHeight + this.contentEndOffset)
     .columnsTemplate(WaterFlowColumnsTemplate(PixState.widthBp)) // 瀑布流列数
     .onReachEnd(() => {

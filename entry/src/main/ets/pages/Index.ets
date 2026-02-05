@@ -333,7 +333,7 @@ struct Index {
         // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
         if (PixState.pixiv.isLogin()) {
           // 加载主页内容
-          await homeViewModel.loadHomeData()
+          homeViewModel.loadHomeData()
         } else {
           logger.warn('User not logged in, cannot load data.');
         }

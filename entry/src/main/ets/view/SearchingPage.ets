@@ -48,6 +48,7 @@ export default struct SearchingPage {
                 curve: curves.interpolatingSpring(0, 1, 342, 38)
               }, () => {
                 this.pageInfos.pop(false)
+                searchVM.keyword = ''
               })
             }
           })
@@ -59,7 +60,7 @@ export default struct SearchingPage {
             .defaultFocus(true)
             .focusOnTouch(true)
             .onSubmit(() => {
-              searchVM.doSearch()
+              searchVM.doSearch(true)
             })
             .layoutWeight(1)
             .id('SEARCH_ID')
@@ -80,6 +81,7 @@ export default struct SearchingPage {
               } else {
                 searchVM.searchType = 'user'
               }
+              searchVM.doSearch(false)
             }
           })
         }
@@ -119,15 +121,11 @@ export default struct SearchingPage {
                 .combine(TransitionEffect.translate({ y: 100 })),
               TransitionEffect.OPACITY.animation({ duration: 0 })
             ))
-            .margin(({
-              left: PixState.PageMarginValue,
-              right: PixState.PageMarginValue
-            }))
         } else {
           // 画师
           UserListView({
             userPres: searchVM.resultUsers,
-            onCardClick: (illust) => {
+            onAuthorClick: (illust) => {
               // const params: DetailPageParams = {
               //   id: illust.id,
               //   illust: illust
@@ -145,6 +143,11 @@ export default struct SearchingPage {
               }
             }
           })
+            .transition(TransitionEffect.asymmetric(
+              TransitionEffect.OPACITY
+                .combine(TransitionEffect.translate({ y: 100 })),
+              TransitionEffect.OPACITY.animation({ duration: 0 })
+            ))
         }
 
       }
@@ -154,9 +157,16 @@ export default struct SearchingPage {
       .gesture(
         PanGesture(this.panOptionL)
           .onActionStart((event: GestureEvent) => {
-            if(event){
-              this.searchTypeSelectedIndex = 1
-              searchVM.searchType = 'user'
+            if (event) {
+              toastUtil.animateTo({
+                duration: 300,
+                curve: Curve.EaseOut,
+                playMode: PlayMode.Normal,
+              }, () => {
+                this.searchTypeSelectedIndex = 1
+                searchVM.searchType = 'user'
+                searchVM.doSearch(false)
+              })
             }
           }),
       )
@@ -164,9 +174,16 @@ export default struct SearchingPage {
       .gesture(
         PanGesture(this.panOptionR)
           .onActionStart((event: GestureEvent) => {
-            if(event){
-              this.searchTypeSelectedIndex = 0
-              searchVM.searchType = 'illust'
+            if (event) {
+              toastUtil.animateTo({
+                duration: 300,
+                curve: Curve.EaseOut,
+                playMode: PlayMode.Normal,
+              }, () => {
+                this.searchTypeSelectedIndex = 0
+                searchVM.searchType = 'illust'
+                searchVM.doSearch(false)
+              })
             }
           }),
       )
@@ -180,6 +197,7 @@ export default struct SearchingPage {
       }, () => {
         this.pageInfos.pop(false)
       })
+      searchVM.keyword = ''
       return true;
     })
     .onReady((context: NavDestinationContext) => {
