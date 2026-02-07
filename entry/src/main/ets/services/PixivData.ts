@@ -1,6 +1,7 @@
 import { PixivIllust, PixivListResult, PixivTrendingTag,
   SearchFilterOptions,
   SearchUserResult, SpotlightResponse,
+  UserDetailResponse,
   UserPreview } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
 import { createLogger } from '../utils/Logger';
@@ -306,13 +307,63 @@ export class PixivData {
   }
 
   /**
-   * 获取用户的作品列表
+   * 获取用户详细信息
    * @param userId 用户 ID
-   * @param type 作品类型 (illust: 插画, manga: 漫画)
+   * @returns 返回用户详细数据（含头像、背景、简介、统计等），包含：
+   *          - user: 基本用户信息（id, name, account, profile_image_urls等）
+   *          - profile: 详细信息（background_image_url, gender, region, comment等）
+   *          - workspace: 工作区信息（pc_viewpoint等）
+   *          - stats: 统计数据（followee, follower, mypixiv_count, illust_count, novel_count）
+   */
+  async getUserDetail(userId: number): Promise<UserDetailResponse> {
+    if (!this.auth.isLogin()) {
+      throw new Error('请先登录');
+    }
+
+    logger.info(`Getting user detail for ID: ${userId}`);
+    try {
+      const response = await this.auth.axiosInstance.get('/v1/user/detail', {
+        params: {
+          user_id: userId,
+          filter: 'for_android',
+        },
+      });
+      logger.debug('=== getUserDetail 原始响应 START ===');
+      logger.debug('URL:', response.config.url);
+      logger.debug('Headers:', JSON.stringify(response.config.headers, null, 2));
+      // logger.debug('完整响应 JSON:', JSON.stringify(response.data, null, 2));
+      logger.debug('=== getUserDetail 原始响应 END ===');
+
+      logger.debug('Response Keys:', Object.keys(response.data));
+      logger.debug('Has profile?', 'profile' in response.data);
+      logger.debug('Has workspace?', 'workspace' in response.data);
+
+      return response.data;
+    } catch (error: any) {
+      logger.error('Get user detail failed: ' + JSON.stringify(error));
+      throw error;
+    }
+  }
+
+  /**
+   * 获取用户的作品列表
+   * @param userId 用户 ID (仅在 nextUrl 为空时生效)
+   * @param type 作品类型 (仅在 nextUrl 为空时生效，默认: illust)
+   * @param nextUrl 分页 URL (可选，如果传了 nextUrl，则忽略 userId 和 type，直接加载下一页)
    * @returns 返回该用户的作品列表
    */
-  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivListResult> {
+  async getUserIllusts(
+    userId: number,
+    type: 'illust' | 'manga' = 'illust',
+    nextUrl?: string
+  ): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
+
+    // nextUrl存在，直接 loadNextPage
+    if (nextUrl) {
+      return this.loadNextPage(nextUrl);
+    }
+    // 否则，发起初始请求
     const response = await this.auth.axiosInstance.get('/v1/user/illusts', {
       params: { user_id: userId, type: type, filter: 'for_android' },
     });
@@ -323,49 +374,41 @@ export class PixivData {
   }
 
   /**
-   * 获取用户的收藏列表 (书签)
+   * 获取用户的收藏列表
    * @param userId 目标用户的 ID
-   *               【注意】如果想获取"我自己的"收藏，这里需要传入登录成功后返回的 user.id
-   * @param restrict 收藏的类型，可选值：
-   *                 - 'public': 公开收藏 (默认，别人也能看到的)
-   *                 - 'private': 私密收藏 (只有自己能看到的)
-   * @param tag 用于过滤收藏的标签 (可选) 如果你只想看某个标签下的收藏，可以传这个参数
+   * @param restrict 收藏的类型 ('public' | 'private')
+   * @param tag 用于过滤收藏的标签 (可选)
    * @param maxBookmarkId 分页参数 (可选)
-   *                     Pixiv 的分页是基于时间戳倒序的，这个值通常是上一次请求列表中"最后一个"作品的 bookmark_id
-   *                     传了这个值，接口会返回比这个 ID 更早的收藏，即"上一页"或"加载更多"
-   * @returns 返回收藏的插画列表
+   * @param nextUrl 下一页 URL (可选，如果传了 nextUrl，则忽略上述参数)
    */
   async getUserBookmarks(
     userId: number,
     restrict: 'public' | 'private' = 'public',
     tag?: string,
-    maxBookmarkId?: number
+    maxBookmarkId?: number,
+    nextUrl?: string
   ): Promise<PixivListResult> {
-    // 检查登录状态
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
     }
-    logger.info(`Getting bookmarks for user: ${userId}, restrict:${restrict}`);
-    // 构建请求参数
+
+    // 如果有 nextUrl，直接走通用加载
+    if (nextUrl) {
+      return this.loadNextPage(nextUrl);
+    }
+    // 否则走常规加载
     const params: Record<string, string | number> = {
       user_id: userId,
       restrict: restrict,
-      filter: 'for_android', // 使用 Android 过滤器
+      filter: 'for_android',
     };
-    // 处理可选参数
-    if (tag) {
-      params['tag'] = tag;
-    }
-    if (maxBookmarkId) {
-      params['max_bookmark_id'] = maxBookmarkId;
-    }
+    if (tag) params['tag'] = tag;
+    if (maxBookmarkId) params['max_bookmark_id'] = maxBookmarkId;
+
     try {
-      // 发送 GET 请求到收藏接口
       const response = await this.auth.axiosInstance.get('/v1/user/bookmarks/illust', {
         params: params,
       });
-      logger.info(`Bookmarks loaded. Count: ${response.data.illusts?.length}`);
-      // 返回标准化的结果格式
       return {
         illusts: response.data.illusts || [],
         next_url: response.data.next_url || null,

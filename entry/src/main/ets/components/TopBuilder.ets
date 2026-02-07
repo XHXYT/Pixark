@@ -10,11 +10,10 @@ export struct TopBuilder {
 
   @Param pageInfos: NavPathStack | undefined = undefined
   @Param topHeight: number | undefined = 56
-  @Require@Param images:PixivImage[]
-
+  @Param images: PixivImage[] = []
 
   saveImage() {
-    if (this.images.length==1) {
+    if (this.images.length == 1 ) {
       let image = this.images[0]
       let range = ['大图','中等','方中']
       if (image.original) {
@@ -119,16 +118,17 @@ export struct TopBuilder {
         })
       }
 
-
-      Button({ type: ButtonType.Circle, stateEffect: true }) {
-        SymbolGlyph($r('sys.symbol.download'))
-          .fontSize(28)
+      if (this.images.length > 0) {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.download'))
+            .fontSize(28)
+        }
+        .width(40).height(40)
+        .backgroundColor($r('sys.color.button_background_color_transparent'))
+        .onClick((event: ClickEvent) => {
+          this.saveImage()
+        })
       }
-      .width(40).height(40)
-      .backgroundColor($r('sys.color.button_background_color_transparent'))
-      .onClick((event: ClickEvent) => {
-        this.saveImage()
-      })
 
     }
     .justifyContent(FlexAlign.SpaceBetween)

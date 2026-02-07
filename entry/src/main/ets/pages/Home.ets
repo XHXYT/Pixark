@@ -10,6 +10,7 @@ import { image } from "@kit.ImageKit";
 import { DetailPageParams } from "../entity/IllustDetailEntity";
 import { CardUtil } from "../utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
+import { UserDetailParams } from "../entity/UserDetailEntity";
 
 const logger = createLogger('Home')
 
@@ -47,6 +48,14 @@ export struct Home {
                       .maxLines(1)
                   }
                 }
+                .onClick(() => {
+                  const params: UserDetailParams = {
+                    id: user.id,
+                    user: user
+                  }
+                  // 跳转详情页
+                  PixState.pageStack.pushPathByName('user_detail', params, true);
+                })
               })
             }
             .padding(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue }))

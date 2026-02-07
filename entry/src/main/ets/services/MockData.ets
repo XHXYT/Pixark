@@ -34,6 +34,7 @@ export class MockData {
             id: 3000 + i,
             name: `测试画师 ${i + 1}`,
             account: 'test_account',
+            created_date: '',
             profile_image_urls: { medium: '' },
             is_followed: i % 3 === 0 // 模拟部分已关注
           },
@@ -72,6 +73,7 @@ export class MockData {
         caption: '这是测试用的描述文案...',
         user: {
           id: 3000 + i,
+          created_date: '',
           name: `测试画师 ${i + 1}`,
           account: 'test_account',
           profile_image_urls: { medium: '' },

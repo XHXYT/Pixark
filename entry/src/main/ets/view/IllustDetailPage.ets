@@ -3,7 +3,7 @@ import { PixState } from "../entryability/AppState";
 import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
 import { iDV } from "../viewmodel/IllustDetailViewModel";
 import { SnapShotUtils } from "../utils/SnapShotUtils"; // 截图工具
-import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
+import { PixivIllust, PixivImage, PixivTag, PixivUser } from "../services/PixivTypes";
 import { LengthMetrics, SymbolGlyphModifier } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { toastUtil } from "../utils/ToastUtils";
@@ -12,6 +12,8 @@ import { searchVM } from "../viewmodel/SearchViewModel";
 import { photoAccessHelper } from "@kit.MediaLibraryKit";
 import { fileIo } from "@kit.CoreFileKit";
 import { DetailPageParams } from "../entity/IllustDetailEntity";
+import { UserDetailParams } from "../entity/UserDetailEntity";
+import { UserItem } from "../components/UserItem";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -172,65 +174,44 @@ struct IllustDetail {
       Text(iDV.detailData!.title)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#111')
+        .fontColor($r('sys.color.font_primary'))
         .width('100%')
       // 统计数据行：观看人数 + 喜欢数 + 时间
       Row({ space: 16 }) {
         Text(`${iDV.detailData!.total_view} 浏览`)
           .fontSize(12)
-          .fontColor('#888')
+          .fontColor($r('sys.color.font_tertiary'))
         Text(`${iDV.detailData!.total_bookmarks} 收藏`)
           .fontSize(12)
-          .fontColor('#888')
+          .fontColor($r('sys.color.font_tertiary'))
         // 格式化时间
         Text(iDV.formatDate(iDV.detailData!.create_date))
           .fontSize(12)
-          .fontColor('#888')
+          .fontColor($r('sys.color.font_tertiary'))
       }
       .width('100%')
       // 元数据行：ID + 分辨率
       Row({ space: 16 }) {
         Text(`插画ID: ${iDV.detailData!.id}`)
           .fontSize(12)
-          .fontColor('#AAA')
+          .fontColor($r('sys.color.font_fourth'))
         Text(`${iDV.detailData!.width} x ${iDV.detailData!.height}`)
           .fontSize(12)
-          .fontColor('#AAA')
+          .fontColor($r('sys.color.font_fourth'))
       }
       .width('100%')
       // 分割线
       Divider()
-        .color('#F0F0F0')
+        .color($r('sys.color.ohos_id_color_text_field_sub_bg'))
 
       // 作者行：头像 + 名称 + 关注按钮
-      Row({ space: 12 }) {
-        // 头像
-        PixivImageComponent({
-          imageUrl: iDV.detailData!.user.profile_image_urls.medium,
-          imageWidth: 50, imageHeight: 50,
-          imageBorder: { radius: 50 }
-        })
-        // 名称
-        Text(iDV.detailData!.user.name)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .layoutWeight(1)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        // 关注按钮
-        Button(iDV.isFollow ? '取消关注' : '关注')
-          .type(ButtonType.Normal)
-          .fontSize(12)
-          .height(28)
-          .padding({ left: 12, right: 12 })
-          .borderRadius(14)
-          .fontColor(Color.White)
-          .onClick(() => {
-            iDV.followOrCancel()
-          })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
+      UserItem({
+        user: iDV.detailData?.user,
+        isFollow: iDV.isFollow,
+        onButtonClick: () => {
+          iDV.followOrCancel()
+        }
+      })
 
       // 标签
       Flex({ wrap: FlexWrap.Wrap, space: { main: LengthMetrics.vp(8), cross: LengthMetrics.vp(8) } }) {
@@ -248,7 +229,6 @@ struct IllustDetail {
       .width('100%')
     }
     .width('100%')
-    .backgroundColor(Color.White)
     .borderRadius(12)
   }
 
@@ -267,7 +247,6 @@ struct IllustDetail {
         .fontSize(19)
     }
     .width('100%')
-    .backgroundColor(Color.White)
     .borderRadius(12)
     .onClick(() => {
       // TODO: 跳转到评论页或弹出评论层
@@ -313,7 +292,15 @@ struct IllustDetail {
     }
     .width('100%')
     .borderRadius(12)
-    .backgroundColor(Color.White)
+  }
+
+  push2UserDetail(user: PixivUser) {
+    const params: UserDetailParams = {
+      id: user.id,
+      user: user
+    }
+    // 跳转详情页
+    PixState.pageStack.pushPathByName('user_detail', params, true);
   }
 
 }

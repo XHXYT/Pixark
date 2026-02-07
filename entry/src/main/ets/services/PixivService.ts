@@ -5,6 +5,7 @@ import { PixivAuthResponse, PixivIllust, PixivListResult,
   PixivUser,
   SearchFilterOptions,
   SearchUserResult, SpotlightResponse,
+  UserDetailResponse,
   UserPreview } from './PixivTypes';
 
 /**
@@ -136,8 +137,17 @@ export class PixivService {
     return this.data.getRelatedIllusts(illustId);
   }
 
-  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust'): Promise<PixivListResult> {
-    return this.data.getUserIllusts(userId, type);
+  /**
+   * 获取用户详细信息
+   * @param userId 用户 ID
+   * @returns 返回用户详细数据（含头像、背景、简介、统计等）
+   */
+  async getUserDetail(userId: number): Promise<UserDetailResponse> {
+    return this.data.getUserDetail(userId);
+  }
+
+  async getUserIllusts(userId: number, type: 'illust' | 'manga' = 'illust', nextUrl?: string): Promise<PixivListResult> {
+    return this.data.getUserIllusts(userId, type, nextUrl);
   }
 
   /**
@@ -146,16 +156,16 @@ export class PixivService {
    * @param restrict 收藏的类型
    * @param tag 用于过滤收藏的标签
    * @param maxBookmarkId 分页参数
+   * @param nextUrl 下一页链接(可选)
    */
-  async getUserBookmarks(userId: number, restrict: 'public' | 'private' = 'public', tag?: string, maxBookmarkId?: number) {
-    return this.data.getUserBookmarks(userId, restrict, tag, maxBookmarkId);
-  }
-
-  /**
-   * 使用 next_url 加载下一页（通用）
-   */
-  async loadNextPage(nextUrl: string): Promise<PixivListResult> {
-    return this.data.loadNextPage(nextUrl);
+  async getUserBookmarks(
+    userId: number,
+    restrict: 'public' | 'private' = 'public',
+    tag?: string,
+    maxBookmarkId?: number,
+    nextUrl?: string
+  ) {
+    return this.data.getUserBookmarks(userId, restrict, tag, maxBookmarkId, nextUrl);
   }
 
 

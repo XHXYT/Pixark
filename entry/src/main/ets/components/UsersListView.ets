@@ -1,9 +1,10 @@
 import { PixState } from "../entryability/AppState"
-import { PixivIllust, UserPreview } from "../services/PixivTypes"
+import { PixivIllust, PixivUser, UserPreview } from "../services/PixivTypes"
 import { ListColumnsTemplate } from "../utils/breakpoint/BreakPoint"
 import { createLogger } from "../utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
 import { ConfigurationConstant } from "@kit.AbilityKit"
+import { UserItem } from "./UserItem"
 
 
 const logger = createLogger('UserListView')
@@ -18,7 +19,6 @@ export struct UserListView {
   @Param userPres: UserPreview[] = []
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
 
-  @Event onAuthorClick: (id: number) => void
   @Event onButtonClick: (id: number) => void
   @Event onReachEnd: () => void
 
@@ -46,32 +46,12 @@ export struct UserListView {
               })
             }
             // 头像 名称 关注
-            Flex({ direction: FlexDirection.Row, alignItems: ItemAlign.Center }) {
-              Row({ space: 5 }) {
-                PixivImageComponent({
-                  imageUrl: userPre.user.profile_image_urls.medium,
-                  imageWidth: 50, imageHeight: 50,
-                  imageBorder: { radius: 50 }
-                })
-                Text(userPre.user.name)
-                  .fontSize(12)
-                  .maxLines(1)
+            UserItem({
+              user: userPre.user,
+              onButtonClick: () => {
+                this.onButtonClick(userPre.user.id)
               }
-              .onClick(() => {
-                this.onAuthorClick(userPre.user.id)
-              })
-              Blank()
-              Button(userPre.user.is_followed ? $r('app.string.followed') : $r('app.string.follow'))
-                .type(ButtonType.Normal)
-                .fontSize(12)
-                .height(28)
-                .padding({ left: 12, right: 12 })
-                .borderRadius(14)
-                .fontColor(Color.White)
-                .onClick(() => {
-                  this.onButtonClick(userPre.user.id)
-                })
-            }
+            })
             .padding(5)
           }
         }

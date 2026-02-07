@@ -3,6 +3,7 @@ import { UserListView } from '../components/UsersListView';
 import { WaterFlowView } from '../components/WaterFlowView';
 import { DetailPageParams } from '../entity/IllustDetailEntity';
 import { SuggestionItem } from '../entity/SearchSuggestion';
+import { UserDetailParams } from '../entity/UserDetailEntity';
 import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../utils/ToastUtils';
 import { searchVM } from '../viewmodel/SearchViewModel';
@@ -98,8 +99,8 @@ export default struct SearchingPage {
                 })
               }, (item: SuggestionItem) => `${item.type}_${item.value}`)
             }
-            .backgroundColor($r('sys.color.button_background_color_transparent'))
             .borderRadius({ bottomLeft: 12, bottomRight: 12 })
+            .backgroundColor($r('sys.color.button_background_color_transparent'))
             .shadow({ radius: 12, color: $r('sys.color.button_background_color_transparent'), offsetX: 6, offsetY: 6 })
           }
           .width('100%')
@@ -163,14 +164,6 @@ export default struct SearchingPage {
             // 画师
             UserListView({
               userPres: searchVM.resultUsers,
-              onAuthorClick: (illust) => {
-                // const params: DetailPageParams = {
-                //   id: illust.id,
-                //   illust: illust
-                // }
-                // // 跳转详情页
-                // PixState.pageStack.pushPathByName('illust_detail', params, true);
-              },
               onButtonClick: (id) => {
 
               },

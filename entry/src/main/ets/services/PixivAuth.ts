@@ -301,6 +301,10 @@ export class PixivAuth {
     // 更新 axios 实例的默认 header
     this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`;
     this.axiosInstance.defaults.headers.common['User-Agent'] = 'PixivAndroidApp/5.0.234 (Android 11; Pixel 5)';
+    // ⭐ 关键 headers ⭐
+    this.axiosInstance.defaults.headers.common['App-OS'] = 'android';
+    this.axiosInstance.defaults.headers.common['App-OS-Version'] = '11.0';
+    this.axiosInstance.defaults.headers.common['App-Version'] = '5.0.234';
   }
 
   /**

@@ -21,6 +21,11 @@
       "buildFunction": "IllustDetailBuilder"
     },
     {
+      "name": "user_detail",
+      "pageSourceFile": "src/main/ets/view/UserDetailPage.ets",
+      "buildFunction": "UserDetailBuilder"
+    },
+    {
       "name": "search_page",
       "pageSourceFile": "src/main/ets/pages/Search.ets",
       "buildFunction": "SearchContentBuilder"
