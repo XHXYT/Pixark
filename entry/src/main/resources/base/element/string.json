@@ -97,6 +97,10 @@
       "value": "搜索插画标题或画师昵称"
     },
     {
+      "name": "search_placeholder_2",
+      "value": "输入搜索词或 ID"
+    },
+    {
       "name": "recommend_tag",
       "value": "推荐标签"
     },
@@ -111,6 +115,14 @@
     {
       "name": "user",
       "value": "用户"
+    },
+    {
+      "name": "jump_user",
+      "value": "跳转到用户"
+    },
+    {
+      "name": "jump_illusst",
+      "value": "跳转到作品"
     }
   ]
 }

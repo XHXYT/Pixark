@@ -18,6 +18,7 @@ class IllustDetailViewModel {
   // 相关图片推荐
   @Trace relatedIllusts: PixivIllust[] = []
 
+  @Trace isDetailLoading: boolean = false;
   // 关注状态（本地缓存，用于 UI 响应）
   @Trace isFollow: boolean = false
 
@@ -90,16 +91,28 @@ class IllustDetailViewModel {
     // 接收信息
     try {
       const params: DetailPageParams = ctx?.pathInfo?.param as DetailPageParams
-      this.detailData = params.illust
+      const id = params.id;
+      // 数据处理：如果有传入对象，直接用；否则设为 null 等待加载
+      if (params.illust) {
+        this.detailData = params.illust;
+      } else {
+        this.detailData = null; // 确保清空旧数据
+      }
       // 同步初始关注状态
       if (this.detailData && this.detailData.user) {
         this.isFollow = this.detailData.user.is_followed;
       }
-      this.handleTransitionReady(ctx, params)
-      // 使用插画id加载插画列表
-      this.loadIllustDetail(params.id)
-      // 使用插画id加载推荐插画
-      this.loadRelated(params.id)
+      // 处理动画
+      // 如果有 fromId，说明是从卡片点击进来的，做转场动画
+      // 否则（纯ID跳转），直接设置最终状态（无动画直接显示）
+      this.handleTransitionReady(ctx, params);
+      // 加载数据
+      this.isDetailLoading = true;
+      this.loadIllustDetail(id).finally(() => {
+        this.isDetailLoading = false;
+      });
+      // 加载推荐
+      this.loadRelated(id);
       logger.debug('#onReady 插画详情页接收的params：', JSON.stringify(params))
     } catch (e) {
       logger.error(`#onReady 插画详情页 Navigate onReady catch exception: ${JSON.stringify(e)}`)

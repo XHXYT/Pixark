@@ -12,6 +12,22 @@ class ToastUtils {
     this.context = context
   }
 
+  getResourceString(resource: Resource): string {
+    if (this.UIContext) {
+      try {
+        let resourceString = this.UIContext.getHostContext()!.resourceManager.getStringSync(resource.id);
+        return resourceString;
+      } catch (err) {
+        let error = err as BusinessError;
+        console.error('getResourceString', `error code=${error.code}, message=${error.message}`);
+        return ''
+      }
+    } else {
+      console.error('px2vp UIContext未初始化')
+      return ''
+    }
+  }
+
   showToast(options: promptAction.ShowToastOptions) {
     try {
       this.UIContext?.getPromptAction().showToast(options)

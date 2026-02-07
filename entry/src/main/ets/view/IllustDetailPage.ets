@@ -47,7 +47,7 @@ struct IllustDetail {
               }
             })
 
-            if (PixState.widthBp < 2) {
+            if (PixState.widthBp < 2 && iDV.detailData) {
               this.IntroContent()
             }
           }
@@ -64,7 +64,7 @@ struct IllustDetail {
           .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
 
           // (信息内容)
-          if (PixState.widthBp >= 2) {
+          if (PixState.widthBp >= 2 && iDV.detailData) {
             List({ space: 10 }) {
               this.IntroContent()
             }
@@ -296,7 +296,6 @@ struct IllustDetail {
           }
           .onClick(() => {
             // TODO 只有跳转到第2个路由栈页时，返回无过渡动画
-
             // 构造详情页参数
             const params: DetailPageParams = {
               id: item.id,

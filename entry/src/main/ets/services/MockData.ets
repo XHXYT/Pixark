@@ -26,11 +26,31 @@ export class MockData {
         tag: randomTag + (i + 1), // 防止同名
         translated_name: randomTag + (i + 1),
         illust: {
-          id: 1000 + i,
-          title: `测试封面图 ${i + 1}`,
+          id: 2000 + i,
+          title: `推荐插画 ${i + 1}`,
+          type: 'illust',
+          caption: '这是测试用的描述文案...',
+          user: {
+            id: 3000 + i,
+            name: `测试画师 ${i + 1}`,
+            account: 'test_account',
+            profile_image_urls: { medium: '' },
+            is_followed: i % 3 === 0 // 模拟部分已关注
+          },
           image_urls: {
-            square_medium: ''  // 留空，UI 层会自动用占位图
-          }
+            large: '',
+            medium: '',
+            square_medium: '',
+            original: ''
+          },
+          tags: [],
+          tools: ['SAI', 'Photoshop'],
+          create_date: new Date().toISOString(),
+          width: 800,
+          height: 1200,
+          total_view: Math.floor(Math.random() * 10000),
+          total_bookmarks: Math.floor(Math.random() * 1000),
+          is_bookmarked: i % 5 === 0 // 模拟部分已收藏
         }
       });
     }

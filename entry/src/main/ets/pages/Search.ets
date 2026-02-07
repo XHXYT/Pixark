@@ -6,6 +6,7 @@ import { createLogger } from "../utils/Logger";
 import { toastUtil } from "../utils/ToastUtils";
 import { searchVM } from "../viewmodel/SearchViewModel";
 import { curves } from "@kit.ArkUI";
+import { DetailPageParams } from "../entity/IllustDetailEntity";
 
 const logger = createLogger('SearchPage')
 
@@ -93,18 +94,35 @@ export struct SearchContent {
               }
               .alignContent(Alignment.Bottom)
             }
-            .onClick(() => {
-              // 设置搜索关键词为标签名（优先使用翻译名）
-              searchVM.keyword = item.translated_name || item.tag;
-              // 执行搜索
-              searchVM.doSearch();
-              // 使用动画跳转到搜索结果页面
-              this.getUIContext().animateTo({
-                curve: curves.interpolatingSpring(0, 1, 342, 38)
-              }, () => {
-                this.pageInfos.pushPath({ name: 'searching_page' }, false);
-              })
-            })
+            .gesture(
+              LongPressGesture()
+                .onAction((event: GestureEvent) => {
+                  if (event) {
+                    // 长按进入插画详情页
+                    const params: DetailPageParams = {
+                      id: item.illust.id,
+                      illust: item.illust
+                    }
+                    // 跳转至插画详情页
+                    PixState.pageStack.pushPathByName('illust_detail', params, true);
+                  }
+                }))
+            .gesture(
+              TapGesture({ count: 1 })
+                .onAction((event: GestureEvent) => {
+                  if (event) {
+                    // 设置搜索关键词为标签名（优先使用翻译名）
+                    searchVM.keyword = item.translated_name || item.tag;
+                    // 执行搜索
+                    searchVM.doSearch(true);
+                    // 使用动画跳转到搜索结果页面
+                    toastUtil.animateTo({
+                      curve: curves.interpolatingSpring(0, 1, 342, 38)
+                    }, () => {
+                      this.pageInfos.pushPath({ name: 'searching_page' }, false);
+                    })
+                  }
+                }))
           })
         }
         .scrollBar(BarState.Off)

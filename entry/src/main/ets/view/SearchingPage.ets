@@ -2,6 +2,7 @@ import { curves, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { UserListView } from '../components/UsersListView';
 import { WaterFlowView } from '../components/WaterFlowView';
 import { DetailPageParams } from '../entity/IllustDetailEntity';
+import { SuggestionItem } from '../entity/SearchSuggestion';
 import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../utils/ToastUtils';
 import { searchVM } from '../viewmodel/SearchViewModel';
@@ -52,7 +53,7 @@ export default struct SearchingPage {
               })
             }
           })
-          Search({ value: searchVM.keyword!!, placeholder: $r('app.string.search_placeholder_1') })
+          Search({ value: searchVM.keyword!!, placeholder: $r('app.string.search_placeholder_2') })
             .placeholderColor($r('sys.color.mask_secondary'))
             .transition(TransitionEffect.opacity(0.99))
             .backgroundColor('#0D000000').height(40)
@@ -60,96 +61,133 @@ export default struct SearchingPage {
             .defaultFocus(true)
             .focusOnTouch(true)
             .onSubmit(() => {
-              searchVM.doSearch(true)
+              searchVM.handleSearchInput(searchVM.keyword, searchVM.searchType, true)
             })
             .layoutWeight(1)
             .id('SEARCH_ID')
+            .onChange((value) => {
+              searchVM.updateSuggestions(value)
+            })
         }
         .width('100%').height(56)
         .padding(({
           left: PixState.PageMarginValue,
           right: PixState.PageMarginValue
         }))
-        // 结果类型栏
-        Row() {
-          TabSegmentButtonV2({
-            items: this.searchTypeItems,
-            selectedIndex: this.searchTypeSelectedIndex!!,
-            onItemClicked: (tab) => {
-              if (tab == 0) {
-                searchVM.searchType = 'illust'
-              } else {
-                searchVM.searchType = 'user'
-              }
-              searchVM.doSearch(false)
+        // 建议列表
+        if (searchVM.showSuggestions && searchVM.suggestions.length > 0) {
+          Column() {
+            List({ space: 1 }) {
+              ForEach(searchVM.suggestions, (item: SuggestionItem) => {
+                ListItem() {
+                  Row() {
+                    Text(item.text)
+                      .fontSize(14)
+                      .margin({ left: 8 })
+                  }
+                  .width('100%')
+                  .padding({
+                    left: PixState.PageMarginValue,
+                    right: PixState.PageMarginValue,
+                    top: 10, bottom: 10
+                  })
+                }
+                .onClick(() => {
+                  const type = item.type == 'illust_jump' ? 'illust' : 'user'
+                  searchVM.handleSearchInput(item.value, type, true);
+                })
+              }, (item: SuggestionItem) => `${item.type}_${item.value}`)
             }
-          })
-        }
-        .transition(TransitionEffect.asymmetric(
-          TransitionEffect.OPACITY
-            .combine(TransitionEffect.translate({ y: 100 })),
-          TransitionEffect.OPACITY.animation({ duration: 0 })
-        ))
-        .margin(({
-          bottom: 10,
-          left: PixState.PageMarginValue,
-          right: PixState.PageMarginValue
-        }))
-        // 筛选栏(仅插画)
-
-        if (this.searchTypeSelectedIndex == 0) {
-          // 插画
-          WaterFlowView({
-            illustList: searchVM.resultIllusts,
-            onCardClick: (illust) => {
-              const params: DetailPageParams = {
-                id: illust.id,
-                illust: illust
-              }
-              // 跳转详情页
-              PixState.pageStack.pushPathByName('illust_detail', params, true);
-            },
-            onReachEnd: () => {
-              // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-              if (!PixState.isTest) {
-                searchVM.loadMoreSearchResult()
-              }
-            }
-          })
-            .transition(TransitionEffect.asymmetric(
-              TransitionEffect.OPACITY
-                .combine(TransitionEffect.translate({ y: 100 })),
-              TransitionEffect.OPACITY.animation({ duration: 0 })
-            ))
+            .backgroundColor($r('sys.color.button_background_color_transparent'))
+            .borderRadius({ bottomLeft: 12, bottomRight: 12 })
+            .shadow({ radius: 12, color: $r('sys.color.button_background_color_transparent'), offsetX: 6, offsetY: 6 })
+          }
+          .width('100%')
+          .padding(({
+            left: PixState.PageMarginValue,
+            right: PixState.PageMarginValue
+          }))
         } else {
-          // 画师
-          UserListView({
-            userPres: searchVM.resultUsers,
-            onAuthorClick: (illust) => {
-              // const params: DetailPageParams = {
-              //   id: illust.id,
-              //   illust: illust
-              // }
-              // // 跳转详情页
-              // PixState.pageStack.pushPathByName('illust_detail', params, true);
-            },
-            onButtonClick: (id) => {
-
-            },
-            onReachEnd: () => {
-              // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-              if (!PixState.isTest) {
-                searchVM.loadMoreSearchResult()
+          // 结果类型栏
+          Row() {
+            TabSegmentButtonV2({
+              items: this.searchTypeItems,
+              selectedIndex: this.searchTypeSelectedIndex!!,
+              onItemClicked: (tab) => {
+                if (tab == 0) {
+                  searchVM.searchType = 'illust'
+                } else {
+                  searchVM.searchType = 'user'
+                }
+                searchVM.doSearch(false)
               }
-            }
-          })
-            .transition(TransitionEffect.asymmetric(
-              TransitionEffect.OPACITY
-                .combine(TransitionEffect.translate({ y: 100 })),
-              TransitionEffect.OPACITY.animation({ duration: 0 })
-            ))
-        }
+            })
+          }
+          .transition(TransitionEffect.asymmetric(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 100 })),
+            TransitionEffect.OPACITY.animation({ duration: 0 })
+          ))
+          .margin(({
+            bottom: 10,
+            left: PixState.PageMarginValue,
+            right: PixState.PageMarginValue
+          }))
+          // 筛选栏(仅插画)
 
+          if (this.searchTypeSelectedIndex == 0) {
+            // 插画
+            WaterFlowView({
+              illustList: searchVM.resultIllusts,
+              onCardClick: (illust) => {
+                const params: DetailPageParams = {
+                  id: illust.id,
+                  illust: illust
+                }
+                // 跳转详情页
+                PixState.pageStack.pushPathByName('illust_detail', params, true);
+              },
+              onReachEnd: () => {
+                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
+                if (!PixState.isTest) {
+                  searchVM.loadMoreSearchResult()
+                }
+              }
+            })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.OPACITY
+                  .combine(TransitionEffect.translate({ y: 100 })),
+                TransitionEffect.OPACITY.animation({ duration: 0 })
+              ))
+          } else {
+            // 画师
+            UserListView({
+              userPres: searchVM.resultUsers,
+              onAuthorClick: (illust) => {
+                // const params: DetailPageParams = {
+                //   id: illust.id,
+                //   illust: illust
+                // }
+                // // 跳转详情页
+                // PixState.pageStack.pushPathByName('illust_detail', params, true);
+              },
+              onButtonClick: (id) => {
+
+              },
+              onReachEnd: () => {
+                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
+                if (!PixState.isTest) {
+                  searchVM.loadMoreSearchResult()
+                }
+              }
+            })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.OPACITY
+                  .combine(TransitionEffect.translate({ y: 100 })),
+                TransitionEffect.OPACITY.animation({ duration: 0 })
+              ))
+          }
+        }
       }
       .backgroundColor($r('sys.color.background_primary'))
       .size({ width: '100%', height: '100%' })

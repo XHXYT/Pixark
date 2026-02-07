@@ -97,14 +97,7 @@ export interface PixivTrendingTag {
   /** 标签翻译名（中文/英文等，取决于请求头或 API 返回） */
   translated_name?: string | null;
   /** 该标签下的关联插画（用作封面展示） */
-  illust: {
-    id: number;
-    title: string;
-    image_urls: {
-      /** 方形中图，正好适合标签推荐卡片 */
-      square_medium: string;
-    };
-  };
+  illust: PixivIllust;
 }
 
 
