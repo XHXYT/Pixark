@@ -18,7 +18,6 @@ class FavoriteViewModel {
   @Trace filterIndex: number = 0;
 
   // --- 数据状态 ---
-
   // 动态数据
   @Trace trendList: PixivIllust[] = [];
   @Trace isTrendLoading: boolean = false;

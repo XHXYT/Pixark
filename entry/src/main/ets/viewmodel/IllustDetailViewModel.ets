@@ -11,7 +11,7 @@ import { toastUtil } from '../utils/ToastUtils';
 const logger = createLogger('IllustDetailViewModel')
 
 @ObservedV2
-class IllustDetailViewModel {
+export class IllustDetailViewModel {
 
   @Trace detailData: PixivIllust | null = null;
   private nextRelatedUrl: string | null = null
@@ -188,5 +188,3 @@ class IllustDetailViewModel {
   }
 
 }
-
-export const iDV = new IllustDetailViewModel();
