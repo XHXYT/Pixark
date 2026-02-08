@@ -20,6 +20,8 @@ export interface PixivUser {
   id: number;
   /** 用户昵称 (画师名) */
   name: string;
+  /** 个人简介/留言 */
+  comment: string;
   /** 创建时间 */
   created_date: string;
   /** 用户账号 ID (登录用的账号，通常不展示) */
@@ -104,8 +106,6 @@ export interface UserProfile {
   gender: string;
   /** 地区 */
   region: string;
-  /** 个人简介/留言 */
-  comment: string;
 
   /* ==================== 生日信息 (可选) ==================== */
   /** 完整生日 (格式: "1996-07-22") */

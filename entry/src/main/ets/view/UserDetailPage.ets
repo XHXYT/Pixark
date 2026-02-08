@@ -119,7 +119,7 @@ struct UserDetail {
           Row()
             .width('100%')
             .height(200)
-            .backgroundColor('#F5F5F5')
+            .backgroundColor($r('sys.color.font_on_fourth'))
         }
         // TODO 渐变模糊遮罩
       }
@@ -137,22 +137,22 @@ struct UserDetail {
         Text(uDV.userData?.user.name || uDV.preUserData?.name || '')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#111')
+          .fontColor($r('sys.color.font_primary'))
         // ID
         Text(`ID: ${uDV.userData?.user.id || uDV.preUserData?.id || ''}`)
           .fontSize(12)
-          .fontColor('#999')
+          .fontColor($r('sys.color.font_tertiary'))
         // 简介
-        Text(uDV.userData?.profile.comment || (uDV.isDetailLoading ? '正在加载...' : '这个人很懒，什么都没写'))
+        Text(uDV.userData?.user.comment || (uDV.isDetailLoading ? '正在加载...' : '这个人很懒，什么都没写'))
           .fontSize(14)
-          .fontColor('#666')
+          .fontColor($r('sys.color.font_secondary'))
           .maxLines(3)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .margin({ top: 4 })
         // 关注按钮
         Button(uDV.isFollow ? $r('app.string.unfollow') : $r('app.string.follow'))
           .backgroundColor(uDV.isFollow ? '#F0F0F0' : '#0096fa')
-          .fontColor(uDV.isFollow ? '#333' : Color.White)
+          .fontColor(uDV.isFollow ? $r('sys.color.font_primary') : Color.White)
           .padding({ left: 20, right: 20 })
           .type(ButtonType.Normal)
           .fontSize(14)
@@ -166,7 +166,7 @@ struct UserDetail {
           Column({ space: 4 }) {
             Text('关注')
               .fontSize(12)
-              .fontColor('#999')
+              .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_follow_users ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -175,7 +175,7 @@ struct UserDetail {
           Column({ space: 4 }) {
             Text('作品')
               .fontSize(12)
-              .fontColor('#999')
+              .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_illusts ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -184,7 +184,7 @@ struct UserDetail {
           Column({ space: 4 }) {
             Text($r('app.string.collection'))
               .fontSize(12)
-              .fontColor('#999')
+              .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_illust_bookmarks_public ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -205,21 +205,11 @@ struct UserDetail {
   UserDetailList() {
     List({ space: 1 }) {
       // 简介
-      if (uDV.userData?.profile?.comment) {
-        ListItem() {
-          Column() {
-            Text('个人简介')
-              .fontSize(14)
-              .fontColor('#999')
-              .margin({ bottom: 4 })
-            Text(uDV.userData.profile.comment)
-              .fontSize(14)
-              .fontColor('#333')
-          }
-          .width('100%')
-          .padding(16)
-          .backgroundColor(Color.White)
-        }
+      ListItem() {
+        this.InfoRow('个人简介', uDV.userData?.user.comment || '~')
+      }
+      ListItem() {
+        this.InfoRow('ID', `${uDV.userData?.user?.id}` || '--')
       }
       ListItem() {
         this.InfoRow('创建时间', uDV.userData?.user?.created_date || '未知')
@@ -283,17 +273,16 @@ struct UserDetail {
   InfoRow(label: string, value: string) {
     Row() {
       Text(label)
+        .fontColor($r('sys.color.font_tertiary'))
         .fontSize(14)
-        .fontColor('#999')
         .width(100)
       Text(value)
+        .fontColor($r('sys.color.font_primary'))
         .fontSize(14)
-        .fontColor('#333')
         .layoutWeight(1)
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .backgroundColor(Color.White)
   }
 
   @Builder

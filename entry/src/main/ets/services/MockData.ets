@@ -32,6 +32,7 @@ export class MockData {
           caption: '这是测试用的描述文案...',
           user: {
             id: 3000 + i,
+            comment: '',
             name: `测试画师 ${i + 1}`,
             account: 'test_account',
             created_date: '',
@@ -74,6 +75,7 @@ export class MockData {
         user: {
           id: 3000 + i,
           created_date: '',
+          comment: '',
           name: `测试画师 ${i + 1}`,
           account: 'test_account',
           profile_image_urls: { medium: '' },

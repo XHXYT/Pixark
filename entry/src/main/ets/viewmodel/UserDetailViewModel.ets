@@ -81,13 +81,14 @@ class UserDetailViewModel {
       this.userData = data;
       // 更新关注状态
       this.isFollow = data.user?.is_followed ?? false;
-      // 读取正确的关注数 (从 profile 里读)
+      const userName = data.user?.name || '未知用户';
       const followCount = data.profile?.total_follow_users ?? 0;
       const hasBackground = !!data.profile?.background_image_url;
-      // 详情加载成功
+      const comment = data.user?.comment || '';
       logger.debug(
-        `[loadUserDetail] Success. Name: ${data.user?.name}, ` +
-          `FollowCount: ${followCount}, Background: ${hasBackground}`
+        `[loadUserDetail] Success. Name: ${userName}, ` +
+          `FollowCount: ${followCount}, Background:${hasBackground}, ` +
+          `HasComment: ${comment.length > 0}`
       );
       // 清理预加载数据
       this.preUserData = null;
