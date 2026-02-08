@@ -18,11 +18,11 @@ struct UserDetail {
 
   @Local scroller: Scroller = new Scroller();
 
-  // Tab 数据
+  // Tab 数据：使用资源化字符串
   private tabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
-    { text: '作品' },
-    { text: '收藏' },
-    { text: '详情' },
+    { text: $r('app.string.works') },
+    { text: $r('app.string.collection') },
+    { text: $r('app.string.details') },
   ]);
 
   build() {
@@ -143,7 +143,7 @@ struct UserDetail {
           .fontSize(12)
           .fontColor($r('sys.color.font_tertiary'))
         // 简介
-        Text(uDV.userData?.user.comment || (uDV.isDetailLoading ? '正在加载...' : '这个人很懒，什么都没写'))
+        Text(uDV.userData?.user.comment || (uDV.isDetailLoading ? $r('app.string.loading_info') : $r('app.string.no_comment')))
           .fontSize(14)
           .fontColor($r('sys.color.font_secondary'))
           .maxLines(3)
@@ -164,7 +164,7 @@ struct UserDetail {
         // 统计数据
         Row() {
           Column({ space: 4 }) {
-            Text('关注')
+            Text($r('app.string.follow'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_follow_users ?? '--'}`)
@@ -173,7 +173,7 @@ struct UserDetail {
           }
           .layoutWeight(1)
           Column({ space: 4 }) {
-            Text('作品')
+            Text($r('app.string.works'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_illusts ?? '--'}`)
@@ -182,7 +182,7 @@ struct UserDetail {
           }
           .layoutWeight(1)
           Column({ space: 4 }) {
-            Text($r('app.string.collection'))
+                       Text($r('app.string.collection'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
             Text(`${uDV.userData?.profile?.total_illust_bookmarks_public ?? '--'}`)
@@ -206,33 +206,33 @@ struct UserDetail {
     List({ space: 1 }) {
       // 简介
       ListItem() {
-        this.InfoRow('个人简介', uDV.userData?.user.comment || '~')
+        this.InfoRow($r('app.string.comment'), uDV.userData?.user.comment || '~')
       }
       ListItem() {
-        this.InfoRow('ID', `${uDV.userData?.user?.id}` || '--')
+        this.InfoRow('ID', `${uDV.userData?.user?.id}` || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow('创建时间', uDV.userData?.user?.created_date || '未知')
+        this.InfoRow($r('app.string.created_date'), uDV.userData?.user?.created_date || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow('性别', uDV.userData?.profile?.gender || '未知')
+        this.InfoRow($r('app.string.gender'), uDV.userData?.profile?.gender || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow('地区', uDV.userData?.profile?.region || '未知')
+        this.InfoRow($r('app.string.region'), uDV.userData?.profile?.region || $r('app.string.unknown'))
       }
       // 生日
       if (uDV.userData?.profile?.birth) {
         ListItem() {
-          this.InfoRow('生日', uDV.userData.profile.birth)
+          this.InfoRow($r('app.string.birthday'), uDV.userData.profile.birth)
         }
       }
       // 个人网站
       if (uDV.userData?.profile?.webpage) {
         ListItem() {
-          this.InfoRow('网站', uDV.userData.profile.webpage)
+          this.InfoRow($r('app.string.website'), uDV.userData.profile.webpage)
         }
       }
-      // Twitter
+      // Twitter (品牌名通常不翻译，或者你可以加个 "Twitter" 的 key)
       if (uDV.userData?.profile?.twitter_account) {
         ListItem() {
           this.InfoRow('Twitter', uDV.userData.profile.twitter_account)
@@ -241,25 +241,25 @@ struct UserDetail {
       // 工作区 PC
       if (uDV.userData?.workspace?.pc) {
         ListItem() {
-          this.InfoRow('PC 机型', uDV.userData.workspace.pc)
+          this.InfoRow($r('app.string.pc_model'), uDV.userData.workspace.pc)
         }
       }
       // 显示器
       if (uDV.userData?.workspace?.monitor) {
         ListItem() {
-          this.InfoRow('显示器', uDV.userData.workspace.monitor)
+          this.InfoRow($r('app.string.monitor'), uDV.userData.workspace.monitor)
         }
       }
       // 绘图软件
       if (uDV.userData?.workspace?.tool) {
         ListItem() {
-          this.InfoRow('绘图软件', uDV.userData.workspace.tool)
+          this.InfoRow($r('app.string.tool'), uDV.userData.workspace.tool)
         }
       }
       // 数位板
       if (uDV.userData?.workspace?.tablet) {
         ListItem() {
-          this.InfoRow('数位板', uDV.userData.workspace.tablet)
+          this.InfoRow($r('app.string.tablet'), uDV.userData.workspace.tablet)
         }
       }
 
@@ -270,7 +270,7 @@ struct UserDetail {
   }
 
   @Builder
-  InfoRow(label: string, value: string) {
+  InfoRow(label: ResourceStr, value: ResourceStr) {
     Row() {
       Text(label)
         .fontColor($r('sys.color.font_tertiary'))

@@ -143,8 +143,8 @@ export const ListColumnsTemplate = BreakpointFunction<number>({
 
 export const GridColumnsTemplate = BreakpointFunction<string>({
   ['sm']: "1fr 1fr 1fr",
-  ['md']: "1fr 1fr 1fr 1fr 1fr",
-  ['lg']: "1fr 1fr 1fr 1fr 1fr 1fr",
+  ['md']: "1fr 1fr 1fr",
+  ['lg']: "1fr 1fr 1fr 1fr",
   ['xl']: "1fr 1fr 1fr 1fr 1fr 1fr 1fr"
 })
 

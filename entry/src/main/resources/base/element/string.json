@@ -123,6 +123,66 @@
     {
       "name": "jump_illusst",
       "value": "跳转到作品"
+    },
+    {
+      "name": "comment",
+      "value": "个人简介"
+    },
+    {
+      "name": "details",
+      "value": "详情"
+    },
+    {
+      "name": "created_date",
+      "value": "创建时间"
+    },
+    {
+      "name": "gender",
+      "value": "性别"
+    },
+    {
+      "name": "region",
+      "value": "地区"
+    },
+    {
+      "name": "birthday",
+      "value": "生日"
+    },
+    {
+      "name": "website",
+      "value": "网站"
+    },
+    {
+      "name": "pc_model",
+      "value": "PC 机型"
+    },
+    {
+      "name": "monitor",
+      "value": "显示器"
+    },
+    {
+      "name": "tool",
+      "value": "绘图软件"
+    },
+    {
+      "name": "tablet",
+      "value": "数位板"
+    },
+    {
+      "name": "unknown",
+      "value": "未知"
+    },
+    {
+      "name": "no_comment",
+      "value": "这个人很懒，什么都没写"
+    },
+    {
+      "name": "loading_info",
+      "value": "正在加载..."
+    },
+    {
+      "name": "works",
+      "value": "作品"
     }
   ]
 }

@@ -420,6 +420,38 @@ export class PixivData {
   }
 
   /**
+   * 获取关注的用户列表 (支持分页)
+   * 对应接口: /v1/user/following
+   *
+   * @param userId 用户 ID
+   * @param restrict 'public'=公开关注，'private'=私密关注 (默认: public)
+   * @param nextUrl 分页 URL (可选，传入后忽略其他参数)
+   * @returns 返回用户预览列表和下一页 URL
+   */
+  async getUserFollowing(userId: number, restrict: 'public' | 'private' = 'public', nextUrl?: string): Promise<SearchUserResult> {
+    if (!this.auth.isLogin()) throw new Error('请先登录');
+    let url = '/v1/user/following';
+    let params: Record<string, any> | undefined = undefined;
+    if (nextUrl) {
+      // --- 加载更多 ---
+      url = nextUrl;
+      params = undefined;
+    } else {
+      // --- 初始加载 ---
+      params = {
+        user_id: userId,
+        restrict: restrict,
+        filter: 'for_android',
+      };
+    }
+    const response = await this.auth.axiosInstance.get(url, { params });
+    return {
+      user_previews: response.data.user_previews || [],
+      next_url: response.data.next_url || null,
+    };
+  }
+
+  /**
    * 使用 next_url 获取下一页数据（通用方法）
    * @param nextUrl 上一页接口返回的 next_url，如：
    *                "https://app-api.pixiv.net/v1/search/illust?word=xxx&filter=for_android&offset=30"

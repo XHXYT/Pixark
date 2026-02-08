@@ -232,7 +232,7 @@ struct Index {
         TabContent() {
           this.TabContentBuilder(index)
         }
-        .tabBar(this.CustomTabBarBuilder(item.name, index, item.icon, item.icon_fill))
+        .tabBar(this.CustomTabBarBuilder(item.title, index, item.icon, item.icon_fill))
         .gesture(
           // 二级Tabs第一个页签向左拖动时，触发手势事件，当Tab栏竖排时不触发
           PanGesture({
@@ -354,11 +354,11 @@ struct Index {
 
   getTabList(): TabBuild[] {
     const tabList: TabBuild[] = [
-      { name: $r('app.string.home'), icon: $r('sys.symbol.house'), icon_fill: $r('sys.symbol.house_fill') },
-      { name: $r('app.string.rank'), icon: $r('sys.symbol.ranking_badge_bolt'), icon_fill: $r('sys.symbol.ranking_badge_bolt') },
-      { name: $r('app.string.favorite'), icon: $r('sys.symbol.heart'), icon_fill: $r('sys.symbol.heart_fill') },
-      { name: $r('app.string.search'), icon: $r('sys.symbol.curve_magnifyingglass'), icon_fill: $r('sys.symbol.AI_search') },
-      { name: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
+      { name: 'home', title: $r('app.string.home'), icon: $r('sys.symbol.house'), icon_fill: $r('sys.symbol.house_fill') },
+      { name: 'rank', title: $r('app.string.rank'), icon: $r('sys.symbol.ranking_badge_bolt'), icon_fill: $r('sys.symbol.ranking_badge_bolt') },
+      { name: 'favorite', title: $r('app.string.favorite'), icon: $r('sys.symbol.heart'), icon_fill: $r('sys.symbol.heart_fill') },
+      { name: 'search', title: $r('app.string.search'), icon: $r('sys.symbol.curve_magnifyingglass'), icon_fill: $r('sys.symbol.AI_search') },
+      { name: 'more', title: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
     ]
     return tabList
   }

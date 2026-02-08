@@ -1,29 +1,115 @@
-import { TabBuild } from "../entity/IndexEntity";
+import { favVM } from "../viewmodel/FavoriteViewModel";
 import { PixState } from "../entryability/AppState";
-import { createLogger } from "../utils/Logger";
+import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
+import { WaterFlowView } from "../components/WaterFlowView";
+import { UserListView } from "../components/UsersListView";
+import { TabBuild } from "../entity/IndexEntity";
 
-const logger = createLogger('Favorite')
 
 @ComponentV2
 export struct Favorite {
 
+  @Local scroller: Scroller = new Scroller();
+  // Tabs 控制器
+  private tabsController: TabsController = new TabsController();
+
+  // 筛选器 分段按钮 数据
+  private filterTabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
+    { text: $r('app.string.all') },
+    { text: $r('app.string.public') },
+    { text: $r('app.string.private') },
+  ]);
+
   build() {
     Column() {
-
+      Tabs({
+        index: favVM.mainTabIndex,
+        controller: this.tabsController,
+      }) {
+        ForEach(this.getTabList(), (item: TabBuild) => {
+          TabContent() {
+            this.tabContentBuilder(item.name)
+          }.tabBar(item.title)
+        })
+      }
+      .width('100%')
+      .layoutWeight(1) // 占满剩余高度
+      .barBackgroundColor($r('sys.color.background_primary'))
+      .onChange((index: number) => {
+        favVM.handleMainTabChange(index);
+      })
     }
-    .size({ width: '100%', height: '100%'})
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
+    .width('100%')
+    .height('100%')
+  }
+
+  aboutToAppear(): void {
+    favVM.onReady()
   }
 
   getTabList(): TabBuild[] {
     const tabList: TabBuild[] = [
-      { name: $r('app.string.trend') },
-      { name: $r('app.string.collection') },
-      // { name: $r('app.string.search') },
-      { name: $r('app.string.followed') },
+      { name: 'trend', title: $r('app.string.trend') },
+      { name: 'collection', title: $r('app.string.collection') },
+      // { name: 'home', title: $r('app.string.search') },
+      { name: 'follow', title: $r('app.string.follow') },
     ]
     return tabList
+  }
+
+  @Builder
+  tabContentBuilder(name: string) {
+    Column() {
+      // 筛选器区域
+      Row() {
+        TabSegmentButtonV2({
+          items: this.filterTabItems,
+          selectedIndex: favVM.filterIndex,
+          onItemClicked: (tab) => {
+            favVM.handleFilterChange(tab);
+          }
+        })
+      }
+      .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
+      .margin({ bottom: 10 }).width('100%')
+      if (name == 'trend') {
+        // 动态列表
+        WaterFlowView({
+          contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+          illustList: favVM.currentIllustList,
+          onCardClick: (illust) => {
+            favVM.handleIllustClick(illust);
+          },
+          onReachEnd: () => {
+            favVM.loadMore();
+          }
+        })
+      } else if (name == 'collection') {
+        // 收藏列表
+        WaterFlowView({
+          contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+          illustList: favVM.currentIllustList,
+          onCardClick: (illust) => {
+            favVM.handleIllustClick(illust);
+          },
+          onReachEnd: () => {
+            favVM.loadMore();
+          }
+        })
+      } else {
+        // 关注用户列表
+        UserListView({
+          userPres: favVM.followList,
+          onButtonClick: (id) => {
+            favVM.handleUserClick(id);
+          },
+          onReachEnd: () => {
+            favVM.loadMore();
+          }
+        })
+      }
+    }
+    .justifyContent(FlexAlign.Start)
   }
 
 }

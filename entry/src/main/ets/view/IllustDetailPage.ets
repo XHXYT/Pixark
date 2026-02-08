@@ -75,7 +75,7 @@ struct IllustDetail {
             .edgeEffect(EdgeEffect.Spring)
             .contentEndOffset(PixState.bottomRectHeight == 0 ?
               PixState.PageMarginValue : PixState.bottomRectHeight)
-            .contentStartOffset(56 + PixState.topRectHeight)
+            .contentStartOffset(60 + PixState.topRectHeight)
             .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
             .padding(({
               left: PixState.PageMarginValue,

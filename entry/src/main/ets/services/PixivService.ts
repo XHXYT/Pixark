@@ -168,6 +168,25 @@ export class PixivService {
     return this.data.getUserBookmarks(userId, restrict, tag, maxBookmarkId, nextUrl);
   }
 
+  /**
+   * 获取关注用户的新作品 (即"动态"页)
+   * @param restrict 'public' | 'private'，默认 'public' (通常仅公开作品会进入动态流)
+   * @param nextUrl 翻页参数
+   */
+  async getFollowingIllusts(restrict: 'public' | 'private' = 'public', nextUrl?: string): Promise<PixivListResult> {
+    return this.data.getFollowIllusts(restrict, nextUrl);
+  }
+
+  /**
+   * 获取关注的用户列表 (支持分页)
+   * @param userId 用户 ID
+   * @param restrict 'public' | 'private'，默认 'public'
+   * @param nextUrl 翻页参数
+   */
+  async getUserFollowing(userId: number, restrict: 'public' | 'private' = 'public', nextUrl?: string): Promise<SearchUserResult> {
+    return this.data.getUserFollowing(userId, restrict, nextUrl);
+  }
+
 
   // --- 用户交互方法  ---
 
