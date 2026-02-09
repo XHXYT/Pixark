@@ -75,6 +75,7 @@ export struct Favorite {
       if (name == 'trend') {
         // 动态列表
         WaterFlowView({
+          //todo:此处底部避让异常,此处需要填写首页tab栏的高度
           contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
           illustList: favVM.currentIllustList,
           onCardClick: (illust) => {
@@ -87,6 +88,7 @@ export struct Favorite {
       } else if (name == 'collection') {
         // 收藏列表
         WaterFlowView({
+          //todo:此处底部避让异常,此处需要填写首页tab栏的高度
           contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
           illustList: favVM.currentIllustList,
           onCardClick: (illust) => {
@@ -99,7 +101,10 @@ export struct Favorite {
       } else {
         // 关注用户列表
         UserListView({
+          //todo:此处底部避让异常,此处需要填写首页tab栏的高度，测试用例为77
+          contentEndOffset:77,
           userPres: favVM.followList,
+          isFollow:true,
           onButtonClick: (id) => {
             favVM.handleUserClick(id);
           },
