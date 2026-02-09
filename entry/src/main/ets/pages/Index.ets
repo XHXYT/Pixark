@@ -71,6 +71,7 @@ struct Index {
       .mode(NavigationMode.Stack)
       .transition(TransitionEffect.OPACITY)
       .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
+        //todo:自定义专场动画导致插画路由栈第二层无动画
         if ((!from || !to) || (!from.name || !to.name) || (!from.navDestinationId || !to.navDestinationId)) {
           return undefined;
         }
