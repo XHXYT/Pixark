@@ -34,6 +34,11 @@
       "name": "searching_page",
       "pageSourceFile": "src/main/ets/view/SearchingPage.ets",
       "buildFunction": "SearchingPageBuilder"
+    },
+    {
+      "name": "download_manager",
+      "pageSourceFile": "src/main/ets/view/more/DownloadManager.ets",
+      "buildFunction": "DownloadManagerBuilder"
     }
   ]
 }

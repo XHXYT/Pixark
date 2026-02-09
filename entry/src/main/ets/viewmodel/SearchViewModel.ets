@@ -1,8 +1,9 @@
 import { DetailPageParams } from '../entity/IllustDetailEntity';
 import { generateSuggestions, SuggestionItem } from '../entity/SearchSuggestion';
-import { PixState } from '../entryability/AppState';
+import { PixState, _PixState } from '../entryability/AppState';
 import { MockData } from '../services/MockData';
 import { PixivIllust, PixivTrendingTag, SearchFilterOptions, UserPreview } from '../services/PixivTypes';
+import { SearchHistoryTable } from '../utils/database/impl/SearchHistoryDao';
 import { createLogger } from '../utils/Logger';
 import { toastUtil } from '../utils/ToastUtils';
 
@@ -32,6 +33,8 @@ class SearchViewModel {
   private lastSearchedIllustKeyword: string = '';
   private lastSearchedUserKeyword: string = '';
   private debounceTimerId: number = -1;
+
+  private searchHistoryDB = new SearchHistoryTable(_PixState.UIContext.getHostContext()!)
 
   // 嵌套滚动配置
   get nestedScrollOptions(): NestedScrollOptions {
@@ -131,6 +134,10 @@ class SearchViewModel {
    */
   async handleSearchInput(input: string, type: 'illust' | 'user' = 'illust', force = false) {
     const text = input.trim();
+    // 存数据库
+    this.searchHistoryDB.saveOrUpdate(text).then((result) => {
+      toastUtil.showToast({ message: `搜索记录 ${text} 保存成功, id: ${result} `})
+    })
     if (!text) return;
     // 判断是否为纯数字（作品 ID 或用户 ID）
     const isNumber = /^\d+$/.test(text);

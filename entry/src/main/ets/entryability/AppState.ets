@@ -1,5 +1,5 @@
 import { PixivService } from "../services/PixivService"
-import { PixivIllust, PixivUser } from "../services/PixivTypes"
+import { PixivIllust, PixivUser, UserDetailResponse } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
 import { PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
@@ -13,6 +13,7 @@ export class _PixState {
   @Trace pixiv = new PixivService()
   // 当前登录用户
   @Trace currentUser: PixivUser | null = null
+  @Trace currentUserDetail: UserDetailResponse | null = null
   // 登录方式
   @Trace loginMethod: 'password' | 'token' = 'token'
   // refresh token
@@ -25,6 +26,7 @@ export class _PixState {
   @Trace isLoggedIn: boolean = false
 
   // 窗口对象
+  public static UIContext: UIContext
   public static window: window.Window;
   /** @description 窗口高度 -px */
   public static windowWidth_px: number;

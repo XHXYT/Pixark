@@ -23,6 +23,7 @@ import { Login } from './Login';
 import Constants from '../entity/Constants';
 import { AnimateCallback, CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
+import { More } from './More';
 
 const logger = createLogger('Index')
 
@@ -292,7 +293,7 @@ struct Index {
     } else if (index == 3) {
       SearchPage()
     } else {
-      // More()
+      More()
     }
   }
 
@@ -317,6 +318,12 @@ struct Index {
             logger.info('Auto-login successful!');
             // 保存当前用户信息
             PixState.currentUser = PixState.pixiv.getCurrentUser()
+            if (!PixState.currentUser.profile_image_urls.medium) {
+              logger.warn('User 没有用户头像链接，重新获取详细信息');
+              const full = await PixState.pixiv.getUserDetail(PixState.currentUser.id)
+              PixState.currentUserDetail = full
+              PixState.currentUser = full.user
+            }
             // 保存新的 RefreshToken
             const newToken = PixState.pixiv.getCurrentRefreshToken();
             if (newToken !== PixState.refreshToken) {

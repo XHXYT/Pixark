@@ -104,7 +104,7 @@ export struct Favorite {
           //todo:此处底部避让异常,此处需要填写首页tab栏的高度，测试用例为77
           contentEndOffset:77,
           userPres: favVM.followList,
-          isFollow:true,
+          isFollow: true,
           onButtonClick: (id) => {
             favVM.handleUserClick(id);
           },

@@ -5,7 +5,8 @@
     "@ohos/axios": "^2.2.6",
     "@kingtous/reqwest": "^1.0.0",
     "@ohos/imageknifepro": "^1.0.10",
-    "@hmanimations/ezcustomtransition": "^1.2.9"
+    "@hmanimations/ezcustomtransition": "^1.2.9",
+    "reflect-metadata": "0.2.1"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.24",

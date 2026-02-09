@@ -18,7 +18,7 @@ export struct UserListView {
   @Param contentEndOffset: number = 0
   @Param userPres: UserPreview[] = []
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
-  @Param isFollow:boolean = false
+  @Param isFollow: boolean = false
   @Event onButtonClick: (id: number) => void
   @Event onReachEnd: () => void
 
@@ -48,7 +48,7 @@ export struct UserListView {
             // 头像 名称 关注
             UserItem({
               user: userPre.user,
-              isFollow:this.isFollow,
+              isFollow: userPre.user.is_followed,
               onButtonClick: () => {
                 this.onButtonClick(userPre.user.id)
               }

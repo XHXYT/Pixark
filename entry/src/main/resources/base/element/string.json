@@ -183,6 +183,54 @@
     {
       "name": "works",
       "value": "作品"
+    },
+    {
+      "name": "account_info",
+      "value": "账户信息"
+    },
+    {
+      "name": "history",
+      "value": "历史记录"
+    },
+    {
+      "name": "preference",
+      "value": "偏好设置"
+    },
+    {
+      "name": "download_manage",
+      "value": "下载管理"
+    },
+    {
+      "name": "app_data",
+      "value": "应用数据"
+    },
+    {
+      "name": "about",
+      "value": "关于"
+    },
+    {
+      "name": "logout",
+      "value": "退出登录"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "未登录"
+    },
+    {
+      "name": "tap_to_login",
+      "value": "点击登录"
+    },
+    {
+      "name": "confirm_logout",
+      "value": "确定要退出登录吗？"
+    },
+    {
+      "name": "feature_dev_tip",
+      "value": "功能开发中..."
+    },
+    {
+      "name": "cancel",
+      "value": "取消"
     }
   ]
 }

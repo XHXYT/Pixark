@@ -69,6 +69,8 @@ export default class EntryAbility extends UIAbility {
         toastUtil.initContext(data.getUIContext(), data.getUIContext().getHostContext() as common.UIAbilityContext)
         // 初始化 window
         this.intRectWindow(windowStage, data.getUIContext())
+        // 初始化UI上下文
+        _PixState.UIContext = data.getUIContext()
       } catch (error) {
         logger.error('WindowStage', 'Failed to get the Main Window.', error);
       }
