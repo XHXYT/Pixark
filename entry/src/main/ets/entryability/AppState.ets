@@ -2,7 +2,9 @@ import { PixivService } from "../services/PixivService"
 import { PixivIllust, PixivUser, UserDetailResponse } from "../services/PixivTypes"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
-import { PageMargin, TabBarVertical } from "../utils/breakpoint/BreakPoint"
+import { PageMargin,
+  TabBarAvoidHeight,
+  TabBarHeight, TabBarVertical, Window_BAR_HEIGHT } from "../utils/breakpoint/BreakPoint"
 import { createLogger } from "../utils/Logger"
 
 const logger = createLogger('PixivState')
@@ -75,6 +77,21 @@ export class _PixState {
   @Computed
   get PageMarginValue() {
     return PageMargin(this.widthBp, this.heightBp)
+  }
+
+  @Computed
+  get TabBarHeight(): number | string {
+    const isVerticalTab = PixState.TabBarVertical;
+    // 窗口模式 + 横向 TabBar (TabBar在底部)
+    if (PixState.windowMode && !isVerticalTab) {
+      return Window_BAR_HEIGHT;
+    }
+    // 普通窗口，不避让安全区
+    if (PixState.bottomRectHeight === 0) {
+      return TabBarHeight(PixState.widthBp, PixState.heightBp);
+    }
+    // 普通窗口，避让安全区域高度 (沉浸式 + 安全区)
+    return TabBarAvoidHeight(PixState.widthBp, PixState.heightBp);
   }
 
   @Monitor('pageStack')

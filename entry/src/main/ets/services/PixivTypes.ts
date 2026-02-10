@@ -33,6 +33,14 @@ export interface PixivUser {
     /** 头像中图 URL */
     medium: string;
   };
+  // 邮箱 仅在登录时返回的User中存在
+  mail_address?: string;
+  // 是否高级会员
+  is_premium?: boolean;
+  // R18/敏感设置（0: 全年龄, 1: R18, 2: R18G）
+  x_restrict?: number;
+  // 是否接受邮件通知
+  mail_address_is_verified?: boolean;
 }
 
 /**

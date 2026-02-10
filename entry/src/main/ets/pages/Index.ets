@@ -1,5 +1,4 @@
 
-import { createLogger } from '../utils/Logger';
 import { PixState } from '../entryability/AppState';
 import { EventHub, EventKey } from '../utils/EventHub';
 import { toastUtil } from '../utils/ToastUtils';
@@ -24,6 +23,7 @@ import Constants from '../entity/Constants';
 import { AnimateCallback, CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 import { More } from './More';
+import { createLogger } from '../utils/Logger';
 
 const logger = createLogger('Index')
 
@@ -71,8 +71,8 @@ struct Index {
       // .enabled(this.isEnabled) // 转场过程中不响应手势事件
       .mode(NavigationMode.Stack)
       .transition(TransitionEffect.OPACITY)
-      .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
-        //todo:自定义专场动画导致插画路由栈第二层无动画
+      // TODO 实现图片流一镜到底转场
+/*      .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, operation: NavigationOperation) => {
         if ((!from || !to) || (!from.name || !to.name) || (!from.navDestinationId || !to.navDestinationId)) {
           return undefined;
         }
@@ -132,7 +132,7 @@ struct Index {
           }
         };
         return customAnimation;
-      })
+      })*/
     }
     // 未登录显示登录页
     else {
@@ -260,7 +260,7 @@ struct Index {
     .barBackgroundBlurStyle(!PixState.TabBarVertical ? BlurStyle.Thin : undefined)
     .vertical(PixState.TabBarVertical)
     .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
-    .barHeight(this.getBarHeight())
+    .barHeight(PixState.TabBarHeight)
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         PixState.currentTab = index
@@ -318,11 +318,13 @@ struct Index {
             logger.info('Auto-login successful!');
             // 保存当前用户信息
             PixState.currentUser = PixState.pixiv.getCurrentUser()
+            const email = PixState.currentUser.mail_address
             if (!PixState.currentUser.profile_image_urls.medium) {
               logger.warn('User 没有用户头像链接，重新获取详细信息');
               const full = await PixState.pixiv.getUserDetail(PixState.currentUser.id)
               PixState.currentUserDetail = full
               PixState.currentUser = full.user
+              PixState.currentUser.mail_address = email
             }
             // 保存新的 RefreshToken
             const newToken = PixState.pixiv.getCurrentRefreshToken();

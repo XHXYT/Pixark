@@ -8,6 +8,8 @@ const logger = createLogger('MoreViewModel');
 @ObservedV2
 export class MoreViewModel {
 
+  @Trace emailPrivacy: boolean = true
+
   // 获取当前登录用户信息
   get currentUser(): PixivUser | null {
     return PixState.currentUser
@@ -25,9 +27,9 @@ export class MoreViewModel {
     return $r('app.string.not_logged_in');
   }
 
-  // 获取账号显示
-  get accountName(): string {
-    return this.currentUser?.account || '';
+  // 获取邮箱显示
+  get email(): string {
+    return this.currentUser?.mail_address || '';
   }
 
   get avatarUrl(): string {

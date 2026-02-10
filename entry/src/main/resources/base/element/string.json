@@ -221,8 +221,16 @@
       "value": "点击登录"
     },
     {
+      "name": "login",
+      "value": "登录"
+    },
+    {
       "name": "confirm_logout",
       "value": "确定要退出登录吗？"
+    },
+    {
+      "name": "confirm_clear_search_history",
+      "value": "确定要清空搜索记录吗？"
     },
     {
       "name": "feature_dev_tip",
@@ -231,6 +239,22 @@
     {
       "name": "cancel",
       "value": "取消"
+    },
+    {
+      "name": "search_history",
+      "value": "搜索历史"
+    },
+    {
+      "name": "clear",
+      "value": "清空"
+    },
+    {
+      "name": "tips",
+      "value": "提示"
+    },
+    {
+      "name": "deleted",
+      "value": "已删除 %s"
     }
   ]
 }

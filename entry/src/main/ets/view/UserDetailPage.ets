@@ -1,7 +1,7 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
-import { uDV } from "../viewmodel/UserDetailViewModel";
+import { UserDetailViewModel } from "../viewmodel/UserDetailViewModel";
 import { toastUtil } from "../utils/ToastUtils";
 import { UserDetailParams } from "../entity/UserDetailEntity";
 import { DetailPageParams } from "../entity/IllustDetailEntity"; // 用于跳转插画
@@ -17,6 +17,7 @@ export function UserDetailBuilder(name: string, param: Object) {
 struct UserDetail {
 
   @Local scroller: Scroller = new Scroller();
+  @Local uDV: UserDetailViewModel =  new UserDetailViewModel()
 
   // Tab 数据：使用资源化字符串
   private tabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
@@ -41,9 +42,9 @@ struct UserDetail {
               Row() {
                 TabSegmentButtonV2({
                   items: this.tabItems,
-                  selectedIndex: uDV.tabIndex,
+                  selectedIndex: this.uDV.tabIndex,
                   onItemClicked: (tab) => {
-                    uDV.handleTabChange(tab)
+                    this.uDV.handleTabChange(tab)
                   }
                 })
               }
@@ -51,12 +52,12 @@ struct UserDetail {
               .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
               .margin({ top: 20, bottom: 10 })
               // 内容区域
-              if (uDV.tabIndex === 0 || uDV.tabIndex === 1) {
+              if (this.uDV.tabIndex === 0 || this.uDV.tabIndex === 1) {
                 // 作品 / 收藏
                 WaterFlowView({
                   contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
-                  nestedScroll: uDV.nestedScrollOptions,
-                  illustList: uDV.currentIllustList,
+                  nestedScroll: this.uDV.nestedScrollOptions,
+                  illustList: this.uDV.currentIllustList,
                   onCardClick: (illust) => {
                     const params: DetailPageParams = {
                       id: illust.id,
@@ -65,10 +66,10 @@ struct UserDetail {
                     PixState.pageStack.pushPathByName('illust_detail', params, true);
                   },
                   onReachEnd: () => {
-                    uDV.loadMoreCurrentData();
+                    this.uDV.loadMoreCurrentData();
                   }
                 })
-              } else if (uDV.tabIndex === 2) {
+              } else if (this.uDV.tabIndex === 2) {
                 // 详细信息
                 this.UserDetailList()
               }
@@ -94,7 +95,7 @@ struct UserDetail {
     .hideBackButton(true)
     .onReady((ctx: NavDestinationContext) => {
       const params: UserDetailParams = ctx?.pathInfo?.param as UserDetailParams
-      uDV.onReady(ctx, params)
+      this.uDV.onReady(ctx, params)
     })
     .onDisAppear(() => {
       // 清理逻辑
@@ -106,9 +107,9 @@ struct UserDetail {
     Column() {
       // 背景图
       Stack({ alignContent: Alignment.Bottom }) {
-        if (uDV.userData?.profile?.background_image_url) {
+        if (this.uDV.userData?.profile?.background_image_url) {
           PixivImageComponent({
-            imageUrl: uDV.userData.profile.background_image_url,
+            imageUrl: this.uDV.userData.profile.background_image_url,
             imageObjectFit: ImageFit.Cover,
             imageBorder: { radius: 0 }
           })
@@ -129,37 +130,37 @@ struct UserDetail {
       Column({ space: 12 }) {
         // 头像：优先取 userData.user，取不到则取 preUserData
         PixivImageComponent({
-          imageUrl: uDV.userData?.user.profile_image_urls.medium || uDV.preUserData?.profile_image_urls.medium || '',
+          imageUrl: this.uDV.userData?.user.profile_image_urls.medium || this.uDV.preUserData?.profile_image_urls.medium || '',
           imageWidth: 80, imageHeight: 80,
           imageBorder: { radius: 40 }
         })
         // 名字
-        Text(uDV.userData?.user.name || uDV.preUserData?.name || '')
+        Text(this.uDV.userData?.user.name || this.uDV.preUserData?.name || '')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('sys.color.font_primary'))
         // ID
-        Text(`ID: ${uDV.userData?.user.id || uDV.preUserData?.id || ''}`)
+        Text(`ID: ${this.uDV.userData?.user.id || this.uDV.preUserData?.id || ''}`)
           .fontSize(12)
           .fontColor($r('sys.color.font_tertiary'))
         // 简介
-        Text(uDV.userData?.user.comment || (uDV.isDetailLoading ? $r('app.string.loading_info') : $r('app.string.no_comment')))
+        Text(this.uDV.userData?.user.comment || (this.uDV.isDetailLoading ? $r('app.string.loading_info') : $r('app.string.no_comment')))
           .fontSize(14)
           .fontColor($r('sys.color.font_secondary'))
           .maxLines(3)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .margin({ top: 4 })
         // 关注按钮
-        Button(uDV.isFollow ? $r('app.string.unfollow') : $r('app.string.follow'))
-          .backgroundColor(uDV.isFollow ? '#F0F0F0' : '#0096fa')
-          .fontColor(uDV.isFollow ? $r('sys.color.font_primary') : Color.White)
+        Button(this.uDV.isFollow ? $r('app.string.unfollow') : $r('app.string.follow'))
+          .backgroundColor(this.uDV.isFollow ? '#F0F0F0' : '#0096fa')
+          .fontColor(this.uDV.isFollow ? $r('sys.color.font_primary') : Color.White)
           .padding({ left: 20, right: 20 })
           .type(ButtonType.Normal)
           .fontSize(14)
           .height(36)
           .borderRadius(18)
           .onClick(() => {
-            uDV.followOrCancel()
+            this.uDV.followOrCancel()
           })
         // 统计数据
         Row() {
@@ -167,7 +168,7 @@ struct UserDetail {
             Text($r('app.string.follow'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
-            Text(`${uDV.userData?.profile?.total_follow_users ?? '--'}`)
+            Text(`${this.uDV.userData?.profile?.total_follow_users ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
           }
@@ -176,7 +177,7 @@ struct UserDetail {
             Text($r('app.string.works'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
-            Text(`${uDV.userData?.profile?.total_illusts ?? '--'}`)
+            Text(`${this.uDV.userData?.profile?.total_illusts ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
           }
@@ -185,7 +186,7 @@ struct UserDetail {
                        Text($r('app.string.collection'))
               .fontSize(12)
               .fontColor($r('sys.color.font_tertiary'))
-            Text(`${uDV.userData?.profile?.total_illust_bookmarks_public ?? '--'}`)
+            Text(`${this.uDV.userData?.profile?.total_illust_bookmarks_public ?? '--'}`)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
           }
@@ -206,60 +207,60 @@ struct UserDetail {
     List({ space: 1 }) {
       // 简介
       ListItem() {
-        this.InfoRow($r('app.string.comment'), uDV.userData?.user.comment || '~')
+        this.InfoRow($r('app.string.comment'), this.uDV.userData?.user.comment || '~')
       }
       ListItem() {
-        this.InfoRow('ID', `${uDV.userData?.user?.id}` || $r('app.string.unknown'))
+        this.InfoRow('ID', `${this.uDV.userData?.user?.id}` || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow($r('app.string.created_date'), uDV.userData?.user?.created_date || $r('app.string.unknown'))
+        this.InfoRow($r('app.string.created_date'), this.uDV.userData?.user?.created_date || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow($r('app.string.gender'), uDV.userData?.profile?.gender || $r('app.string.unknown'))
+        this.InfoRow($r('app.string.gender'), this.uDV.userData?.profile?.gender || $r('app.string.unknown'))
       }
       ListItem() {
-        this.InfoRow($r('app.string.region'), uDV.userData?.profile?.region || $r('app.string.unknown'))
+        this.InfoRow($r('app.string.region'), this.uDV.userData?.profile?.region || $r('app.string.unknown'))
       }
       // 生日
-      if (uDV.userData?.profile?.birth) {
+      if (this.uDV.userData?.profile?.birth) {
         ListItem() {
-          this.InfoRow($r('app.string.birthday'), uDV.userData.profile.birth)
+          this.InfoRow($r('app.string.birthday'), this.uDV.userData.profile.birth)
         }
       }
       // 个人网站
-      if (uDV.userData?.profile?.webpage) {
+      if (this.uDV.userData?.profile?.webpage) {
         ListItem() {
-          this.InfoRow($r('app.string.website'), uDV.userData.profile.webpage)
+          this.InfoRow($r('app.string.website'), this.uDV.userData.profile.webpage)
         }
       }
       // Twitter (品牌名通常不翻译，或者你可以加个 "Twitter" 的 key)
-      if (uDV.userData?.profile?.twitter_account) {
+      if (this.uDV.userData?.profile?.twitter_account) {
         ListItem() {
-          this.InfoRow('Twitter', uDV.userData.profile.twitter_account)
+          this.InfoRow('Twitter', this.uDV.userData.profile.twitter_account)
         }
       }
       // 工作区 PC
-      if (uDV.userData?.workspace?.pc) {
+      if (this.uDV.userData?.workspace?.pc) {
         ListItem() {
-          this.InfoRow($r('app.string.pc_model'), uDV.userData.workspace.pc)
+          this.InfoRow($r('app.string.pc_model'), this.uDV.userData.workspace.pc)
         }
       }
       // 显示器
-      if (uDV.userData?.workspace?.monitor) {
+      if (this.uDV.userData?.workspace?.monitor) {
         ListItem() {
-          this.InfoRow($r('app.string.monitor'), uDV.userData.workspace.monitor)
+          this.InfoRow($r('app.string.monitor'), this.uDV.userData.workspace.monitor)
         }
       }
       // 绘图软件
-      if (uDV.userData?.workspace?.tool) {
+      if (this.uDV.userData?.workspace?.tool) {
         ListItem() {
-          this.InfoRow($r('app.string.tool'), uDV.userData.workspace.tool)
+          this.InfoRow($r('app.string.tool'), this.uDV.userData.workspace.tool)
         }
       }
       // 数位板
-      if (uDV.userData?.workspace?.tablet) {
+      if (this.uDV.userData?.workspace?.tablet) {
         ListItem() {
-          this.InfoRow($r('app.string.tablet'), uDV.userData.workspace.tablet)
+          this.InfoRow($r('app.string.tablet'), this.uDV.userData.workspace.tablet)
         }
       }
 

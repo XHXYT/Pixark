@@ -7,7 +7,7 @@ import { toastUtil } from '../utils/ToastUtils';
 const logger = createLogger('UserDetailViewModel')
 
 @ObservedV2
-class UserDetailViewModel {
+export class UserDetailViewModel {
 
   // 预加载的用户数据（用于瞬间显示）
   @Trace preUserData: PixivUser | null = null;
@@ -43,8 +43,7 @@ class UserDetailViewModel {
 
   async onReady(ctx: NavDestinationContext, params: UserDetailParams) {
     const userId = params.id;
-    // 重置状态
-    // 防止显示上一个用户的旧数据
+    // 初始化状态
     this.userIllusts = [];           // 清空作品列表
     this.userBookmarks = [];         // 清空收藏列表
     this.userData = null;            // 清空详情数据（避免闪现上一个用户的信息）

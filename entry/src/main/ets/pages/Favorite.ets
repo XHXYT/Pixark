@@ -75,8 +75,7 @@ export struct Favorite {
       if (name == 'trend') {
         // 动态列表
         WaterFlowView({
-          //todo:此处底部避让异常,此处需要填写首页tab栏的高度
-          contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+          contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
           illustList: favVM.currentIllustList,
           onCardClick: (illust) => {
             favVM.handleIllustClick(illust);
@@ -88,8 +87,7 @@ export struct Favorite {
       } else if (name == 'collection') {
         // 收藏列表
         WaterFlowView({
-          //todo:此处底部避让异常,此处需要填写首页tab栏的高度
-          contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+          contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight)  + this.parseBarHeightValue(PixState.TabBarHeight),
           illustList: favVM.currentIllustList,
           onCardClick: (illust) => {
             favVM.handleIllustClick(illust);
@@ -101,8 +99,7 @@ export struct Favorite {
       } else {
         // 关注用户列表
         UserListView({
-          //todo:此处底部避让异常,此处需要填写首页tab栏的高度，测试用例为77
-          contentEndOffset:77,
+          contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
           userPres: favVM.followList,
           isFollow: true,
           onButtonClick: (id) => {
@@ -115,6 +112,19 @@ export struct Favorite {
       }
     }
     .justifyContent(FlexAlign.Start)
+  }
+
+  parseBarHeightValue(value: string | number): number {
+    if (typeof value == 'number') return value
+    if (!value) return 0;
+    const trimmed = value.trim();
+    // 百分比直接返回 0
+    if (trimmed.includes('%')) {
+      return 0;
+    }
+    // 用正则提取数字（支持小数）
+    const match = trimmed.match(/(\d+(\.\d+)?)/);
+    return match ? parseFloat(match[1]) : 0;
   }
 
 }

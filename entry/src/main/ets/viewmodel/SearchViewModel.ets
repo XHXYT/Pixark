@@ -1,8 +1,9 @@
 import { DetailPageParams } from '../entity/IllustDetailEntity';
+import SearchHistoryInfo from '../entity/SearchHistoryInfo';
 import { generateSuggestions, SuggestionItem } from '../entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';
 import { MockData } from '../services/MockData';
-import { PixivIllust, PixivTrendingTag, SearchFilterOptions, UserPreview } from '../services/PixivTypes';
+import { PixivIllust, PixivTrendingTag, UserPreview } from '../services/PixivTypes';
 import { SearchHistoryTable } from '../utils/database/impl/SearchHistoryDao';
 import { createLogger } from '../utils/Logger';
 import { toastUtil } from '../utils/ToastUtils';
@@ -12,6 +13,8 @@ const logger = createLogger('SearchViewModel')
 @ObservedV2
 class SearchViewModel {
 
+  // 搜索历史
+  @Trace searchHistory: SearchHistoryInfo[] = []
   // 推荐标签
   @Trace trendingTags: PixivTrendingTag[] = [];
   // 搜索建议
@@ -22,6 +25,7 @@ class SearchViewModel {
   @Trace resultUsers: UserPreview[] = []
 
   @Trace showSuggestions: boolean = false
+  @Trace searchHistoryEdit: boolean = false
 
   private IllustNextUrl: string = '';
   private userNextUrl: string = '';
@@ -44,8 +48,14 @@ class SearchViewModel {
     };
   }
 
-  // 加载推荐标签
-  async loadTrendingTags() {
+  // 加载 搜索历史 & 推荐标签
+  async loadData() {
+    try {
+      const values = await this.searchHistoryDB.queryAll()
+      this.searchHistory = values
+    } catch (e) {
+      logger.error('加载搜索历史失败: ', e);
+    }
     try {
       if (PixState.isTest) {
         // 调试数据
@@ -54,7 +64,7 @@ class SearchViewModel {
         this.trendingTags = await PixState.pixiv.getTrendingTags();
       }
     } catch (e) {
-      console.error('加载热门标签失败:', e);
+      logger.error('加载热门标签失败:', e);
     }
   }
 
@@ -135,8 +145,10 @@ class SearchViewModel {
   async handleSearchInput(input: string, type: 'illust' | 'user' = 'illust', force = false) {
     const text = input.trim();
     // 存数据库
-    this.searchHistoryDB.saveOrUpdate(text).then((result) => {
-      toastUtil.showToast({ message: `搜索记录 ${text} 保存成功, id: ${result} `})
+    this.searchHistoryDB.saveOrUpdate(text).then(async (result) => {
+      // toastUtil.showToast({ message: `搜索记录 ${text} 保存成功, id: ${result} `})
+      const values = await this.searchHistoryDB.queryAll()
+      this.searchHistory = values
     })
     if (!text) return;
     // 判断是否为纯数字（作品 ID 或用户 ID）
@@ -150,15 +162,13 @@ class SearchViewModel {
         // 跳转至插画详情页
         PixState.pageStack.pushPathByName('illust_detail', params, true);
       } else {
-        // TODO 跳转至画师详情页
-
+        // 跳转至画师详情页
+        PixState.pageStack.pushPathByName('user_detail', params, true);
       }
       return;
     }
     // 非数字，当成关键词搜索
     this.doSearch(force);
-    // TODO 记入搜索历史
-
   }
 
   updateSuggestions(input: string) {
@@ -178,6 +188,31 @@ class SearchViewModel {
         toastUtil.getResourceString($r('app.string.search'))]);
       this.suggestions = resultList;
     }, 300);
+  }
+
+  clearSearchHistory() {
+    toastUtil.showDialog({
+      title: $r('app.string.tips'),
+      message: $r('app.string.confirm_clear_search_history'),
+      buttons: [
+        { text: $r('app.string.cancel'), color: '#999999' },
+        { text: $r('app.string.clear'), color: '#FF0000' }
+      ]
+    }, async (err, data) => {
+      if (data?.index === 1) {
+        await this.searchHistoryDB.clearAll()
+        this.searchHistory = []
+        this.searchHistoryEdit = false
+      }
+    });
+  }
+
+  async deleteSearch(id: number) {
+    await this.searchHistoryDB.deleteByID(id)
+    this.searchHistory = this.searchHistory.filter((item) => item.id != id)
+    if (this.searchHistory.length == 0) {
+      this.searchHistoryEdit = false
+    }
   }
 
 }

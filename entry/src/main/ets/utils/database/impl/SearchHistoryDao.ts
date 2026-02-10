@@ -68,6 +68,13 @@ export class SearchHistoryTable extends AutoTable<SearchHistoryInfo> {
   /**
    * 删除指定关键词的历史记录
    */
+  async deleteByID(id: number): Promise<number> {
+    return this.deleteItem(this.getPredicates().equalTo('id', id))
+  }
+
+  /**
+   * 删除指定关键词的历史记录
+   */
   async deleteByKeyword(keyword: string): Promise<number> {
     return this.deleteItem(this.getPredicates().equalTo('keyword', keyword))
   }

@@ -4,6 +4,7 @@ import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../utils/ToastUtils';
 import { MoreItem } from '../entity/MoreItemEntity';
 import { UserDetailParams } from '../entity/UserDetailEntity';
+import { maskEmail } from '../utils/MaskEmail';
 
 
 @ComponentV2
@@ -123,7 +124,7 @@ export struct More {
         })
         // 如果未登录，画个半透明遮罩提示点击
         if (!moreVM.isLogin) {
-          Text('登录')
+          Text($r('app.string.login'))
             .fontColor(Color.White)
             .fontSize(14)
         }
@@ -135,10 +136,19 @@ export struct More {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('sys.color.font_primary'))
         if (moreVM.isLogin) {
-          Text(moreVM.accountName)
-            .fontSize(14)
-            .fontColor($r('sys.color.font_tertiary'))
-            .opacity(0.8)
+          Row({ space: 5 }) {
+            Text(moreVM.emailPrivacy ? maskEmail(moreVM.email) : moreVM.email)
+              // 不得不说，自带的隐私属性真用不来
+              .fontColor($r('sys.color.font_tertiary'))
+              .fontSize(14)
+              .opacity(0.8)
+            Text('显示')
+              .fontSize(14)
+              .fontColor($r('sys.color.icon_emphasize'))
+              .onClick(() => {
+                moreVM.emailPrivacy = !moreVM.emailPrivacy
+              })
+          }
         } else {
           Text('点击登录账号')
             .fontSize(14)
@@ -153,11 +163,10 @@ export struct More {
           .fontColor([$r('sys.color.font_tertiary')])
       }
     }
+    .margin({ top: 10 })
+    .borderRadius(16)
     .width('100%')
     .padding(20)
-    .margin({ top: 10 })
-    .backgroundColor(Color.White)
-    .borderRadius(16)
     .shadow({
       radius: 10,
       color: '#1A000000',
@@ -178,7 +187,7 @@ export struct More {
     Text(title)
       .fontSize(14)
       .width('100%')
-      .padding({ left: 12, bottom: 8 })
+      .padding({ left: 2 })
       .fontColor($r('sys.color.font_secondary'))
   }
 
