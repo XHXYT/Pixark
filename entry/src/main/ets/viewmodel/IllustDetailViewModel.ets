@@ -1,4 +1,4 @@
-import { PixState } from '../entryability/AppState';
+import { PixState, _PixState } from '../entryability/AppState';
 import { PixivIllust, PixivImage } from '../services/PixivTypes';
 import { createLogger } from '../utils/Logger';
 import { LongTakeAnimationProperties } from '../utils/customtransition/LongTakeAnimationProperties';
@@ -7,6 +7,8 @@ import { homeViewModel } from './HomeViewModel';
 import { DetailPageParams } from '../entity/IllustDetailEntity';
 import { CardUtil } from '../utils/CardUtil';
 import { toastUtil } from '../utils/ToastUtils';
+import { downloaderVM } from './DownloadsViewModel';
+import { common } from '@kit.AbilityKit';
 
 const logger = createLogger('IllustDetailViewModel')
 
@@ -65,6 +67,54 @@ export class IllustDetailViewModel {
     }
   }
 
+  /**
+   * 下载当前图片
+   * @param index 如果是多图作品，当前点击的是第几张 (默认为0)
+   */
+  async downloadCurrentImage(index: number = 0) {
+    const context: common.Context = _PixState.Context;
+    // const appConfig: APPConfigInfo = Xb_getPersistence(APPConfigInfo)!;
+    if (!this.detailData) return;
+
+    // 获取原图 URL
+    let originalUrl = this.getOriginalUrl(this.detailData, index)
+    if (!originalUrl) {
+      toastUtil.showToast({ message: '获取图片地址失败' });
+      return;
+    }
+    logger.debug(`Download 下载链接：${originalUrl}`)
+    //  生成文件名 (增加索引 p0, p1...)
+    const artistName = this.detailData.user.name || 'Pixiv';
+    const title = this.detailData.title || 'Untitled';
+    // 从 URL 提取后缀，防止 jpg/png 混淆
+    const ext = originalUrl.split('.').pop() || 'jpg';
+
+    // 格式: [画师名] 标题_pid_p0.jpg
+    const fileName = `${artistName}_${title}_${this.detailData.id}_p${index}.${ext}`;
+    // 过滤文件名中的非法字符 (Windows/Unix 文件名限制)
+    const safeName = fileName.replace(/[\\/:*?"<>|]/g, '');
+    // 调用全局下载器
+    downloaderVM.addTask(context, this.detailData, originalUrl, safeName);
+    // 提示
+    toastUtil.showToast({ message: $r('app.string.download_now', title) });
+  }
+
+  private getOriginalUrl(illust: PixivIllust, index: number = 0): string | null {
+    // 多图
+    if (illust.meta_pages && illust.meta_pages.length > 0) {
+      const page = illust.meta_pages[index];
+      if (!page) return null;
+      // 优先 original，没有的话回退到 large
+      return page.image_urls?.original || page.image_urls?.large || null;
+    }
+    // 单图
+    if (illust.meta_single_page?.original_image_url) {
+      return illust.meta_single_page.original_image_url;
+    }
+    // 兜底：用根 image_urls 的大图
+    return illust.image_urls?.large || null;
+  }
+
   // 处理动画初始化逻辑
   handleTransitionReady(ctx: NavDestinationContext, params: DetailPageParams) {
     const fromId = params.fromId as string;
@@ -120,26 +170,10 @@ export class IllustDetailViewModel {
   }
 
   // 关注/取消关注
-  async followOrCancel() {
-    if (!this.detailData?.user.id) return;
-    const userId = this.detailData.user.id;
-    try {
-      if (this.isFollow) {
-        // 取消关注
-        // 默认 public 关注
-        await PixState.pixiv.unfollowUser(userId, 'public');
-        this.isFollow = false;
-        this.detailData.user.is_followed = false;
-      } else {
-        // 关注
-        await PixState.pixiv.followUser(userId, 'public');
-        this.isFollow = true;
-        this.detailData.user.is_followed = true;
-      }
-    } catch (e) {
-      logger.error(`!!! 关注操作失败: ${JSON.stringify(e)}`);
-      toastUtil.showToast({ message: "关注失败" })
-    }
+  async followOrCancel(result: boolean, err?: string) {
+    this.isFollow = result;
+    if (this.detailData)
+    this.detailData.user.is_followed = result;
   }
 
   // 收藏/取消收藏

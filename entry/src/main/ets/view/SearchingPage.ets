@@ -164,8 +164,7 @@ export default struct SearchingPage {
             // 画师
             UserListView({
               userPres: searchVM.resultUsers,
-              onButtonClick: (id) => {
-
+              onButtonClick: (result: boolean, err?: string) => {
               },
               onReachEnd: () => {
                 // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新

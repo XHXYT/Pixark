@@ -19,7 +19,7 @@ export struct UserListView {
   @Param userPres: UserPreview[] = []
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
   @Param isFollow: boolean = false
-  @Event onButtonClick: (id: number) => void
+  @Event onButtonClick: (result: boolean, err?: string) => void
   @Event onReachEnd: () => void
 
   build() {
@@ -49,8 +49,8 @@ export struct UserListView {
             UserItem({
               user: userPre.user,
               isFollow: userPre.user.is_followed,
-              onButtonClick: () => {
-                this.onButtonClick(userPre.user.id)
+              onButtonClick: (result: boolean, err?: string) => {
+                this.onButtonClick(result, err)
               }
             })
             .padding(5)

@@ -21,7 +21,7 @@ export default abstract class AutoTable<T> extends AbsTable<T> {
   }
 
   // 将子类返回为实体类
-  protected abstract getEntityClass(): new (...args: any[]) => T;
+  protected abstract getEntityClass(): Function;
 
   // 获取所有列(使用实体类而不是DAO类)
   private getAllColumns(): ColumnInfo[] {

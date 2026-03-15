@@ -38,7 +38,7 @@ class SearchViewModel {
   private lastSearchedUserKeyword: string = '';
   private debounceTimerId: number = -1;
 
-  private searchHistoryDB = new SearchHistoryTable(_PixState.UIContext.getHostContext()!)
+  private searchHistoryDB = new SearchHistoryTable(_PixState.Context)
 
   // 嵌套滚动配置
   get nestedScrollOptions(): NestedScrollOptions {

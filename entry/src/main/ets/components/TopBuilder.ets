@@ -4,15 +4,16 @@ import { fileIo, fileUri } from "@kit.CoreFileKit"
 import { toastUtil } from "../utils/ToastUtils"
 import { request } from "@kit.BasicServicesKit"
 import { PixivImage } from "../services/PixivTypes"
+import { ButtonItem } from "../entity/ButtonItemModel"
 
 @ComponentV2
 export struct TopBuilder {
 
   @Param pageInfos: NavPathStack | undefined = undefined
   @Param topHeight: number | undefined = 56
-  @Param images: PixivImage[] = []
+  @Param buttons: ButtonItem[] = []
 
-  saveImage() {
+/*  saveImage() {
     if (this.images.length == 1 ) {
       let image = this.images[0]
       let range = ['大图','中等','方中']
@@ -51,8 +52,6 @@ export struct TopBuilder {
               'Referer': 'https://www.pixiv.net'
             },
           }).then((downloadTask: request.DownloadTask) => {
-
-
             downloadTask.on('complete', async () => {
               try {
                 let srcFileUri = fileUri.getUriFromPath(path)
@@ -99,10 +98,10 @@ export struct TopBuilder {
         }
       )
     }
-  }
+  }*/
 
   build() {
-    Row() {
+    Row({ space: 6 }) {
       if (this.pageInfos) {
         // 返回图标
         Button({ type: ButtonType.Circle, stateEffect: true }) {
@@ -118,16 +117,18 @@ export struct TopBuilder {
         })
       }
 
-      if (this.images.length > 0) {
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph($r('sys.symbol.download'))
-            .fontSize(28)
-        }
-        .width(40).height(40)
-        .backgroundColor($r('sys.color.button_background_color_transparent'))
-        .onClick((event: ClickEvent) => {
-          this.saveImage()
-        })
+      if (this.buttons.length > 0) {
+        ForEach(this.buttons, (item: ButtonItem) => {
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            SymbolGlyph(item.symbol)
+              .fontSize(28)
+          }
+          .width(40).height(40)
+          .backgroundColor($r('sys.color.button_background_color_transparent'))
+          .onClick((event: ClickEvent) => {
+            item.action()
+          })
+        }, (item: ButtonItem) => item.id)
       }
 
     }

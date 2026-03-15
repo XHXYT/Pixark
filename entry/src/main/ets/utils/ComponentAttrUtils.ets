@@ -20,7 +20,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { CustomExceptions } from '../entity/CustomExceptions';
 
 export class ComponentAttrUtils {
-  // Gets the location information of a component based on its id.
+  // 根据组件的ID获取其位置信息
   public static getRectInfoById(context: UIContext, id: string): RectInfoInPx {
     if (!context || !id) {
       throw CustomExceptions.EMPTY_OBJECT_EXCEPTION;

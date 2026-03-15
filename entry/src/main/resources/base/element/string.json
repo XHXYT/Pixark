@@ -255,6 +255,54 @@
     {
       "name": "deleted",
       "value": "已删除 %s"
+    },
+    {
+      "name": "follow_fail",
+      "value": "关注失败"
+    },
+    {
+      "name": "unfollow_fail",
+      "value": "取关失败"
+    },
+    {
+      "name": "follow_success",
+      "value": "已关注 %s"
+    },
+    {
+      "name": "unfollow_success",
+      "value": "已取关 %s"
+    },
+    {
+      "name": "download_now",
+      "value": "已开始下载： %s"
+    },
+    {
+      "name": "show",
+      "value": "显示"
+    },
+    {
+      "name": "hide",
+      "value": "隐藏"
+    },
+    {
+      "name": "completed",
+      "value": "已完成"
+    },
+    {
+      "name": "tasks",
+      "value": "所有任务"
+    },
+    {
+      "name": "downloading",
+      "value": "下载中"
+    },
+    {
+      "name": "fail",
+      "value": "失败"
+    },
+    {
+      "name": "save_success",
+      "value": "%s 保存成功"
     }
   ]
 }

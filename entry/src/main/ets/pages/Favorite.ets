@@ -102,8 +102,7 @@ export struct Favorite {
           contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
           userPres: favVM.followList,
           isFollow: true,
-          onButtonClick: (id) => {
-            favVM.handleUserClick(id);
+          onButtonClick: (result: boolean, err?: string) => {
           },
           onReachEnd: () => {
             favVM.loadMore();

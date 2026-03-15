@@ -1,7 +1,7 @@
 import ITable from './ITable';
 import rdb from '@ohos.data.relationalStore';
 import { Context } from '@ohos.arkui.UIContext';
-import { createLogger, Logger } from '../Logger';
+import { createLogger } from '../Logger';
 
 export type ValueType = number | string | boolean | Uint8Array;
 
@@ -22,6 +22,10 @@ export default abstract class AbsTable<T> implements ITable {
   protected futureDb: Promise<rdb.RdbStore>
 
   constructor(dbName: string, tableName: string, context: Context) {
+    if (!dbName.toLowerCase().endsWith('.db')) {
+      dbName = dbName + '.db';
+      logger.debug(`Auto append .db suffix: ${dbName}`);
+    }
     this.dbName = dbName
     this.tableName = tableName
     this.futureDb = this.initDb(context)

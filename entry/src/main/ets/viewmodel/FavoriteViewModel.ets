@@ -235,13 +235,6 @@ class FavoriteViewModel {
     PixState.pageStack.pushPathByName('illust_detail', params, true);
   }
 
-  handleUserClick(userId: number) {
-    const params: UserDetailParams = {
-      id: userId
-    };
-    PixState.pageStack.pushPathByName('user_detail', params, true);
-  }
-
   // --- 加载更多 ---
   async loadMore() {
     if (this.mainTabIndex === 0) {

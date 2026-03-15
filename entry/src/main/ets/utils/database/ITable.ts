@@ -1,7 +1,6 @@
 
 /**
  * 数据库表接口
- * TODO 改用装饰器配置
  */
 export default interface ITable {
 

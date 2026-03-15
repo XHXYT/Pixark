@@ -10,6 +10,7 @@ import { toastUtil } from "../utils/ToastUtils";
 import { TopBuilder } from "../components/TopBuilder";
 import { DetailPageParams } from "../entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
+import { PixivImageViewer } from "../components/ImageViewer";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -19,6 +20,8 @@ export function IllustDetailBuilder(name: string, param: Object) {
 @ComponentV2
 struct IllustDetail {
 
+  @Local currentImageIndex: number = 0
+  @Local showLargeImage: boolean = false
   @Local scroller: Scroller = new Scroller();
   @Local iDV: IllustDetailViewModel = new IllustDetailViewModel()
 
@@ -29,8 +32,7 @@ struct IllustDetail {
       Stack() {
         // 标题栏
         TopBuilder({
-          pageInfos: this.pageStack,
-          images:this.iDV.imageList
+          pageInfos: this.pageStack
         })
         Row() {
           // 插画内容 + (信息内容)
@@ -46,6 +48,10 @@ struct IllustDetail {
                 // 给第一张图设置固定的 ID，用于计算动画终点位置
                 .id(index === 0 ? this.iDV.sharedId : illust.medium)
               }
+              .onClick(() => {
+                this.currentImageIndex = index
+                this.showLargeImage = true
+              })
             })
 
             if (PixState.widthBp < 2 && this.iDV.detailData) {
@@ -85,6 +91,26 @@ struct IllustDetail {
 
         }
         .justifyContent(FlexAlign.SpaceBetween)
+
+        // 插画查看器
+        if (this.showLargeImage) {
+          PixivImageViewer({
+            imageUrls: this.iDV.imageList, // 图片列表
+            startIndex: this.currentImageIndex, // 从哪张开始
+            onClose: () => {
+              this.showLargeImage = false;
+            },
+            onDownload: (index) => {
+              // 调用下载逻辑
+              this.iDV.downloadCurrentImage(index);
+            },
+            onShare: (url, index) => {
+              // TODO 调用系统分享
+
+            }
+          })
+        }
+
       }
       .alignContent(Alignment.TopStart)
 /*      // 核心布局：使用 Stack 实现层叠效果
@@ -147,6 +173,13 @@ struct IllustDetail {
       // 页面销毁时清理截图资源，防止内存泄漏
       SnapShotUtils.clear();
     })
+    .onBackPressed(() => {
+      if (this.showLargeImage) {
+        this.showLargeImage = false
+        return true
+      }
+      return false
+    })
   }
 
   @Builder
@@ -207,8 +240,8 @@ struct IllustDetail {
       UserItem({
         user: this.iDV.detailData?.user,
         isFollow: this.iDV.isFollow,
-        onButtonClick: () => {
-          this.iDV.followOrCancel()
+        onButtonClick: (result: boolean, err?: string) => {
+          this.iDV.followOrCancel(result, err)
         }
       })
 

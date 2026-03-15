@@ -142,7 +142,7 @@ export struct More {
               .fontColor($r('sys.color.font_tertiary'))
               .fontSize(14)
               .opacity(0.8)
-            Text('显示')
+            Text(moreVM.emailPrivacy ? $r('app.string.hide') : $r('app.string.show'))
               .fontSize(14)
               .fontColor($r('sys.color.icon_emphasize'))
               .onClick(() => {

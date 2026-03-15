@@ -204,7 +204,7 @@ export struct SearchContent {
               .scrollBar(BarState.Off)
               .edgeEffect(EdgeEffect.Spring)
               .nestedScroll(searchVM.nestedScrollOptions)
-              .contentEndOffset((PixState.TabBarVertical ? 125 : 135) + PixState.bottomRectHeight)
+              .contentEndOffset((PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight)
               .columnsTemplate(GridColumnsTemplate(PixState.widthBp))
               .columnsGap(6)
               .rowsGap(8)

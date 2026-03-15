@@ -1,6 +1,6 @@
 import { PixivService } from "../services/PixivService"
 import { PixivIllust, PixivUser, UserDetailResponse } from "../services/PixivTypes"
-import { ConfigurationConstant } from "@kit.AbilityKit"
+import { ConfigurationConstant, common } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
 import { PageMargin,
   TabBarAvoidHeight,
@@ -29,6 +29,7 @@ export class _PixState {
 
   // 窗口对象
   public static UIContext: UIContext
+  public static Context: common.UIAbilityContext
   public static window: window.Window;
   /** @description 窗口高度 -px */
   public static windowWidth_px: number;

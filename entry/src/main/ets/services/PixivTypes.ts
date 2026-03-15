@@ -65,6 +65,11 @@ export interface PixivIllust {
   // 仅在收藏接口返回的作品里存在：
   bookmark_id?: number;       // 标记该作品在用户收藏列表中的 ID，用于分页
   is_bookmarked: boolean;     // 该插画是否被当前登录用户收藏
+
+  meta_single_page?: {
+    original_image_url?: string;
+  };
+
   /**
    * 多图页面数据
    * 注意：只有当 meta_pages.length > 1 时，或者详情页接口返回的数据里，才会有此字段

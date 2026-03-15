@@ -11,6 +11,7 @@ import { ImageKnife } from '@ohos/imageknifepro';
 import { settingManager } from './SettingManager';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 
+
 const logger = Logger.getInstance();
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
 const BREAKPOINT_RATIO_PORTRAIT = 1.2;
@@ -43,6 +44,7 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       logger.error('ColorMode', 'Failed to set colorMode.', err);
     }
+    _PixState.Context = this.context
     // 初始化 ImageKnife 文件缓存
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
     // 全局添加 Pixiv 必需的 Referer
