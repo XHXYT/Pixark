@@ -1,4 +1,4 @@
-import { PixState } from "../../entryability/AppState";
+import { PixState, _PixState } from "../../entryability/AppState";
 import { createLogger } from "../../utils/Logger";
 import { DownloadsViewModel, downloaderVM } from "../../viewmodel/DownloadsViewModel";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from "@kit.ArkUI";
@@ -28,11 +28,11 @@ struct DownloadManager {
   ]);
 
   aboutToAppear(): void {
-    const context = this.getUIContext().getHostContext()!;
+    const context = _PixState.Context;
     // 初始化下载目录
     this.dVM.initDownLoad(context);
     // 刷新列表数据
-    this.dVM.fetchSysTask(context);
+    this.dVM.fetchSysTask();
   }
 
   build() {
@@ -65,11 +65,11 @@ struct DownloadManager {
         .width('100%')
         .layoutWeight(1)
         .padding({ left: 16, right: 16, top: 8 })
-
+        .contentEndOffset(PixState.bottomRectHeight)
       }
       .alignItems(HorizontalAlign.Center)
     }
-    .padding({ top: PixState.topRectHeight, bottom: PixState.bottomRectHeight })
+    .padding({ top: PixState.topRectHeight })
     .title($r('app.string.download_manage'))
     .hideToolBar(true)
     .menus(this.buttons())
@@ -84,7 +84,7 @@ struct DownloadManager {
     Row() {
       // 左侧：作品信息
       Column() {
-        Text(item.title || '未知作品')
+        Text(item.title || $r('app.string.unknown_works'))
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .maxLines(1)
@@ -92,7 +92,7 @@ struct DownloadManager {
 
         // 副标题：作者名 · 下载时间
         Text() {
-          Span(item.artistName || '未知画师')
+          Span(item.artistName || $r('app.string.unknown_artist'))
           Span(' · ')
           Span(this.formatTime(item.createTime))
         }
@@ -113,7 +113,7 @@ struct DownloadManager {
             .fontColor([$r('sys.color.ohos_id_color_palette4')])
         } else if (item.status === request.agent.State.RUNNING || item.status === request.agent.State.RETRYING) {
           // 下载中：显示进度和暂停
-          Text(item.progress || '0%')
+          Text(item.progress.toString() || '0%')
             .fontSize(14)
             .fontColor($r('sys.color.ohos_id_color_emphasize'))
 
@@ -124,17 +124,15 @@ struct DownloadManager {
           }
           .backgroundColor(Color.Transparent)
           .onClick(() => {
-            const context = this.getUIContext().getHostContext()!;
-            this.dVM.pauseSysTask(context, item.taskId);
+            this.dVM.pauseSysTask(item.taskId);
           })
         } else if (item.status === request.agent.State.PAUSED) {
           // 暂停：继续
-          Button('继续')
+          Button($r('app.string.continue'))
             .fontSize(14)
             .height(32)
             .onClick(() => {
-              const context = this.getUIContext().getHostContext()!;
-              this.dVM.resumeSysTask(context, item.taskId);
+              this.dVM.resumeSysTask(item.taskId);
             })
         } else if (item.status === request.agent.State.FAILED || item.status === request.agent.State.STOPPED) {
           // 失败/停止：重试和删除
@@ -146,7 +144,7 @@ struct DownloadManager {
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             const context = this.getUIContext().getHostContext()!;
-            this.dVM.restartSysTask(context, item.taskId);
+            this.dVM.restartSysTask(item.taskId);
           })
 
           Button({ type: ButtonType.Circle }) {
@@ -158,7 +156,7 @@ struct DownloadManager {
           .onClick(() => this.deleteTask(item))
         } else {
           // 等待中
-          Text('等待中...')
+          Text($r('app.string.in_line'))
             .fontSize(14)
             .fontColor($r('sys.color.ohos_id_color_text_secondary'))
         }
@@ -195,8 +193,7 @@ struct DownloadManager {
 
   // 执行删除
   private async deleteTask(item: DownloadRecordInfo) {
-    const context = this.getUIContext().getHostContext()!;
-    await this.dVM.removeTask(context, item);
+    await this.dVM.removeTask(item);
   }
 
   // 打开插画详情

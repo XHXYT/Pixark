@@ -71,7 +71,7 @@ class DownloadRecordInfo {
    * 下载进度
    */
   @Trace
-  progress: string = '0%';
+  progress: number = 0;
 
   /**
    * 创建时间

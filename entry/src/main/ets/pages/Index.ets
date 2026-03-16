@@ -24,6 +24,8 @@ import { AnimateCallback, CustomTransition } from '../utils/customtransition/Cus
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 import { More } from './More';
 import { createLogger } from '../utils/Logger';
+import { AppSettings } from '../utils/persistence/SettingsModel';
+import { getPersistence } from '../utils/persistence/Persistence';
 
 const logger = createLogger('Index')
 
@@ -32,6 +34,7 @@ const logger = createLogger('Index')
 struct Index {
 
   @Local isEnabled: boolean = true
+  @Local appConfig: AppSettings = getPersistence(AppSettings, () => new AppSettings())!
 
   // 允许自定义转换的页面的名称 自
   private allowedCustomTransitionFromPageNames: string[] =

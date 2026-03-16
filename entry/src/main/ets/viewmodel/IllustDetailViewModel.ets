@@ -83,20 +83,8 @@ export class IllustDetailViewModel {
       return;
     }
     logger.debug(`Download 下载链接：${originalUrl}`)
-    //  生成文件名 (增加索引 p0, p1...)
-    const artistName = this.detailData.user.name || 'Pixiv';
-    const title = this.detailData.title || 'Untitled';
-    // 从 URL 提取后缀，防止 jpg/png 混淆
-    const ext = originalUrl.split('.').pop() || 'jpg';
-
-    // 格式: [画师名] 标题_pid_p0.jpg
-    const fileName = `${artistName}_${title}_${this.detailData.id}_p${index}.${ext}`;
-    // 过滤文件名中的非法字符 (Windows/Unix 文件名限制)
-    const safeName = fileName.replace(/[\\/:*?"<>|]/g, '');
     // 调用全局下载器
-    downloaderVM.addTask(context, this.detailData, originalUrl, safeName);
-    // 提示
-    toastUtil.showToast({ message: $r('app.string.download_now', title) });
+    downloaderVM.addTask(context, this.detailData, originalUrl);
   }
 
   private getOriginalUrl(illust: PixivIllust, index: number = 0): string | null {

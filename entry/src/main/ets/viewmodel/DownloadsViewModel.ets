@@ -7,6 +7,8 @@ import { PixivIllust } from "../services/PixivTypes";
 import { createLogger } from "../utils/Logger";
 import { photoAccessHelper } from "@kit.MediaLibraryKit";
 import { toastUtil } from "../utils/ToastUtils";
+import { getPersistence } from "../utils/persistence/Persistence";
+import { AppSettings } from "../utils/persistence/SettingsModel";
 
 const logger = createLogger('DownloadsViewModel')
 
@@ -18,6 +20,8 @@ export class DownloadsViewModel {
   private downloadDir = ""
   private maxTaskCount = 3
   private context: common.Context | null = null
+
+  @Trace appConfig: AppSettings = getPersistence(AppSettings, () => new AppSettings())!
 
   /**
    * 初始化下载目录
@@ -39,13 +43,13 @@ export class DownloadsViewModel {
     return fileUri.getUriFromPath(filePath);
   }
 
-  filterTask(currentPage: string | undefined = undefined) {
+  filterTask() {
     const statusMap: Record<string, number[]> = {
       "downloading": [request.agent.State.RUNNING, request.agent.State.RETRYING],
       "completed": [request.agent.State.COMPLETED],
       "error": [request.agent.State.STOPPED, request.agent.State.FAILED]
     };
-    const targetStatus = statusMap[currentPage || ''];
+    const targetStatus = statusMap[this.currentPage || ''];
     if (targetStatus) {
       return this.tasks.filter(d => targetStatus.includes(d.status));
     }
@@ -55,7 +59,9 @@ export class DownloadsViewModel {
   /**
    * 获取任务列表：先从数据库读取元数据，再从系统服务同步状态
    */
-  async fetchSysTask(context: common.Context) {
+  async fetchSysTask() {
+    if (!this.context) return
+    const context = this.context
     const db = getDownloadRecordTable(context);
     // 从数据库加载所有记录
     let dbRecords = await db.queryAllDesc();
@@ -87,7 +93,7 @@ export class DownloadsViewModel {
           // 如果在运行中，可以尝试计算进度百分比
           if (sysTask.progress.sizes && sysTask.progress.sizes.length > 0) {
             const total = sysTask.progress.sizes[0];
-            if(total > 0) record.progress = Math.floor((sysTask.progress.processed / total) * 100) + '%';
+            if(total > 0) record.progress = Math.floor((sysTask.progress.processed / total) * 100);
           }
         } else {
           // 系统里没有，但数据库里有，说明任务丢失或已完成被清理
@@ -103,7 +109,7 @@ export class DownloadsViewModel {
         if (record.status !== request.agent.State.COMPLETED &&
           record.status !== request.agent.State.FAILED &&
           record.status !== request.agent.State.STOPPED) {
-          this.attachSysTask(context, record.taskId);
+          this.attachSysTask(record.taskId);
         }
       });
 
@@ -112,36 +118,37 @@ export class DownloadsViewModel {
     }
   }
 
-  async getSysTask(context: common.Context, id: string | undefined): Promise<request.agent.Task | undefined> {
+  async getSysTask(id: string | undefined): Promise<request.agent.Task | undefined> {
     if (!id) return;
+    if (!this.context) return
     try {
-      return await request.agent.getTask(context, id);
+      return await request.agent.getTask(this.context, id);
     } catch (e) {
       return;
     }
   }
 
-  async pauseSysTask(context: common.Context, id: string) {
-    const task = await this.getSysTask(context, id);
+  async pauseSysTask(id: string) {
+    const task = await this.getSysTask(id);
     task?.pause();
   }
 
-  async resumeSysTask(context: common.Context, id: string) {
-    const task = await this.getSysTask(context, id);
+  async resumeSysTask(id: string) {
+    const task = await this.getSysTask(id);
     if (task) this.TryRunTask(task, true);
   }
 
-  async restartSysTask(context: common.Context, id: string) {
-    const task = await this.getSysTask(context, id);
+  async restartSysTask(id: string) {
+    const task = await this.getSysTask(id);
     if (task) this.TryRunTask(task);
   }
 
-  async pauseAllSysTask(context: common.Context) {
+  async pauseAllSysTask() {
     const taskIds = await request.agent.search({ state: request.agent.State.RUNNING });
     for (let id of taskIds) {
-      const result = await this.getSysTask(context, id);
+      const result = await this.getSysTask(id);
       if (result) {
-        this.attachTask(context, result);
+        this.attachTask(result);
         await result.pause();
       }
     }
@@ -150,25 +157,25 @@ export class DownloadsViewModel {
   async resumeAllSysTask(context: common.Context) {
     const taskIds = await request.agent.search({ state: request.agent.State.PAUSED });
     for (let id of taskIds) {
-      const result = await this.getSysTask(context, id);
+      const result = await this.getSysTask(id);
       if (result) {
-        this.attachTask(context, result);
+        this.attachTask(result);
         await this.TryRunTask(result, true);
         await new Promise<void>((res) => setTimeout(res, 100));
       }
     }
   }
 
-  async restartAllSysTask(context: common.Context) {
+  async restartAllSysTask() {
     const taskIds = await Promise.all([
       request.agent.State.FAILED, request.agent.State.STOPPED
     ].map((s) => request.agent.search({ state: s })));
 
     for (let ids of taskIds) {
       for (let id of ids) {
-        const result = await this.getSysTask(context, id);
+        const result = await this.getSysTask(id);
         if (result) {
-          this.attachTask(context, result);
+          this.attachTask(result);
           await this.TryRunTask(result);
         }
       }
@@ -184,8 +191,9 @@ export class DownloadsViewModel {
     }
   }
 
-  async removeTask(context: common.Context, task: DownloadRecordInfo) {
-    const db = getDownloadRecordTable(context);
+  async removeTask(task: DownloadRecordInfo) {
+    if (!this.context) return
+    const db = getDownloadRecordTable(this.context);
     // 删除系统任务
     try { await request.agent.remove(task.taskId); } catch (e) {}
     // 删除本地文件
@@ -196,21 +204,23 @@ export class DownloadsViewModel {
     this.tasks = this.tasks.filter(f => f.taskId !== task.taskId);
   }
 
-  async attachSysTask(context: common.Context, id: string) {
-    const task = await this.getSysTask(context, id);
-    if (task) this.attachTask(context, task);
+  async attachSysTask(id: string) {
+    const task = await this.getSysTask(id);
+    if (task) this.attachTask(task);
   }
 
-  async attachTask(context: common.Context, task: request.agent.Task) {
+  async attachTask(task: request.agent.Task) {
+    if (!this.context) return
+
     this.unAttackTask(task);
-    const db = getDownloadRecordTable(context);
+    const db = getDownloadRecordTable(this.context);
 
     task.on('progress', (progress) => {
       let target = this.tasks.find(d => d.taskId === task.tid);
       if (target) {
         if (progress.sizes && progress.sizes.length > 0) {
           const total = progress.sizes[0];
-          if(total > 0) target.progress = Math.floor((progress.processed / total) * 100) + '%';
+          if(total > 0) target.progress = Math.floor((progress.processed / total) * 100);
         }
       }
     });
@@ -219,19 +229,19 @@ export class DownloadsViewModel {
       let target = this.tasks.find(d => d.taskId === task.tid);
       if (target) {
         target.status = request.agent.State.COMPLETED;
-        target.progress = '100%';
+        target.progress = 100;
         await db.updateStatus(task.tid, request.agent.State.COMPLETED);
         // 保存到系统相册
-        await this.saveImageToGallery(context, target.filePath, target.title);
+        await this.saveImageToGallery(target.filePath, target.title);
       }
-      this.TryRunNextTask(context);
+      this.TryRunNextTask();
     });
 
     task.on('pause', (progress) => {
       let target = this.tasks.find(d => d.taskId === task.tid);
       if (target) target.status = request.agent.State.PAUSED;
       db.updateStatus(task.tid, request.agent.State.PAUSED);
-      this.TryRunNextTask(context);
+      this.TryRunNextTask();
     });
 
     task.on('resume', (progress) => {
@@ -244,13 +254,13 @@ export class DownloadsViewModel {
       let target = this.tasks.find(d => d.taskId === task.tid);
       if (target) target.status = request.agent.State.FAILED;
       await db.updateStatus(task.tid, request.agent.State.FAILED);
-      this.TryRunNextTask(context);
+      this.TryRunNextTask();
     });
 
     task.on('remove', (progress) => {
       // 通常由 removeTask 主动触发，这里仅做内存移除
       this.tasks = this.tasks.filter(d => d.taskId !== task.tid);
-      this.TryRunNextTask(context);
+      this.TryRunNextTask();
     });
   }
 
@@ -300,18 +310,18 @@ export class DownloadsViewModel {
       // 更新内存列表
       this.tasks.unshift(record);
       // 开始任务
-      await this.attachTask(context, task);
+      await this.attachTask(task);
       await this.TryRunTask(task);
     } catch (e) {
       logger.error("Add Task Error", e);
     }
   }
 
-  async TryRunNextTask(context: common.Context) {
+  async TryRunNextTask() {
     const waiting = await request.agent.search({ state: request.agent.State.INITIALIZED });
     if (waiting.length === 0) return;
 
-    const sysTask = await this.getSysTask(context, waiting.pop());
+    const sysTask = await this.getSysTask(waiting.pop());
     if (sysTask) {
       let running = await this.TryRunTask(sysTask);
       if (running) {
@@ -342,10 +352,11 @@ export class DownloadsViewModel {
   /**
    * 将沙箱文件保存到系统相册
    */
-  private async saveImageToGallery(context: common.Context, localPath: string, title: string) {
+  private async saveImageToGallery(localPath: string, title: string) {
     if (!localPath) return;
+    if (!this.context) return
     try {
-      const phAccessHelper = photoAccessHelper.getPhotoAccessHelper(context);
+      const phAccessHelper = photoAccessHelper.getPhotoAccessHelper(this.context);
       // 直接从路径提取文件名，无需重新拼接或生成时间戳
       // localPath 格式: /.../PID_p0_Title_Artist.jpg
       const fileName = localPath.substring(localPath.lastIndexOf('/') + 1);
@@ -365,7 +376,7 @@ export class DownloadsViewModel {
       ];
 
       let desFileUris = await phAccessHelper.showAssetsCreationDialog(srcFileUris, photoCreationConfigs);
-
+      this.appConfig.imagePath
       if (desFileUris && desFileUris.length > 0) {
         const destUri = desFileUris[0];
         const srcFd = fs.openSync(localPath, fs.OpenMode.READ_ONLY);
@@ -373,10 +384,8 @@ export class DownloadsViewModel {
         await fs.copyFile(srcFd.fd, destFd.fd);
         fs.closeSync(srcFd);
         await fs.close(destFd.fd);
-
         logger.info('Image saved to gallery success: ' + destUri);
-        // await this.deleteFile(localPath);
-
+        await this.deleteFile(localPath);
         // 作品标题
         toastUtil.showToast({ message: $r('app.string.save_success', title) });
       }
@@ -406,6 +415,8 @@ export class DownloadsViewModel {
     // 去除文件名中的非法字符 \ / : * ? " < > |
     const safeArtist = artist.replace(/[\\/:*?"<>|]/g, '');
     const safeTitle = title.replace(/[\\/:*?"<>|]/g, '');
+    // 提示
+    toastUtil.showToast({ message: $r('app.string.download_now', title) });
     // 严格按照顺序拼接：ID + 页码 + 标题 + 画师
     return `${pageStr}_${safeTitle}_${safeArtist}.${extension}`;
   }

@@ -8,7 +8,6 @@ import { AvoidanceManager, SmartAvoidance } from '../utils/AvoidManager';
 import { PixState, _PixState } from './AppState';
 import { Logger } from '../utils/Logger';
 import { ImageKnife } from '@ohos/imageknifepro';
-import { settingManager } from './SettingManager';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 
 
@@ -32,7 +31,6 @@ export default class EntryAbility extends UIAbility {
       await preferenceUtil.init(this.context, 'pixark_preference');
       // 初始化KV数据库
       await kvDbUtil.initKVManager(this.context, 'pixark')
-      await settingManager.loadAll();
       logger.info('Init', 'preferenceUtil and kvDbUtil initialized successfully.');
     } catch (error) {
       logger.error('Init', 'preferenceUtil or kvDbUtil initialization failed.', error);

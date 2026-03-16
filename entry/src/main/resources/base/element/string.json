@@ -303,6 +303,22 @@
     {
       "name": "save_success",
       "value": "%s 保存成功"
+    },
+    {
+      "name": "in_line",
+      "value": "排队中..."
+    },
+    {
+      "name": "continue",
+      "value": "继续"
+    },
+    {
+      "name": "unknown_works",
+      "value": "未知作品"
+    },
+    {
+      "name": "unknown_artist",
+      "value": "未知画师"
     }
   ]
 }

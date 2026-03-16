@@ -118,7 +118,8 @@ export default abstract class AutoTable<T> extends AbsTable<T> {
   createItem(cursor: rdb.ResultSet): T {
     console.debug(`${this.constructor.name}, createItem called`);
 
-    const item = {} as T;
+    const EntityClass = this.getEntityClass() as new () => T;
+    const item = new EntityClass(); // 创建new实例，注入观察者
     const columns = this.getAllColumns();
     console.debug(`${this.constructor.name}, createItem found ${columns.length} columns`);
 
