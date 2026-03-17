@@ -1,0 +1,85 @@
+name: HarmonyOS App Build
+
+# 触发条件：代码推送、PR 合并目标分支、手动触发
+on:
+  push:
+    # 监听所有常用开发分支的推送事件
+    branches: [ "main", "master", "dev", "develop" ]
+  pull_request:
+    # 向目标分支提交 PR 时触发构建校验
+    branches: [ "main", "master", "dev", "develop" ]
+  workflow_dispatch: # 允许手动触发构建
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # 使用 Ubuntu 最新版运行环境
+
+    steps:
+      # 拉取当前仓库代码到运行环境
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 安装 Node.js 18（HarmonyOS 工具链依赖）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 缓存鸿蒙命令行工具（避免重复下载，加速构建流程）
+      # 工具包约 2GB，缓存命中可节省大量下载时间
+      - name: Cache Command Line Tools
+        id: cache-tools
+        uses: actions/cache@v4
+        with:
+          path: ./command-line-tools
+          # 固定版本缓存键，对应 6.1.0.816 版本工具链
+          key: ${{ runner.os }}-harmony-tools-6.1.0.816
+
+      # 缓存未命中时，从预发布镜像下载工具链
+      - name: Download Command Line Tools
+        if: steps.cache-tools.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache miss, downloading tools..."
+          curl -L -o tools.zip https://github.com/Okysu/harmony-auto-build/releases/download/commandline-tools-linux-x64-6.1.0.816/commandline-tools-linux-x64-6.1.0.816.zip
+          unzip tools.zip
+          rm tools.zip
+
+      # 配置构建环境变量与工具权限
+      - name: Setup Build Environment
+        run: |
+          TOOLS_DIR=$(pwd)/command-line-tools
+          
+          # 写入 SDK 路径配置，供 hvigor 构建工具读取
+          echo "hwsdk.dir=$TOOLS_DIR/sdk" > local.properties
+          
+          # 将工具可执行文件目录添加到系统 PATH，支持全局调用 ohpm/hvigorw
+          echo "$TOOLS_DIR/bin" >> $GITHUB_PATH
+          
+          # 导出鸿蒙工具所需的全局环境变量
+          echo "OHPM_HOME=$TOOLS_DIR/ohpm" >> $GITHUB_ENV
+          echo "HOS_SDK_HOME=$TOOLS_DIR/sdk" >> $GITHUB_ENV
+          
+          # 批量赋予所有工具脚本执行权限
+          chmod -R +x $TOOLS_DIR/bin
+
+      # 通过 ohpm 安装项目依赖包
+      - name: Install Dependencies
+        run: |
+          ohpm install
+
+      # 执行 Debug 模式无签名构建，产出 HAP/APP 等安装包
+      - name: Build HAP (Debug Mode)
+        run: |
+          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon
+
+      # 上传构建产物，供后续下载使用
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmony-app-debug
+          # 匹配所有常见鸿蒙构建产物格式
+          path: |
+            **/build/**/outputs/**/*.hap
+            **/build/**/outputs/**/*.app
+            **/build/**/outputs/**/*.hsp
+            **/build/**/outputs/**/*.har
