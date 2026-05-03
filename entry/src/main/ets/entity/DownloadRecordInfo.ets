@@ -4,8 +4,7 @@ import { Column } from "../utils/database/decorator/Decorators";
  * 下载记录实体
  */
 @ObservedV2
-export default
-class DownloadRecordInfo {
+export default class DownloadRecordInfo {
   /**
    * 记录ID，自增主键
    */

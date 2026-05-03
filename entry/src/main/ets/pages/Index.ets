@@ -1,4 +1,3 @@
-
 import { PixState } from '../entryability/AppState';
 import { EventHub, EventKey } from '../utils/EventHub';
 import { toastUtil } from '../utils/ToastUtils';
@@ -20,21 +19,18 @@ import { Rank } from './Rank';
 import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { Login } from './Login';
 import Constants from '../entity/Constants';
-import { AnimateCallback, CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
-import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 import { More } from './More';
 import { createLogger } from '../utils/Logger';
-import { AppSettings } from '../utils/persistence/SettingsModel';
-import { getPersistence } from '../utils/persistence/Persistence';
+
 
 const logger = createLogger('Index')
+
 
 @Entry
 @ComponentV2
 struct Index {
 
   @Local isEnabled: boolean = true
-  @Local appConfig: AppSettings = getPersistence(AppSettings, () => new AppSettings())!
 
   // 允许自定义转换的页面的名称 自
   private allowedCustomTransitionFromPageNames: string[] =
@@ -71,7 +67,6 @@ struct Index {
       }
       .hideToolBar(true)
       .hideTitleBar(true)
-      // .enabled(this.isEnabled) // 转场过程中不响应手势事件
       .mode(NavigationMode.Stack)
       .transition(TransitionEffect.OPACITY)
       // TODO 实现图片流一镜到底转场
@@ -136,6 +131,7 @@ struct Index {
         };
         return customAnimation;
       })*/
+
     }
     // 未登录显示登录页
     else {
@@ -222,8 +218,10 @@ struct Index {
     .gesture(
       TapGesture({ count: 2 })
         .onAction(() => {
-          // 双击刷新主页推荐图片数据
-          homeViewModel.refreshRecommended()
+          if (PixState.currentTab == 0) {
+            // 双击刷新主页推荐图片数据
+            homeViewModel.refreshRecommended()
+          }
         })
     );
   }
@@ -391,7 +389,7 @@ struct Index {
   }
 
   private isCustomTransitionEnabled(fromName: string, toName: string): boolean {
-    // Both click and return require custom transitions, so they need to be judged separately.
+    // 点击和返回都需要自定义过渡，因此分别判断
     if ((this.allowedCustomTransitionFromPageNames.includes(fromName)
       && this.allowedCustomTransitionToPageNames.includes(toName))
       || (this.allowedCustomTransitionFromPageNames.includes(toName)
@@ -402,3 +400,5 @@ struct Index {
   }
 
 }
+
+

@@ -17,6 +17,7 @@ export function IllustDetailBuilder(name: string, param: Object) {
   IllustDetail()
 }
 
+
 @ComponentV2
 struct IllustDetail {
 
