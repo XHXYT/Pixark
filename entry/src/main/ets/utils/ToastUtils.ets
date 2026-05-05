@@ -63,6 +63,20 @@ class ToastUtils {
     }
   }
 
+  showAlertDialog(options: AlertDialogParamWithConfirm | AlertDialogParamWithButtons | AlertDialogParamWithOptions, key?: string) {
+    try {
+      if (!this.UIContext) {
+        console.error(`[ToastUtils] #showAlertDialog ${key}: UIContext未初始化`)
+        throw new Error('[ToastUtils] UIContext未初始化')
+      }
+      this.UIContext.showAlertDialog(options)
+    } catch (error) {
+      let message = (error as BusinessError).message
+      let code = (error as BusinessError).code
+      console.error(`[ToastUtils] ${key} showDialog error code is ${code}, message is ${message}`)
+    }
+  }
+
   restartApp(abilityName: string = 'EntryAbility') {
     if (this.context) {
       const applicationContext = this.context.getApplicationContext();
