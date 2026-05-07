@@ -7,10 +7,10 @@ import { createLogger } from "../utils/Logger";
 import { SnapShotUtils } from "../utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { image } from "@kit.ImageKit";
-import { DetailPageParams } from "../entity/IllustDetailEntity";
+import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { CardUtil } from "../utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
-import { UserDetailParams } from "../entity/UserDetailEntity";
+import { UserDetailParams } from "../common/entity/UserDetailEntity";
 
 const logger = createLogger('Home')
 

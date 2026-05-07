@@ -1,4 +1,4 @@
-import { PixivIllust } from "../services/PixivTypes";
+import { PixivIllust } from "../../services/PixivTypes";
 
 export interface DetailPageParams {
   id: number;

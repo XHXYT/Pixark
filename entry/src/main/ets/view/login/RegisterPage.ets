@@ -1,6 +1,6 @@
 import { webview } from "@kit.ArkWeb";
-import { PixState } from "../entryability/AppState";
-import { createLogger } from "../utils/Logger";
+import { PixState } from "../../entryability/AppState";
+import { createLogger } from "../../utils/Logger";
 
 const logger = createLogger('Register')
 

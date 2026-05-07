@@ -2,7 +2,7 @@ import { request } from "@kit.BasicServicesKit";
 import { common } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from "@kit.CoreFileKit";
 import { getDownloadRecordTable } from "../utils/database/impl/DownloadRecordTable";
-import DownloadRecordInfo from "../entity/DownloadRecordInfo";
+import DownloadRecordInfo from "../common/entity/DownloadRecordInfo";
 import { PixivIllust } from "../services/PixivTypes";
 import { createLogger } from "../utils/Logger";
 import { photoAccessHelper } from "@kit.MediaLibraryKit";
@@ -14,6 +14,8 @@ const logger = createLogger('DownloadsViewModel')
 export class DownloadsViewModel {
 
   @Trace selectedIds: Set<string> = new Set()
+
+  @Trace displayList: DownloadRecordInfo[] = []
   @Trace tasks: DownloadRecordInfo[] = []
 
   @Trace isEditMode: boolean = false
@@ -28,6 +30,23 @@ export class DownloadsViewModel {
     "Referer": "https://www.pixiv.net/",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   };
+
+  /** 初始化下载目录 */
+  async initDownLoad(context: common.Context) {
+    this.context = context
+    try {
+      this.downloadDir = `${context.filesDir}/Pixiv/Pictures`;
+      if (!fs.accessSync(this.downloadDir)) fs.mkdirSync(this.downloadDir);
+    } catch (e) {
+      logger.error("initDownLoad Error:", e)
+    }
+  }
+
+  // 监听页码和总任务列表的变化，自动刷新显示列表
+  @Monitor('currentPage', 'tasks')
+  onDataChanged() {
+    this.refreshDisplayList();
+  }
 
   /** 切换编辑模式 */
   toggleEditMode() {
@@ -52,7 +71,7 @@ export class DownloadsViewModel {
   /** 全选当前页面 */
   selectAllVisible() {
     this.selectedIds.clear();
-    this.filterTask().forEach(task => this.selectedIds.add(task.taskId));
+    this.displayList.forEach(task => this.selectedIds.add(task.taskId));
   }
 
   /** 取消全选 */
@@ -101,55 +120,34 @@ export class DownloadsViewModel {
     }
   }
 
-  /** 批量删除 */
+  /** 多选后批量删除 */
   async batchRemoveSelectedTasks() {
     if (this.selectedIds.size === 0) return;
-
+    // 获取待删除 ID
     const idsToDelete = Array.from(this.selectedIds);
-    logger.info(`batchRemoveSelectedTasks: 开始批量删除 ${idsToDelete.length} 个任务`);
-
-    for (const id of idsToDelete) {
-      const task = this.tasks.find(d => d.taskId === id);
-      if (task) {
-        try {
-          await this.removeTask(task);
-        } catch (e) {
-          logger.error(`batchRemove: 删除任务失败 id: ${id}, err:${JSON.stringify(e)}`);
-        }
-      }
-    }
-    // 批量删除完毕后，自动退出编辑模式并清空选中集
-    // this.toggleEditMode();
-  }
-
-  /** 初始化下载目录 */
-  async initDownLoad(context: common.Context) {
-    this.context = context
-    try {
-      this.downloadDir = `${context.filesDir}/Pixiv/Pictures`;
-      if (!fs.accessSync(this.downloadDir)) fs.mkdirSync(this.downloadDir);
-    } catch (e) {
-      logger.error("initDownLoad Error:", e)
-    }
+    // 调用底层删除
+    await this.batchDeleteTasksByIds(idsToDelete);
+    // 清空勾选、退出编辑模式
+    this.toggleEditMode();
   }
 
   async getFileUri(filePath: string | undefined): Promise<string> {
     return filePath ? fileUri.getUriFromPath(filePath) : '';
   }
 
-  filterTask() {
-    // 0=所有, 1=下载中, 2=已完成, 3=失败
+  /** 刷新当前展示的列表数据 */
+  refreshDisplayList() {
     const statusList: (number[] | null)[] = [
-      null,                                                            // 0: 所有 (不进行过滤)
-      [request.agent.State.RUNNING, request.agent.State.RETRYING],    // 1: 下载中
-      [request.agent.State.COMPLETED],                                 // 2: 已完成
-      [request.agent.State.STOPPED, request.agent.State.FAILED]       // 3: 失败
+      null, // 0: 所有
+      [request.agent.State.RUNNING, request.agent.State.RETRYING], // 1: 下载中
+      [request.agent.State.COMPLETED], // 2: 已完成
+      [request.agent.State.STOPPED, request.agent.State.FAILED] // 3: 失败
     ];
-    // 获取当前 Tab 对应的状态数组
     const targetStatus = statusList[this.currentPage] ?? null;
-    logger.debug(`filterTask 当前分组：${this.currentPage} targetStatus: ${JSON.stringify(targetStatus)}`)
-    // 如果是 null (所有) 或者未定义，直接返回全量 tasks
-    return targetStatus ? this.tasks.filter(d => targetStatus.includes(d.status)) : this.tasks;
+    // 赋新数组引用，确保 @Trace 能通知到 UI
+    this.displayList = targetStatus
+      ? this.tasks.filter(d => targetStatus.includes(d.status))
+      : [...this.tasks];
   }
 
   /** 获取任务列表 */
@@ -202,13 +200,28 @@ export class DownloadsViewModel {
     }
   }
 
-  private async getSysTask(id: string | undefined): Promise<request.agent.Task | undefined> {
-    if (!id || !this.context) return undefined;
+  /** 检查沙箱文件是否真实存在 */
+  isFileInSandbox(filePath: string | undefined): boolean {
+    if (!filePath) return false;
     try {
-      return await request.agent.getTask(this.context, id);
+      // accessSync 是微秒级的本地校验，在这里使用不会卡 UI
+      return fs.accessSync(filePath);
     } catch (e) {
-      return undefined;
+      return false;
     }
+  }
+
+  /** 手动保存到相册 */
+  async manualSaveToGallery(record: DownloadRecordInfo) {
+    if (!this.isFileInSandbox(record.filePath)) {
+      toastUtil.showToast({ message: "文件不存在或已保存" });
+      return;
+    }
+    toastUtil.showToast({ message: `正在导出 ${record.title || '未命名作品'}` })
+    // 复用保存逻辑，保存成功后它会自动 deleteFile 删除沙箱文件
+    await this.saveImageToGallery(record.filePath, record.title || '未命名作品');
+    // 保存成功后，主动刷新一次列表
+    this.refreshDisplayList()
   }
 
   async pauseTask(id: string) {
@@ -225,8 +238,11 @@ export class DownloadsViewModel {
   async restartTask(id: string) {
     if (!this.context) return;
     const record = this.tasks.find(d => d.taskId === id);
-    if (!record) return;
-
+    if (!record) {
+      toastUtil.showToast({ message: `未查询到下载记录` })
+      return;
+    }
+    toastUtil.showToast({ message: `开始重试「${record.title}」任务` })
     const task = await this.getSysTask(id);
     if (task) {
       this.TryRunTask(task);
@@ -235,13 +251,8 @@ export class DownloadsViewModel {
     }
   }
 
-  async removeTask(task: DownloadRecordInfo) {
-    if (!this.context) return;
-    const db = getDownloadRecordTable(this.context);
-    try { await request.agent.remove(task.taskId); } catch (e) { /* ignore */ }
-    await this.deleteFile(task.filePath);
-    if (task.id) await db.deleteByID(task.id);
-    this.tasks = this.tasks.filter(f => f.taskId !== task.taskId);
+  async deleteOneTask(task: DownloadRecordInfo) {
+    await this.removeTask(task)
   }
 
   async pauseAllTask() {
@@ -288,34 +299,16 @@ export class DownloadsViewModel {
 
   /** 清空所有已完成的任务 */
   async clearAllCompletedTasks() {
-    // 筛选出所有已完成的任务
+    // 筛选已完成任务
     const completedTasks = this.tasks.filter(d => d.status === request.agent.State.COMPLETED);
-
     if (completedTasks.length === 0) {
-      logger.info("clearAllCompletedTasks: 没有已完成的任务需要清理");
+      logger.warn("clearAllCompletedTasks: 没有已完成的任务需要清理");
       return;
     }
-
-    logger.info(`clearAllCompletedTasks: 开始清空 ${completedTasks.length} 个已完成任务`);
-
-    // 遍历复用单条删除逻辑
-    for (const task of completedTasks) {
-      try {
-        await this.removeTask(task);
-      } catch (e) {
-        // 防止某个任务删除异常（比如文件被强占）中断整个循环
-        logger.error(`clearAllCompletedTasks: 清理任务异常 taskId: ${task.taskId}, err: ${JSON.stringify(e)}`);
-      }
-    }
-  }
-
-  async deleteFile(filePath: string | undefined) {
-    if (!filePath) return;
-    try {
-      if (fs.accessSync(filePath)) await fs.unlink(filePath);
-    } catch (e) {
-      logger.warn("Delete file failed", e);
-    }
+    // 提取 ID
+    const ids = completedTasks.map(task => task.taskId);
+    // 调用底层删除
+    await this.batchDeleteTasksByIds(ids);
   }
 
   async attachSysTask(id: string) {
@@ -325,15 +318,36 @@ export class DownloadsViewModel {
 
   /** 添加 Pixiv 图片下载任务 */
   async addTask(context: common.Context, illustInfo: PixivIllust, url: string, customFileName?: string) {
+    // 根据 illustId 检查是否已存在
+    const existingTask = this.tasks.find(t => t.illustId === illustInfo.id);
+    if (existingTask) {
+      // 存在则弹窗询问，用 Promise 等待用户选择
+      const shouldContinue = await new Promise<boolean>((resolve) => {
+        toastUtil.showAlertDialog({
+          title: '提示',
+          message: `「${existingTask.title || '未知作品'}」已在下载列表中，是否继续下载？`,
+          alignment: DialogAlignment.Center,
+          primaryButton: {
+            value: '继续下载',
+            action: () => resolve(true)
+          },
+          secondaryButton: {
+            value: '取消',
+            action: () => resolve(false)
+          }
+        });
+      });
+      // 用户点了取消，直接 return
+      if (!shouldContinue) return;
+    }
+
+    // 添加逻辑
     if (!this.downloadDir) await this.initDownLoad(context);
     const db = getDownloadRecordTable(context);
-
     const fileName = this._generateSafeFileName(illustInfo, url, customFileName);
     const filePath = `${this.downloadDir}/${fileName}`;
-
     try {
       let task = await request.agent.create(context, this.getTaskConfig(url, fileName, filePath));
-
       const record = new DownloadRecordInfo();
       record.taskId = task.tid;
       record.illustId = illustInfo.id;
@@ -345,17 +359,23 @@ export class DownloadsViewModel {
       record.url = url;
       record.status = request.agent.State.INITIALIZED;
       record.createTime = Date.now();
-
       await db.insert(record);
       this.tasks.unshift(record);
-
-      // Toast 副作用放在业务逻辑层
       toastUtil.showToast({ message: $r('app.string.download_now', illustInfo.title) });
-
       await this.attachTask(task);
       await this.TryRunTask(task);
     } catch (e) {
       logger.error("Add Task Error", e);
+    }
+  }
+
+
+  private async getSysTask(id: string | undefined): Promise<request.agent.Task | undefined> {
+    if (!id || !this.context) return undefined;
+    try {
+      return await request.agent.getTask(this.context, id);
+    } catch (e) {
+      return undefined;
     }
   }
 
@@ -467,31 +487,92 @@ export class DownloadsViewModel {
   /** 将沙箱文件保存到系统相册 */
   private async saveImageToGallery(localPath: string, title: string) {
     if (!localPath || !this.context) return;
+
     try {
+      // 文件存在性校验
+      logger.info(`[SaveDebug] 准备保存. 路径: ${localPath}`);
+      const isExist = fs.accessSync(localPath);
+      logger.info(`[SaveDebug] 文件是否存在: ${isExist}`);
+      if (!isExist) return;
+      // 解析文件名参数
       const phAccessHelper = photoAccessHelper.getPhotoAccessHelper(this.context);
       const fileName = localPath.substring(localPath.lastIndexOf('/') + 1);
       const dotIndex = fileName.lastIndexOf('.');
-      const safeTitle = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+      let safeTitle = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
       const extension = dotIndex > 0 ? fileName.substring(dotIndex + 1) : 'jpg';
-
+      logger.info(`[SaveDebug] 文件名: ${fileName}, 标题: ${safeTitle}, 后缀: ${extension}`);
+      safeTitle = safeTitle.replace(/\./g, '_');
+      // 生成 URI
+      const srcUri = fileUri.getUriFromPath(localPath);
+      logger.info(`[SaveDebug] >>> 生成的系统 URI: ${srcUri} <<<`);
+      // 调起保存弹窗
+      logger.info(`[SaveDebug] 准备调起 showAssetsCreationDialog...`);
       let desFileUris = await phAccessHelper.showAssetsCreationDialog(
-        [fileUri.getUriFromPath(localPath)],
+        [srcUri],
         [{ title: safeTitle, fileNameExtension: extension, photoType: photoAccessHelper.PhotoType.IMAGE, subtype: photoAccessHelper.PhotoSubtype.DEFAULT }]
       );
-
+      logger.info(`[SaveDebug] 弹窗返回结果: ${JSON.stringify(desFileUris)}`);
+      // 拷贝逻辑
       if (desFileUris && desFileUris.length > 0) {
         const destUri = desFileUris[0];
+        logger.info(`[SaveDebug] 目标相册 URI: ${destUri}, 开始拷贝...`);
         const srcFd = fs.openSync(localPath, fs.OpenMode.READ_ONLY);
         const destFd = await fs.open(destUri, fs.OpenMode.WRITE_ONLY);
         await fs.copyFile(srcFd.fd, destFd.fd);
         fs.closeSync(srcFd);
         await fs.close(destFd.fd);
-
+        logger.info(`[SaveDebug] 拷贝成功，准备删除沙箱文件`);
         await this.deleteFile(localPath);
         toastUtil.showToast({ message: $r('app.string.save_success', title) });
+      } else {
+        // 用户点击取消，或者弹窗莫名返回空数组
+        logger.warn(`[SaveDebug] 弹窗返回为空，大概率是用户取消了保存`);
       }
     } catch (e) {
-      logger.warn('Save to gallery failed or cancelled', e);
+      // 抛异常，非用户取消
+      logger.error(`[SaveDebug] ❌ 发生异常！错误码: ${e.code}, 错误信息: ${e.message}`);
+      logger.error(`[SaveDebug] 完整错误堆栈: ${JSON.stringify(e)}`);
+    }
+  }
+
+  private async removeTask(task: DownloadRecordInfo) {
+    if (!this.context) return;
+    const db = getDownloadRecordTable(this.context);
+    try { await request.agent.remove(task.taskId); } catch (e) { /* ignore */ }
+    await this.deleteFile(task.filePath);
+    if (task.id) await db.deleteByID(task.id);
+    this.tasks = this.tasks.filter(f => f.taskId !== task.taskId);
+  }
+
+  private async deleteFile(filePath: string | undefined) {
+    if (!filePath) return;
+    try {
+      if (fs.accessSync(filePath)) await fs.unlink(filePath);
+    } catch (e) {
+      logger.warn("Delete file failed", e);
+    }
+  }
+
+  /**
+   * @param ids 待删除的任务ID列表
+   * 底层辅助函数：根据 任务ID 列表批量删除任务
+   * 只负责删文件、删数据库、更新内存列表
+   */
+  private async batchDeleteTasksByIds(ids: string[]) {
+    if (ids.length === 0) return;
+
+    logger.info(`batchDeleteTasksByIds: 开始批量删除 ${ids.length} 个任务`);
+
+    for (const id of ids) {
+      const task = this.tasks.find(d => d.taskId === id);
+      if (task) {
+        try {
+          // 复用单条删除（里面包含了删系统任务、删文件、删DB、更新 this.tasks）
+          await this.removeTask(task);
+        } catch (e) {
+          logger.error(`batchDeleteTasksByIds: 删除任务失败 id: ${id}, err:${JSON.stringify(e)}`);
+        }
+      }
     }
   }
 
@@ -517,8 +598,11 @@ export class DownloadsViewModel {
     const pageMatch = url.match(/(_p\d+)/);
     const pageStr = pageMatch ? `${illustInfo.id}${pageMatch[0]}` : `${illustInfo.id}`;
 
-    const safeArtist = (illustInfo.user?.name || 'Pixiv').replace(/[\\/:*?"<>|]/g, '');
-    const safeTitle = (illustInfo.title || 'Untitled').replace(/[\\/:*?"<>|]/g, '');
+    // 替换非法字符
+    const safeArtist = (illustInfo.user?.name || 'Pixiv')
+      .replace(/[\\/:*?"<>|]/g, '')
+    const safeTitle = (illustInfo.title || 'Untitled')
+      .replace(/[\\/:*?"<>|]/g, '')
 
     return `${pageStr}_${safeTitle}_${safeArtist}.${extension}`;
   }

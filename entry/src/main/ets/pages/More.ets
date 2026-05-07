@@ -2,8 +2,8 @@ import { moreVM } from '../viewmodel/MoreViewModel';
 import { PixivImageComponent } from '../components/PixivImage';
 import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../utils/ToastUtils';
-import { MoreItem } from '../entity/MoreItemEntity';
-import { UserDetailParams } from '../entity/UserDetailEntity';
+import { MoreItem } from '../common/entity/MoreItemEntity';
+import { UserDetailParams } from '../common/entity/UserDetailEntity';
 import { maskEmail } from '../utils/MaskEmail';
 
 

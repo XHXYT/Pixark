@@ -4,7 +4,7 @@ import { ValueType } from '../AbsTable';
 import { Table } from '../decorator/Decorators';
 import { Context } from '@kit.AbilityKit';
 import { createLogger } from '../../Logger';
-import SearchHistoryInfo from '../../../entity/SearchHistoryInfo';
+import SearchHistoryInfo from '../../../common/entity/SearchHistoryInfo';
 
 const logger = createLogger('SearchHistoryTable');
 

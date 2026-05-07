@@ -8,7 +8,7 @@ import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { toastUtil } from "../utils/ToastUtils";
 import { TopBuilder } from "../components/TopBuilder";
-import { DetailPageParams } from "../entity/IllustDetailEntity";
+import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
 

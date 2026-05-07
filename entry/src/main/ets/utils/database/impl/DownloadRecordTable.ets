@@ -2,7 +2,7 @@ import AutoTable from '../AutoTable';
 import { ValueType } from '../AbsTable';
 import { Table } from '../decorator/Decorators';
 import { Context } from '@kit.AbilityKit';
-import DownloadRecordInfo from '../../../entity/DownloadRecordInfo';
+import DownloadRecordInfo from '../../../common/entity/DownloadRecordInfo';
 
 /**
  * 下载记录表

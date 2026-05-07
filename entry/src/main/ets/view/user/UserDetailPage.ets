@@ -1,12 +1,12 @@
-import { PixivImageComponent } from "../components/PixivImage";
-import { PixState } from "../entryability/AppState";
+import { PixivImageComponent } from "../../components/PixivImage";
+import { PixState } from "../../entryability/AppState";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
-import { UserDetailViewModel } from "../viewmodel/UserDetailViewModel";
-import { toastUtil } from "../utils/ToastUtils";
-import { UserDetailParams } from "../entity/UserDetailEntity";
-import { DetailPageParams } from "../entity/IllustDetailEntity"; // 用于跳转插画
-import { WaterFlowView } from "../components/WaterFlowView";
-import { TopBuilder } from "../components/TopBuilder";
+import { UserDetailViewModel } from "../../viewmodel/UserDetailViewModel";
+import { toastUtil } from "../../utils/ToastUtils";
+import { UserDetailParams } from "../../common/entity/UserDetailEntity";
+import { DetailPageParams } from "../../common/entity/IllustDetailEntity"; // 用于跳转插画
+import { WaterFlowView } from "../../components/WaterFlowView";
+import { TopBuilder } from "../../components/TopBuilder";
 
 @Builder
 export function UserDetailBuilder(name: string, param: Object) {

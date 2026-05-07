@@ -1,5 +1,5 @@
-import { DetailPageParams } from "../entity/IllustDetailEntity";
-import { UserDetailParams } from "../entity/UserDetailEntity";
+import { DetailPageParams } from "../common/entity/IllustDetailEntity";
+import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, UserPreview } from "../services/PixivTypes";
 import { createLogger } from "../utils/Logger";

@@ -1,6 +1,6 @@
-import { DetailPageParams } from '../entity/IllustDetailEntity';
-import SearchHistoryInfo from '../entity/SearchHistoryInfo';
-import { generateSuggestions, SuggestionItem } from '../entity/SearchSuggestion';
+import { DetailPageParams } from '../common/entity/IllustDetailEntity';
+import SearchHistoryInfo from '../common/entity/SearchHistoryInfo';
+import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';
 import { MockData } from '../services/MockData';
 import { PixivIllust, PixivTrendingTag, UserPreview } from '../services/PixivTypes';

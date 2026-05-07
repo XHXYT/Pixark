@@ -4,7 +4,7 @@ import { fileIo, fileUri } from "@kit.CoreFileKit"
 import { toastUtil } from "../utils/ToastUtils"
 import { request } from "@kit.BasicServicesKit"
 import { PixivImage } from "../services/PixivTypes"
-import { ButtonItem } from "../entity/ButtonItemModel"
+import { ButtonItem } from "../common/entity/ButtonItemModel"
 
 @ComponentV2
 export struct TopBuilder {

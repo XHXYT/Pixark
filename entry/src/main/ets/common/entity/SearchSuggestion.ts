@@ -1,4 +1,4 @@
-import { PixivTrendingTag } from "../services/PixivTypes";
+import { PixivTrendingTag } from "../../services/PixivTypes";
 
 export type SuggestionType = 'illust_jump' | 'user_jump' | 'keyword_search'
 

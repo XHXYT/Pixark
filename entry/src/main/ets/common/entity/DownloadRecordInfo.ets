@@ -1,4 +1,4 @@
-import { Column } from "../utils/database/decorator/Decorators";
+import { Column } from "../../utils/database/decorator/Decorators";
 
 /**
  * 下载记录实体

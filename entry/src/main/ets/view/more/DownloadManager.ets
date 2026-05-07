@@ -3,8 +3,8 @@ import { createLogger } from "../../utils/Logger";
 import { DownloadsViewModel, downloaderVM } from "../../viewmodel/DownloadsViewModel";
 import { SegmentButtonV2Items, SymbolGlyphModifier, TabSegmentButtonV2 } from "@kit.ArkUI";
 import { request } from "@kit.BasicServicesKit";
-import DownloadRecordInfo from "../../entity/DownloadRecordInfo";
-import { DetailPageParams } from "../../entity/IllustDetailEntity";
+import DownloadRecordInfo from "../../common/entity/DownloadRecordInfo";
+import { DetailPageParams } from "../../common/entity/IllustDetailEntity";
 import { toastUtil } from "../../utils/ToastUtils";
 
 const logger = createLogger('DownloadManager');
@@ -66,7 +66,7 @@ struct DownloadManager {
       .width('100%')
       // 列表区域
       List({ space: 8 }) {
-        ForEach(this.dVM.filterTask(), (item: DownloadRecordInfo) => {
+        ForEach(this.dVM.displayList, (item: DownloadRecordInfo) => {
           ListItem() {
             Row() {
               if (this.dVM.isEditMode) {
@@ -82,9 +82,21 @@ struct DownloadManager {
                   // 右侧：状态与操作
                   if (!this.dVM.isEditMode) {
                     Row({ space: 8 }) {
-                      // 根据状态渲染不同控件
                       if (item.status === request.agent.State.COMPLETED) {
-                        // 完成状态
+                        // 保存标志（仅当沙箱有文件时显示）
+                        if (this.dVM.isFileInSandbox(item.filePath)) {
+                          Button({ type: ButtonType.Circle }) {
+                            SymbolGlyph($r('sys.symbol.save'))
+                              .fontSize(18)
+                              .fontColor([$r('sys.color.ohos_id_color_primary')])
+                          }
+                          .backgroundColor(Color.Transparent)
+                          .onClick(() => {
+                            // 点击触发手动保存
+                            this.dVM.manualSaveToGallery(item);
+                          })
+                        }
+                        // 完成标志
                         SymbolGlyph($r('sys.symbol.checkmark_circle_fill'))
                           .fontSize(20)
                           .fontColor([$r('sys.color.ohos_id_color_palette4')])
@@ -129,7 +141,7 @@ struct DownloadManager {
                             .fontColor([Color.Red])
                         }
                         .backgroundColor(Color.Transparent)
-                        .onClick(() => this.deleteTask(item))
+                        .onClick(() => this.dVM.deleteOneTask(item))
                       } else {
                         // 等待中
                         Text($r('app.string.in_line'))
@@ -171,7 +183,7 @@ struct DownloadManager {
             opacity: 0,
             scale: { x: 0.95, y: 0.95 }
           })
-        }, (item: DownloadRecordInfo) => item.taskId + item.status + item.progress)
+        }, (item: DownloadRecordInfo) => item.taskId + item.status + item.progress + this.dVM.isFileInSandbox(item.filePath))
       }
       .width('100%')
       .layoutWeight(1)
@@ -209,7 +221,7 @@ struct DownloadManager {
             .fontColor($r('sys.color.ohos_id_color_primary'))
             .onClick(() => {
               // 如果当前已全选，则取消全选；否则全选
-              if (this.dVM.getSelectedCount() === this.dVM.filterTask().length) {
+              if (this.dVM.getSelectedCount() === this.dVM.displayList.length) {
                 this.dVM.deselectAll();
               } else {
                 this.dVM.selectAllVisible();
@@ -285,7 +297,7 @@ struct DownloadManager {
       .fontSize(20)
       .fontColor([Color.Red])
       .margin({ right: 12, left: 10 })
-      .onClick(() => this.deleteTask(item))
+      .onClick(() => this.dVM.deleteOneTask(item))
   }
 
   @Builder
@@ -340,11 +352,6 @@ struct DownloadManager {
     });
 
     return btns;
-  }
-
-  // 执行删除
-  private async deleteTask(item: DownloadRecordInfo) {
-    await this.dVM.removeTask(item);
   }
 
   // 打开插画详情

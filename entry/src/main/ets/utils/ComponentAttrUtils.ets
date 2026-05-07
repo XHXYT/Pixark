@@ -17,7 +17,7 @@ import { componentUtils, UIContext } from '@kit.ArkUI';
 import { JSON } from '@kit.ArkTS';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { CustomExceptions } from '../entity/CustomExceptions';
+import { CustomExceptions } from '../common/entity/CustomExceptions';
 
 export class ComponentAttrUtils {
   // 根据组件的ID获取其位置信息

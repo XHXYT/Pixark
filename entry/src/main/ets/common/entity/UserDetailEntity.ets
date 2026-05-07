@@ -1,4 +1,4 @@
-import { PixivUser  } from '../services/PixivTypes';
+import { PixivUser  } from '../../services/PixivTypes';
 
 export interface UserDetailParams {
   id: number;

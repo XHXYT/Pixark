@@ -3,7 +3,7 @@ import { PixState } from "../entryability/AppState";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserListView } from "../components/UsersListView";
-import { TabBuild } from "../entity/IndexEntity";
+import { TabBuild } from "../common/entity/IndexEntity";
 
 
 @ComponentV2

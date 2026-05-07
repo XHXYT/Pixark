@@ -1,4 +1,4 @@
-import { UserDetailParams } from "../entity/UserDetailEntity"
+import { UserDetailParams } from "../common/entity/UserDetailEntity"
 import { PixState } from "../entryability/AppState"
 import { PixivUser } from "../services/PixivTypes"
 import { createLogger } from "../utils/Logger"

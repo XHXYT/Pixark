@@ -11,14 +11,14 @@ import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition
   Window_BAR_HEIGHT} from '../utils/breakpoint/BreakPoint';
 import { LengthMetrics } from '@kit.ArkUI';
 import { animation } from '../utils/AnimationUtil';
-import { TabBuild } from '../entity/IndexEntity';
+import { TabBuild } from '../common/entity/IndexEntity';
 import { Home } from './Home';
 import { SearchPage } from './Search';
 import { Favorite } from './Favorite';
 import { Rank } from './Rank';
 import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { Login } from './Login';
-import Constants from '../entity/Constants';
+import Constants from '../common/constants/UIConstants';
 import { More } from './More';
 import { createLogger } from '../utils/Logger';
 

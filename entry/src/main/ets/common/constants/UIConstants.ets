@@ -7,7 +7,7 @@ export default class Constants {
   static readonly AnimationSpeed_300: number = 300
 
   /**
-   * 默认颜色.
+   * 默认颜色
    */
   static readonly DEFAULT_BG_COLOR: ResourceColor = '#F1F3F5';
   static readonly INIT_OVERLAY_COLOR = '#00000000';

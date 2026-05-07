@@ -18,7 +18,7 @@ import { ComponentAttrUtils, RectInfoInPx } from '../ComponentAttrUtils';
 import { CardUtil } from '../CardUtil';
 import { CustomTransition } from './CustomNavigationUtils';
 import { BusinessError } from '@kit.BasicServicesKit';
-import Constants from '../../entity/Constants';
+import Constants from '../../common/constants/UIConstants';
 import { _PixState } from '../../entryability/AppState';
 
 const uiContext: UIContext | undefined = AppStorage.get('uiContext');

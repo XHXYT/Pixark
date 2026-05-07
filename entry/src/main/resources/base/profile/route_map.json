@@ -2,17 +2,17 @@
   "routerMap": [
     {
       "name": "web_login",
-      "pageSourceFile": "src/main/ets/view/WebLogin.ets",
+      "pageSourceFile": "src/main/ets/view/login/WebLogin.ets",
       "buildFunction": "WebLoginPage"
     },
     {
       "name": "register",
-      "pageSourceFile": "src/main/ets/view/RegisterPage.ets",
+      "pageSourceFile": "src/main/ets/view/login/RegisterPage.ets",
       "buildFunction": "RegisterPage"
     },
     {
       "name": "token_login",
-      "pageSourceFile": "src/main/ets/view/TokenLogin.ets",
+      "pageSourceFile": "src/main/ets/view/login/TokenLogin.ets",
       "buildFunction": "TokenLoginPage"
     },
     {
@@ -22,7 +22,7 @@
     },
     {
       "name": "user_detail",
-      "pageSourceFile": "src/main/ets/view/UserDetailPage.ets",
+      "pageSourceFile": "src/main/ets/view/user/UserDetailPage.ets",
       "buildFunction": "UserDetailBuilder"
     },
     {
