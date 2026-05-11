@@ -1,6 +1,7 @@
 import { PixState } from '../entryability/AppState';
 import { PixivUser } from '../services/PixivTypes';
-import { createLogger } from '../utils/Logger';
+import { createLogger } from '../common/utils/Logger';
+import { pixiv } from '../services/PixivService';
 
 
 const logger = createLogger('MoreViewModel');
@@ -16,7 +17,7 @@ export class MoreViewModel {
   }
 
   get isLogin(): boolean {
-    return PixState.pixiv.isLogin();
+    return pixiv.isLogin();
   }
 
   // 获取显示名称：优先 nickname，其次 name
@@ -36,13 +37,17 @@ export class MoreViewModel {
     return this.currentUser?.profile_image_urls?.medium || '';
   }
 
+  get userID(): string {
+    return (this.currentUser?.id || 0).toString();
+  }
+
   // 处理登出逻辑
   async handleLogout() {
     try {
       // TODO 确认弹窗及登出操作
       logger.info('User requested logout.');
       // 执行登出清理
-      // await PixState.pixiv.logout()
+      // await pixiv.logout()
       // 跳转回登录页
 
     } catch (e) {

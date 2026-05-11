@@ -39,6 +39,16 @@
       "name": "download_manager",
       "pageSourceFile": "src/main/ets/view/more/DownloadManager.ets",
       "buildFunction": "DownloadManagerBuilder"
+    },
+    {
+      "name": "user_accounts",
+      "pageSourceFile": "src/main/ets/view/user/UserAccounts.ets",
+      "buildFunction": "UserAccountsBuilder"
+    },
+    {
+      "name": "login",
+      "pageSourceFile": "src/main/ets/pages/Login.ets",
+      "buildFunction": "LoginBuilder"
     }
   ]
 }

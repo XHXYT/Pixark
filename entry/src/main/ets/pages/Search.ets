@@ -1,8 +1,8 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivTrendingTag } from "../services/PixivTypes";
-import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
-import { toastUtil } from "../utils/ToastUtils";
+import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
+import { toastUtil } from "../common/utils/ToastUtils";
 import { searchVM } from "../viewmodel/SearchViewModel";
 import { curves } from "@kit.ArkUI";
 import { DetailPageParams } from "../common/entity/IllustDetailEntity";

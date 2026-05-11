@@ -335,6 +335,34 @@
     {
       "name": "clear_all_completed_tasks",
       "value": "清空所有已完成任务"
+    },
+    {
+      "name": "register",
+      "value": "注册"
+    },
+    {
+      "name": "token_login",
+      "value": "Token登录"
+    },
+    {
+      "name": "user_accounts",
+      "value": "账号切换"
+    },
+    {
+      "name": "register_account",
+      "value": "注册账号"
+    },
+    {
+      "name": "add_an_account",
+      "value": "添加已有账号"
+    },
+    {
+      "name": "account_added_successfully",
+      "value": "账号添加成功"
+    },
+    {
+      "name": "login_successfully",
+      "value": "登录成功"
     }
   ]
 }

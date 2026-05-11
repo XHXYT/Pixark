@@ -2,11 +2,14 @@ import { webview } from "@kit.ArkWeb";
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { buffer, util } from '@kit.ArkTS';
 import { PixState } from "../../entryability/AppState";
-import { createLogger } from "../../utils/Logger";
-import { toastUtil } from "../../utils/ToastUtils";
-import { kvDbUtil } from "../../utils/KVdbUtil";
-import { EventHub, EventKey } from "../../utils/EventHub";
+import { createLogger } from "../../common/utils/Logger";
+import { toastUtil } from "../../common/utils/ToastUtils";
+import { kvDbUtil } from "../../common/utils/KVdbUtil";
+import { EventHub, EventKey } from "../../common/utils/EventHub";
 import { BusinessError } from "@kit.BasicServicesKit";
+import { NaviContainer } from "../../components/NaviContainer";
+import { pixiv } from "../../services/PixivService";
+import { AppConstants } from "../../common/constants/AppConstants";
 
 const logger = createLogger('WebLogin')
 
@@ -15,6 +18,7 @@ export function WebLoginPage() {
   WebLoginPageComponent()
 }
 
+
 @ComponentV2
 struct WebLoginPageComponent {
   webviewController: webview.WebviewController = new webview.WebviewController();
@@ -22,7 +26,7 @@ struct WebLoginPageComponent {
   // URL 相关
   private loginUrl: string = ''
   private codeVerifier: string = '';
-  private redirectUri = 'https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback';
+  private pageStack: NavPathStack = new NavPathStack()
 
   // 加载状态
   @Local isLoadingPage: boolean = false;        // 网页是否正在加载
@@ -42,7 +46,7 @@ struct WebLoginPageComponent {
       const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
 
       // 构造登录 URL
-      this.loginUrl = `https://app-api.pixiv.net/web/v1/login?code_challenge=${codeChallenge}&code_challenge_method=S256&client=pixiv-android&redirect_uri=${encodeURIComponent(this.redirectUri)}&state=login`;
+      this.loginUrl = `https://app-api.pixiv.net/web/v1/login?code_challenge=${codeChallenge}&code_challenge_method=S256&client=pixiv-android&redirect_uri=${encodeURIComponent(AppConstants.REDIRECT_URI)}&state=login`;
 
       logger.info(`Loading Pixiv Login URL: ${this.loginUrl}`);
       this.isLoadingLogin = false;
@@ -54,94 +58,102 @@ struct WebLoginPageComponent {
   }
 
   build() {
-    NavDestination() {
-      Stack({ alignContent: Alignment.Top }) {
-        // WebView
-        Web({ src: this.loginUrl, controller: this.webviewController })
-          .domStorageAccess(true)
-          .javaScriptAccess(true)
-          .cacheMode(CacheMode.Default)
-          .mixedMode(MixedMode.All)
-          .fileAccess(true)
-          .onlineImageAccess(true)
-          .onAppear(() => {
-            try {
-              this.webviewController.loadUrl(this.loginUrl)
-            } catch (error) {
-              logger.error(`loadUrl ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
-            }
-          })
-          .onPageBegin((event) => {
-            const url = event.url;
-            logger.info(`Page Begin Loading: ${url}`);
-
-            // 检测到 Pixiv 回调，开始处理登录
-            if (url.startsWith('pixiv://account/login')) {
-              logger.info(`Pixiv custom scheme callback detected, url: ${url}`);
-              this.isLoadingPage = false; // 停止页面加载提示
-              this.handleCallback(url);
-              return;
-            }
-
-            // 其他页面开始加载
-            this.isLoadingPage = true;
-            this.loadMessage = '正在加载登录页面...';
-          })
-          .onPageEnd((event) => {
-            logger.info(`Page End Loading: ${event.url}`);
-            this.isLoadingPage = false;
-            this.loadMessage = '加载完成';
-          })
-          .onControllerAttached(() => {
-            logger.info("onControllerAttached");
-            try {
-              this.webviewController.setCustomUserAgent('Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
-            } catch (error) {
-              logger.error(`ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
-            }
-          })
-          .onProgressChange((event) => {
-            this.loadProgress = event.newProgress;
-            // 只在有进度变化时更新提示
-            if (event.newProgress > 0 && event.newProgress < 100) {
-              this.loadMessage = `正在加载... ${event.newProgress}%`;
-            }
-          })
-          .onErrorReceive((event) => {
-            const errorInfo = event.error;
-            const url = event.request?.getRequestUrl() || '';
-            logger.error(`WebView Error - Code: ${errorInfo.getErrorCode()}, Message: ${errorInfo.getErrorInfo()}, URL: ${url}`);
-
-            // 忽略 pixiv:// 协议的错误（这是正常的）
-            if (url.startsWith('pixiv://')) {
-              return;
-            }
-
-            this.isLoadingPage = false;
-
-            // 只有非预期的错误才显示 Toast
-            if (this.loginUrl && errorInfo.getErrorCode() !== -302) {
-              toastUtil.showToast({ message: `WebView 错误: ${errorInfo.getErrorInfo()}` });
-            }
-          })
-          .onHttpErrorReceive((event) => {
-            logger.error(`HTTP Error - Message: ${event.response.getReasonMessage()}, Status:${event.response.getResponseCode()}`);
-            this.isLoadingPage = false;
-          })
-          .width('100%')
-          .layoutWeight(1);
-
-        // 加载提示遮罩
-        if (this.isLoadingPage || this.isLoadingLogin) {
-          this.LoadingOverlay()
-        }
+    NaviContainer({
+      title: $r('app.string.login'),
+      content: () => {
+        this.Content()
+      },
+      onReady: (ctx) => {
+        this.pageStack = ctx.pathStack
       }
-      .width('100%')
-      .padding({ left: 15, right: 15 })
+    })
+  }
+
+  @Builder
+  Content() {
+    Stack({ alignContent: Alignment.Top }) {
+      // WebView
+      Web({ src: this.loginUrl, controller: this.webviewController })
+        .domStorageAccess(true)
+        .javaScriptAccess(true)
+        .cacheMode(CacheMode.Default)
+        .mixedMode(MixedMode.All)
+        .fileAccess(true)
+        .onlineImageAccess(true)
+        .onAppear(() => {
+          try {
+            this.webviewController.loadUrl(this.loginUrl)
+          } catch (error) {
+            logger.error(`loadUrl ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
+          }
+        })
+        .onPageBegin((event) => {
+          const url = event.url;
+          logger.info(`Page Begin Loading: ${url}`);
+
+          // 检测到 Pixiv 回调，开始处理登录
+          if (url.startsWith('pixiv://account/login')) {
+            logger.info(`Pixiv custom scheme callback detected, url: ${url}`);
+            this.isLoadingPage = false; // 停止页面加载提示
+            this.handleCallback(url);
+            return;
+          }
+
+          // 其他页面开始加载
+          this.isLoadingPage = true;
+          this.loadMessage = '正在加载登录页面...';
+        })
+        .onPageEnd((event) => {
+          logger.info(`Page End Loading: ${event.url}`);
+          this.isLoadingPage = false;
+          this.loadMessage = '加载完成';
+        })
+        .onControllerAttached(() => {
+          logger.info("onControllerAttached");
+          try {
+            this.webviewController.setCustomUserAgent('Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
+          } catch (error) {
+            logger.error(`ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
+          }
+        })
+        .onProgressChange((event) => {
+          this.loadProgress = event.newProgress;
+          // 只在有进度变化时更新提示
+          if (event.newProgress > 0 && event.newProgress < 100) {
+            this.loadMessage = `正在加载... ${event.newProgress}%`;
+          }
+        })
+        .onErrorReceive((event) => {
+          const errorInfo = event.error;
+          const url = event.request?.getRequestUrl() || '';
+          logger.error(`WebView Error - Code: ${errorInfo.getErrorCode()}, Message: ${errorInfo.getErrorInfo()}, URL: ${url}`);
+
+          // 忽略 pixiv:// 协议的错误（这是正常的）
+          if (url.startsWith('pixiv://')) {
+            return;
+          }
+
+          this.isLoadingPage = false;
+
+          // 只有非预期的错误才显示 Toast
+          if (this.loginUrl && errorInfo.getErrorCode() !== -302) {
+            toastUtil.showToast({ message: `WebView 错误: ${errorInfo.getErrorInfo()}` });
+          }
+        })
+        .onHttpErrorReceive((event) => {
+          logger.error(`HTTP Error - Message: ${event.response.getReasonMessage()}, Status:${event.response.getResponseCode()}`);
+          this.isLoadingPage = false;
+        })
+        .width('100%')
+        .layoutWeight(1);
+
+      // 加载提示遮罩
+      if (this.isLoadingPage || this.isLoadingLogin) {
+        this.LoadingOverlay()
+      }
     }
-    .padding({ top: PixState.topRectHeight, bottom: PixState.bottomRectHeight })
-    .hideToolBar(true)
-    .title('登录')
+    .width('100%')
+    .padding({ left: 15, right: 15 })
   }
 
   // 加载提示遮罩组件
@@ -201,20 +213,32 @@ struct WebLoginPageComponent {
     try {
       // 使用 auth code 登录
       this.loadMessage = '正在验证身份...';
-      await PixState.pixiv.loginWithAuthCode(code, this.codeVerifier);
+      await pixiv.loginWithAuthCode(code, this.codeVerifier);
+
       this.loadMessage = '正在保存登录信息...';
       // 登录成功后的标准处理
       PixState.isLoggedIn = true;
-      const currentToken = PixState.pixiv.getCurrentRefreshToken();
-      if (currentToken) {
-        await kvDbUtil.putData('refresh_token', currentToken);
-        EventHub.sendEvent(EventKey.FetchData, currentToken);
+
+      // 多账号持久化：获取所有账号和当前激活账号
+      const allAccounts = pixiv.getAllAccounts();
+      const activeAccount = pixiv.getActiveAccount();
+
+      await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
+      if (activeAccount) {
+        await kvDbUtil.putData('active_user_id', activeAccount.userId);
       }
+
+      // 发送获取数据事件
+      EventHub.sendEvent(EventKey.FetchData);
+
       this.loadMessage = '登录成功！';
-      // 延迟一下，让用户看到"登录成功"的提示
       setTimeout(() => {
-        toastUtil.showToast({ message: '登录成功' });
-        PixState.pageStack.pop(true);
+        // 根据模式显示不同提示语
+        toastUtil.showToast({ message: PixState.isAddingAccount ? $r('app.string.account_added_successfully') : $r('app.string.login_successfully') });
+        // Pop 2 层直接退账号管理页
+        this.pageStack.pop(2);
+        // 重置添加模式标记
+        PixState.isAddingAccount = false;
       }, 500);
 
     } catch (e) {

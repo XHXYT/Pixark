@@ -3,7 +3,7 @@ import { ConfigurationConstant } from "@kit.AbilityKit";
 import { BaseDataSource } from "../viewmodel/BaseDataSource";
 import { PixivImageComponent } from "./PixivImage";
 import { SpotlightArticle } from "../services/PixivTypes";
-import { HomeBannerBannerMargin, HomeBannerDisplayCount } from "../utils/breakpoint/BreakPoint";
+import { HomeBannerBannerMargin, HomeBannerDisplayCount } from "../common/utils/breakpoint/BreakPoint";
 import { PixState } from "../entryability/AppState";
 
 // 主页轮播图

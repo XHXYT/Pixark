@@ -1,16 +1,16 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
-import { GridColumnsTemplate } from "../utils/breakpoint/BreakPoint";
+import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { IllustDetailViewModel } from "../viewmodel/IllustDetailViewModel";
-import { SnapShotUtils } from "../utils/SnapShotUtils"; // 截图工具
+import { SnapShotUtils } from "../common/utils/SnapShotUtils"; // 截图工具
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
 import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
-import { toastUtil } from "../utils/ToastUtils";
-import { TopBuilder } from "../components/TopBuilder";
+import { toastUtil } from "../common/utils/ToastUtils";
 import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
+import { NaviContainer } from "../components/NaviContainer";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -29,158 +29,157 @@ struct IllustDetail {
   private pageStack: NavPathStack = new NavPathStack()
 
   build() {
-    NavDestination() {
-      Stack() {
-        // 标题栏
-        TopBuilder({
-          pageInfos: this.pageStack
-        })
-        Row() {
-          // 插画内容 + (信息内容)
-          List({ scroller: this.scroller, space: 10 }) {
-            // 图片列表
-            ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
-              ListItem() {
-                PixivImageComponent({
-                  imageUrl: illust.medium,
-                  imageObjectFit: ImageFit.Auto,
-                  imageBorder: { radius: 0 },
-                })
-                // 给第一张图设置固定的 ID，用于计算动画终点位置
-                .id(index === 0 ? this.iDV.sharedId : illust.medium)
-              }
-              .onClick(() => {
-                this.currentImageIndex = index
-                this.showLargeImage = true
-              })
-            })
+    NaviContainer({
+      title: this.iDV.detailData?.title || '',
+      content: () => {
+        this.Content()
+      },
+      onReady: (ctx) => {
+        this.pageStack = ctx.pathStack
+        this.iDV.onReady(ctx)
+      },
+      onBackPressed: () => {
+        if (this.showLargeImage) {
+          this.showLargeImage = false
+          return true
+        }
+        return false
+      },
+      onNaviDisAppear: () => {
+        // 在页面消失时，兜底调用一次恢复，确保回到上一页插画可见
+        homeViewModel.restoreIllustVisibility();
+        // 页面销毁时清理截图资源，防止内存泄漏
+        SnapShotUtils.clear();
+      }
+    })
+  }
 
-            if (PixState.widthBp < 2 && this.iDV.detailData) {
-              this.IntroContent()
+  @Builder
+  Content() {
+    Stack() {
+      // 插画内容 + (信息内容)
+      Row() {
+        List({ scroller: this.scroller, space: 10 }) {
+          // 图片列表
+          ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
+            ListItem() {
+              PixivImageComponent({
+                imageUrl: illust.medium,
+                imageObjectFit: ImageFit.Auto,
+                imageBorder: { radius: 0 },
+              })
+              // 给第一张图设置固定的 ID，用于计算动画终点位置
+                .id(index === 0 ? this.iDV.sharedId : illust.medium)
             }
+            .onClick(() => {
+              this.currentImageIndex = index
+              this.showLargeImage = true
+            })
+          })
+
+          if (PixState.widthBp < 2 && this.iDV.detailData) {
+            this.IntroContent()
+          }
+        }
+        .height('100%')
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+        .contentEndOffset(PixState.bottomRectHeight == 0 ?
+          PixState.PageMarginValue : PixState.bottomRectHeight)
+        .padding(({
+          left: PixState.PageMarginValue,
+          right: PixState.PageMarginValue
+        }))
+        .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
+
+        // (信息内容)
+        if (PixState.widthBp >= 2 && this.iDV.detailData) {
+          List({ space: 10 }) {
+            this.IntroContent()
           }
           .height('100%')
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
-          .contentStartOffset(56 + PixState.topRectHeight)
           .contentEndOffset(PixState.bottomRectHeight == 0 ?
             PixState.PageMarginValue : PixState.bottomRectHeight)
+          .contentStartOffset(60 + PixState.topRectHeight)
+          .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
           .padding(({
             left: PixState.PageMarginValue,
             right: PixState.PageMarginValue
           }))
           .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
-
-          // (信息内容)
-          if (PixState.widthBp >= 2 && this.iDV.detailData) {
-            List({ space: 10 }) {
-              this.IntroContent()
-            }
-            .height('100%')
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.Spring)
-            .contentEndOffset(PixState.bottomRectHeight == 0 ?
-              PixState.PageMarginValue : PixState.bottomRectHeight)
-            .contentStartOffset(60 + PixState.topRectHeight)
-            .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
-            .padding(({
-              left: PixState.PageMarginValue,
-              right: PixState.PageMarginValue
-            }))
-            .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
-          }
-
-        }
-        .justifyContent(FlexAlign.SpaceBetween)
-
-        // 插画查看器
-        if (this.showLargeImage) {
-          PixivImageViewer({
-            imageUrls: this.iDV.imageList, // 图片列表
-            startIndex: this.currentImageIndex, // 从哪张开始
-            onClose: () => {
-              this.showLargeImage = false;
-            },
-            onDownload: (index) => {
-              // 调用下载逻辑
-              this.iDV.downloadCurrentImage(index);
-            },
-            onShare: (url, index) => {
-              // TODO 调用系统分享
-
-            }
-          })
         }
 
       }
-      .alignContent(Alignment.TopStart)
-/*      // 核心布局：使用 Stack 实现层叠效果
-      // 底层是截图（做动画），上层是真实内容
-      Stack({ alignContent: Alignment.TopStart }) {
-        // >>>> 层级 1：截图层 (动画过渡层) <<<<
-        // 只有当有截图数据时才渲染此层
-        // if (SnapShotUtils.pixelMap) {
-        //   Image(SnapShotUtils.pixelMap)
-        //     .size(this.iDV.longTakeAnimationProperties.snapShotSize)
-        //     .objectFit(ImageFit.Cover)
-        //     // 截图的透明度变化：从 1 -> 0
-        //     .opacity(this.iDV.longTakeAnimationProperties.snapShotOpacity)
-        //     // 必须同步加载，防止动画第一帧闪烁
-        //     .syncLoad(true)
-        //     // 截图的位置偏移
-        //     .position({
-        //       x: this.iDV.longTakeAnimationProperties.snapShotPositionX,
-        //       y: this.iDV.longTakeAnimationProperties.snapShotPositionY
-        //     })
-        // }
-        // >>>> 层级 2：最终展示层 <<<<
-        Column() {
-
-        }
-        .width('100%')
-        .height('100%')
-        // 绑定真实内容的不透明度：从 0 -> 1
-        .opacity(this.iDV.longTakeAnimationProperties.postPageOpacity)
-      }
-      .width('100%')
-      .height('100%')
-      // 绑定容器的整体动画属性
-      .scale({
-        x: this.iDV.longTakeAnimationProperties.scaleValue,
-        y: this.iDV.longTakeAnimationProperties.scaleValue
-      })
-      .translate({
-        x: this.iDV.longTakeAnimationProperties.translateX,
-        y: this.iDV.longTakeAnimationProperties.translateY
-      })
-      .position({
-        x: this.iDV.longTakeAnimationProperties.positionXValue,
-        y: this.iDV.longTakeAnimationProperties.positionYValue
-      })
-      // 圆角变化：从小卡片的圆角 -> 全屏无圆角
-      .borderRadius(this.iDV.longTakeAnimationProperties.radius)
-      .clip(true) // 必须开启裁剪，否则内容会溢出圆角
-      .backgroundColor(this.iDV.longTakeAnimationProperties.navDestinationBgColor)*/
-    }
-    .hideToolBar(true)
-    .hideTitleBar(true)
-    .onReady((ctx: NavDestinationContext) => {
-      this.pageStack = ctx.pathStack
-      this.iDV.onReady(ctx);
-    })
-    .onDisAppear(() => {
-      // 在页面消失时，兜底调用一次恢复，确保回到上一页插画可见
-      homeViewModel.restoreIllustVisibility();
-      // 页面销毁时清理截图资源，防止内存泄漏
-      SnapShotUtils.clear();
-    })
-    .onBackPressed(() => {
+      .justifyContent(FlexAlign.SpaceBetween)
+      // 插画查看器
       if (this.showLargeImage) {
-        this.showLargeImage = false
-        return true
+        PixivImageViewer({
+          imageUrls: this.iDV.imageList, // 图片列表
+          startIndex: this.currentImageIndex, // 从哪张开始
+          onClose: () => {
+            this.showLargeImage = false;
+          },
+          onDownload: (index) => {
+            // 调用下载逻辑
+            this.iDV.downloadCurrentImage(index);
+          },
+          onShare: (url, index) => {
+            // TODO 调用系统分享
+
+          }
+        })
       }
-      return false
-    })
+    }
+    .alignContent(Alignment.TopStart)
+    /*      // 核心布局：使用 Stack 实现层叠效果
+          // 底层是截图（做动画），上层是真实内容
+          Stack({ alignContent: Alignment.TopStart }) {
+            // >>>> 层级 1：截图层 (动画过渡层) <<<<
+            // 只有当有截图数据时才渲染此层
+            // if (SnapShotUtils.pixelMap) {
+            //   Image(SnapShotUtils.pixelMap)
+            //     .size(this.iDV.longTakeAnimationProperties.snapShotSize)
+            //     .objectFit(ImageFit.Cover)
+            //     // 截图的透明度变化：从 1 -> 0
+            //     .opacity(this.iDV.longTakeAnimationProperties.snapShotOpacity)
+            //     // 必须同步加载，防止动画第一帧闪烁
+            //     .syncLoad(true)
+            //     // 截图的位置偏移
+            //     .position({
+            //       x: this.iDV.longTakeAnimationProperties.snapShotPositionX,
+            //       y: this.iDV.longTakeAnimationProperties.snapShotPositionY
+            //     })
+            // }
+            // >>>> 层级 2：最终展示层 <<<<
+            Column() {
+
+            }
+            .width('100%')
+            .height('100%')
+            // 绑定真实内容的不透明度：从 0 -> 1
+            .opacity(this.iDV.longTakeAnimationProperties.postPageOpacity)
+          }
+          .width('100%')
+          .height('100%')
+          // 绑定容器的整体动画属性
+          .scale({
+            x: this.iDV.longTakeAnimationProperties.scaleValue,
+            y: this.iDV.longTakeAnimationProperties.scaleValue
+          })
+          .translate({
+            x: this.iDV.longTakeAnimationProperties.translateX,
+            y: this.iDV.longTakeAnimationProperties.translateY
+          })
+          .position({
+            x: this.iDV.longTakeAnimationProperties.positionXValue,
+            y: this.iDV.longTakeAnimationProperties.positionYValue
+          })
+          // 圆角变化：从小卡片的圆角 -> 全屏无圆角
+          .borderRadius(this.iDV.longTakeAnimationProperties.radius)
+          .clip(true) // 必须开启裁剪，否则内容会溢出圆角
+          .backgroundColor(this.iDV.longTakeAnimationProperties.navDestinationBgColor)*/
   }
 
   @Builder

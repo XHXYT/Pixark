@@ -2,7 +2,7 @@ import AutoTable from '../AutoTable';
 import { ValueType } from '../AbsTable';
 import { Table } from '../decorator/Decorators';
 import { Context } from '@kit.AbilityKit';
-import DownloadRecordInfo from '../../../common/entity/DownloadRecordInfo';
+import DownloadRecordInfo from '../../../entity/DownloadRecordInfo';
 
 /**
  * 下载记录表
@@ -30,8 +30,8 @@ export class DownloadRecordTable extends AutoTable<DownloadRecordInfo> {
    * 根据系统任务ID查询记录
    * (用于系统回调时更新数据库)
    */
-  async queryByTaskId(taskId: string): Promise<DownloadRecordInfo | null> {
-    const results = await this.query(this.getPredicates().equalTo('task_id', taskId));
+  async queryByTaskId(task_id: string): Promise<DownloadRecordInfo | null> {
+    const results = await this.query(this.getPredicates().equalTo('task_id', task_id));
     return results.length > 0 ? results[0] : null;
   }
 
@@ -52,8 +52,8 @@ export class DownloadRecordTable extends AutoTable<DownloadRecordInfo> {
   /**
    * 更新下载状态
    */
-  async updateStatus(taskId: string, status: number): Promise<number> {
-    const record = await this.queryByTaskId(taskId);
+  async updateStatus(task_id: string, status: number): Promise<number> {
+    const record = await this.queryByTaskId(task_id);
     if (record) {
       record.status = status;
       return this.update(record);

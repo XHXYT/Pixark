@@ -1,12 +1,13 @@
 import { request } from "@kit.BasicServicesKit";
 import { common } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from "@kit.CoreFileKit";
-import { getDownloadRecordTable } from "../utils/database/impl/DownloadRecordTable";
+import { getDownloadRecordTable } from "../common/utils/database/impl/DownloadRecordTable";
 import DownloadRecordInfo from "../common/entity/DownloadRecordInfo";
 import { PixivIllust } from "../services/PixivTypes";
-import { createLogger } from "../utils/Logger";
+import { createLogger } from "../common/utils/Logger";
 import { photoAccessHelper } from "@kit.MediaLibraryKit";
-import { toastUtil } from "../utils/ToastUtils";
+import { toastUtil } from "../common/utils/ToastUtils";
+import { appSettings } from "../common/entity/SettingsModel";
 
 const logger = createLogger('DownloadsViewModel')
 
@@ -55,23 +56,23 @@ export class DownloadsViewModel {
   }
 
   /** 切换选中状态 */
-  toggleSelect(taskId: string) {
-    if (this.selectedIds.has(taskId)) {
-      this.selectedIds.delete(taskId);
+  toggleSelect(task_id: string) {
+    if (this.selectedIds.has(task_id)) {
+      this.selectedIds.delete(task_id);
     } else {
-      this.selectedIds.add(taskId);
+      this.selectedIds.add(task_id);
     }
   }
 
   /** 判断是否选中 */
-  isSelected(taskId: string): boolean {
-    return this.selectedIds.has(taskId); // O(1) 复杂度
+  isSelected(task_id: string): boolean {
+    return this.selectedIds.has(task_id); // O(1) 复杂度
   }
 
   /** 全选当前页面 */
   selectAllVisible() {
     this.selectedIds.clear();
-    this.displayList.forEach(task => this.selectedIds.add(task.taskId));
+    this.displayList.forEach(task => this.selectedIds.add(task.task_id));
   }
 
   /** 取消全选 */
@@ -86,7 +87,7 @@ export class DownloadsViewModel {
 
   editDelete() {
     // 筛选出当前选中的任务对象数组
-    const selectedTasks = this.tasks.filter(t => this.selectedIds.has(t.taskId));
+    const selectedTasks = this.tasks.filter(t => this.selectedIds.has(t.task_id));
     const count = selectedTasks.length;
     // 根据数量动态生成提示文案
     let message = '';
@@ -162,8 +163,8 @@ export class DownloadsViewModel {
       request.agent.State.WAITING, request.agent.State.INITIALIZED,
     ];
     try {
-      const taskIds = (await Promise.all(stateTypes.map(s => request.agent.search({ state: s })))).flat();
-      const sysTasks = await Promise.all(taskIds.map(id => request.agent.show(id).catch(() => null)));
+      const task_ids = (await Promise.all(stateTypes.map(s => request.agent.search({ state: s })))).flat();
+      const sysTasks = await Promise.all(task_ids.map(id => request.agent.show(id).catch(() => null)));
 
       const sysTaskMap = new Map<string, request.agent.TaskInfo>();
       sysTasks.forEach(task => {
@@ -173,7 +174,7 @@ export class DownloadsViewModel {
       });
 
       this.tasks = dbRecords.map(record => {
-        const sysTask = sysTaskMap.get(record.taskId);
+        const sysTask = sysTaskMap.get(record.task_id);
         if (sysTask) {
           record.status = sysTask.progress.state;
           if (sysTask.progress.sizes && sysTask.progress.sizes.length > 0) {
@@ -186,13 +187,13 @@ export class DownloadsViewModel {
           record.status = request.agent.State.FAILED;
         }
         return record;
-      }).sort((a, b) => b.createTime - a.createTime);
+      }).sort((a, b) => b.create_time - a.create_time);
 
       this.tasks.forEach(record => {
         if (record.status !== request.agent.State.COMPLETED &&
           record.status !== request.agent.State.FAILED &&
           record.status !== request.agent.State.STOPPED) {
-          this.attachSysTask(record.taskId);
+          this.attachSysTask(record.task_id);
         }
       });
     } catch (e) {
@@ -237,7 +238,7 @@ export class DownloadsViewModel {
   // 重启任务
   async restartTask(id: string) {
     if (!this.context) return;
-    const record = this.tasks.find(d => d.taskId === id);
+    const record = this.tasks.find(d => d.task_id === id);
     if (!record) {
       toastUtil.showToast({ message: `未查询到下载记录` })
       return;
@@ -256,16 +257,16 @@ export class DownloadsViewModel {
   }
 
   async pauseAllTask() {
-    const taskIds = await request.agent.search({ state: request.agent.State.RUNNING });
-    for (let id of taskIds) {
+    const task_ids = await request.agent.search({ state: request.agent.State.RUNNING });
+    for (let id of task_ids) {
       const task = await this.getSysTask(id);
       if (task) { this.attachTask(task); await task.pause(); }
     }
   }
 
   async resumeAllTask() {
-    const taskIds = await request.agent.search({ state: request.agent.State.PAUSED });
-    for (let id of taskIds) {
+    const task_ids = await request.agent.search({ state: request.agent.State.PAUSED });
+    for (let id of task_ids) {
       const task = await this.getSysTask(id);
       if (task) {
         this.attachTask(task);
@@ -288,11 +289,11 @@ export class DownloadsViewModel {
     for (const task of failedTasks) {
       try {
         // 复用完善后的单个重试方法
-        await this.restartTask(task.taskId);
+        await this.restartTask(task.task_id);
       } catch (e) {
         toastUtil.showToast({ message: `任务 ${task.title} 重试失败`})
         // 防止某一个任务重试时抛出异常中断了整个批量循环
-        logger.error(`restartAllSysTask: 单个任务重试异常 taskId: ${task.taskId}, err: ${JSON.stringify(e)}`);
+        logger.error(`restartAllSysTask: 单个任务重试异常 task_id: ${task.task_id}, err: ${JSON.stringify(e)}`);
       }
     }
   }
@@ -306,7 +307,7 @@ export class DownloadsViewModel {
       return;
     }
     // 提取 ID
-    const ids = completedTasks.map(task => task.taskId);
+    const ids = completedTasks.map(task => task.task_id);
     // 调用底层删除
     await this.batchDeleteTasksByIds(ids);
   }
@@ -317,9 +318,9 @@ export class DownloadsViewModel {
   }
 
   /** 添加 Pixiv 图片下载任务 */
-  async addTask(context: common.Context, illustInfo: PixivIllust, url: string, customFileName?: string) {
-    // 根据 illustId 检查是否已存在
-    const existingTask = this.tasks.find(t => t.illustId === illustInfo.id);
+  async addTask(context: common.Context, illustInfo: PixivIllust, url: string) {
+    // 根据 illust_id 检查是否已存在
+    const existingTask = this.tasks.find(t => t.illust_id === illustInfo.id);
     if (existingTask) {
       // 存在则弹窗询问，用 Promise 等待用户选择
       const shouldContinue = await new Promise<boolean>((resolve) => {
@@ -344,21 +345,21 @@ export class DownloadsViewModel {
     // 添加逻辑
     if (!this.downloadDir) await this.initDownLoad(context);
     const db = getDownloadRecordTable(context);
-    const fileName = this._generateSafeFileName(illustInfo, url, customFileName);
+    const fileName = this._generateSafeFileName(illustInfo, url);
     const filePath = `${this.downloadDir}/${fileName}`;
     try {
       let task = await request.agent.create(context, this.getTaskConfig(url, fileName, filePath));
       const record = new DownloadRecordInfo();
-      record.taskId = task.tid;
-      record.illustId = illustInfo.id;
+      record.task_id = task.tid;
+      record.illust_id = illustInfo.id;
       record.title = illustInfo.title;
       record.artistName = illustInfo.user?.name;
-      record.artistAvatar = illustInfo.user?.profile_image_urls?.medium;
+      record.artist_avatar = illustInfo.user?.profile_image_urls?.medium;
       record.thumbnail = illustInfo.image_urls?.medium || illustInfo.image_urls?.large;
       record.filePath = filePath;
       record.url = url;
       record.status = request.agent.State.INITIALIZED;
-      record.createTime = Date.now();
+      record.create_time = Date.now();
       await db.insert(record);
       this.tasks.unshift(record);
       toastUtil.showToast({ message: $r('app.string.download_now', illustInfo.title) });
@@ -394,7 +395,7 @@ export class DownloadsViewModel {
 
       const newTask = await request.agent.create(this.context, this.getTaskConfig(record.url, fileName, filePath));
 
-      record.taskId = newTask.tid;
+      record.task_id = newTask.tid;
       record.status = request.agent.State.INITIALIZED;
       record.progress = 0;
       await db.update(record);
@@ -413,7 +414,7 @@ export class DownloadsViewModel {
     const db = getDownloadRecordTable(this.context);
 
     task.on('progress', (progress) => {
-      const target = this.tasks.find(d => d.taskId === task.tid);
+      const target = this.tasks.find(d => d.task_id === task.tid);
       if (target && progress.sizes && progress.sizes.length > 0) {
         const total = progress.sizes[0];
         if (total > 0) target.progress = Math.floor((progress.processed / total) * 100);
@@ -421,7 +422,7 @@ export class DownloadsViewModel {
     });
 
     task.on('completed', async () => {
-      const target = this.tasks.find(d => d.taskId === task.tid);
+      const target = this.tasks.find(d => d.task_id === task.tid);
       if (target) {
         target.status = request.agent.State.COMPLETED;
         target.progress = 100;
@@ -432,27 +433,27 @@ export class DownloadsViewModel {
     });
 
     task.on('pause', () => {
-      const target = this.tasks.find(d => d.taskId === task.tid);
+      const target = this.tasks.find(d => d.task_id === task.tid);
       if (target) target.status = request.agent.State.PAUSED;
       db.updateStatus(task.tid, request.agent.State.PAUSED);
       this.TryRunNextTask();
     });
 
     task.on('resume', () => {
-      const target = this.tasks.find(d => d.taskId === task.tid);
+      const target = this.tasks.find(d => d.task_id === task.tid);
       if (target) target.status = request.agent.State.RUNNING;
       db.updateStatus(task.tid, request.agent.State.RUNNING);
     });
 
     task.on('failed', async () => {
-      const target = this.tasks.find(d => d.taskId === task.tid);
+      const target = this.tasks.find(d => d.task_id === task.tid);
       if (target) target.status = request.agent.State.FAILED;
       await db.updateStatus(task.tid, request.agent.State.FAILED);
       this.TryRunNextTask();
     });
 
     task.on('remove', () => {
-      this.tasks = this.tasks.filter(d => d.taskId !== task.tid);
+      this.tasks = this.tasks.filter(d => d.task_id !== task.tid);
       this.TryRunNextTask();
     });
   }
@@ -464,7 +465,7 @@ export class DownloadsViewModel {
     if (sysTask) {
       const started = await this.TryRunTask(sysTask);
       if (started) {
-        const target = this.tasks.find(d => d.taskId === sysTask.tid);
+        const target = this.tasks.find(d => d.task_id === sysTask.tid);
         if (target) target.status = request.agent.State.RUNNING;
       }
     }
@@ -538,10 +539,10 @@ export class DownloadsViewModel {
   private async removeTask(task: DownloadRecordInfo) {
     if (!this.context) return;
     const db = getDownloadRecordTable(this.context);
-    try { await request.agent.remove(task.taskId); } catch (e) { /* ignore */ }
+    try { await request.agent.remove(task.task_id); } catch (e) { /* ignore */ }
     await this.deleteFile(task.filePath);
     if (task.id) await db.deleteByID(task.id);
-    this.tasks = this.tasks.filter(f => f.taskId !== task.taskId);
+    this.tasks = this.tasks.filter(f => f.task_id !== task.task_id);
   }
 
   private async deleteFile(filePath: string | undefined) {
@@ -564,7 +565,7 @@ export class DownloadsViewModel {
     logger.info(`batchDeleteTasksByIds: 开始批量删除 ${ids.length} 个任务`);
 
     for (const id of ids) {
-      const task = this.tasks.find(d => d.taskId === id);
+      const task = this.tasks.find(d => d.task_id === id);
       if (task) {
         try {
           // 复用单条删除（里面包含了删系统任务、删文件、删DB、更新 this.tasks）
@@ -592,19 +593,40 @@ export class DownloadsViewModel {
   }
 
   /** 纯函数：仅负责生成文件名 */
-  private _generateSafeFileName(illustInfo: PixivIllust, url: string, customFileName?: string): string {
-    if (customFileName) return customFileName;
+  private _generateSafeFileName(illustInfo: PixivIllust, url: string): string {
+    // 获取后缀名
     const extension = url.split('.').pop() || 'jpg';
     const pageMatch = url.match(/(_p\d+)/);
-    const pageStr = pageMatch ? `${illustInfo.id}${pageMatch[0]}` : `${illustInfo.id}`;
-
-    // 替换非法字符
-    const safeArtist = (illustInfo.user?.name || 'Pixiv')
-      .replace(/[\\/:*?"<>|]/g, '')
+    // 提取并安全化各个字段（沙箱文件名绝对不能有除后缀外点号，防止底层报错）
+    const safeId = `${illustInfo.id}`;
+    const safeP = pageMatch ? pageMatch[0] : '';
+    const safeUid = `${illustInfo.user?.id || '0'}`;
+    // 安全过滤：去除非法字符和点号，保留空格
     const safeTitle = (illustInfo.title || 'Untitled')
-      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/[\\/:*?"<>|.]+/g, '_')  // 1. 替换非法字符和点号为下划线
+      .trim()                           // 2. 去掉首尾可能存在的空格
+      .replace(/\s+/g, ' ')             // 3. 将中间的多个连续空格压缩成单空格
+      .replace(/^_|_$/g, '');           // 4. 兜底去掉首尾可能产生的下划线（防奇葩标题）
+    const safeName = (illustInfo.user?.name || 'Pixiv')
+      .replace(/[\\/:*?"<>|.]+/g, '_')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/^_|_$/g, '');
+    // 读取模板，为空则使用默认模板
+    const template = appSettings.file_name.trim() || '{id}{p}_{title}_{name}';
+    // 执行占位符替换
+    let fileName = template
+      .replace(/{id}/g, safeId)
+      .replace(/{p}/g, safeP)
+      .replace(/{title}/g, safeTitle)
+      .replace(/{name}/g, safeName)
+      .replace(/{uid}/g, safeUid);
+    // 兜底防错（防止用户在设置页瞎填一堆非法字符导致替换完为空）
+    if (!fileName || fileName.trim() === '') {
+      fileName = `pixiv_${safeId}_${safeP}`;
+    }
 
-    return `${pageStr}_${safeTitle}_${safeArtist}.${extension}`;
+    return `${fileName}.${extension}`;
   }
 
 }

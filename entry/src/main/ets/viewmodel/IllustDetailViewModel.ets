@@ -1,14 +1,15 @@
 import { PixState, _PixState } from '../entryability/AppState';
 import { PixivIllust, PixivImage } from '../services/PixivTypes';
-import { createLogger } from '../utils/Logger';
-import { LongTakeAnimationProperties } from '../utils/customtransition/LongTakeAnimationProperties';
-import { CustomTransition } from '../utils/customtransition/CustomNavigationUtils';
+import { createLogger } from '../common/utils/Logger';
+import { LongTakeAnimationProperties } from '../common/utils/customtransition/LongTakeAnimationProperties';
+import { CustomTransition } from '../common/utils/customtransition/CustomNavigationUtils';
 import { homeViewModel } from './HomeViewModel';
 import { DetailPageParams } from '../common/entity/IllustDetailEntity';
-import { CardUtil } from '../utils/CardUtil';
-import { toastUtil } from '../utils/ToastUtils';
+import { CardUtil } from '../common/utils/CardUtil';
+import { toastUtil } from '../common/utils/ToastUtils';
 import { downloaderVM } from './DownloadsViewModel';
 import { common } from '@kit.AbilityKit';
+import { pixiv } from '../services/PixivService';
 
 const logger = createLogger('IllustDetailViewModel')
 
@@ -46,7 +47,7 @@ export class IllustDetailViewModel {
   async loadIllustDetail(id: number) {
     try {
       logger.debug(`>>> 开始加载插画详情, ID: ${id}`);
-      this.detailData = await PixState.pixiv.getIllustDetail(id);
+      this.detailData = await pixiv.getIllustDetail(id);
       // 同步本地关注状态，确保按钮显示正确
       if (this.detailData && this.detailData.user) {
         this.isFollow = this.detailData.user.is_followed;
@@ -59,7 +60,7 @@ export class IllustDetailViewModel {
 
   async loadRelated(id: number) {
     try {
-      const data = await PixState.pixiv.getRelatedIllusts(id);
+      const data = await pixiv.getRelatedIllusts(id);
       this.relatedIllusts = data.illusts;
       this.nextRelatedUrl = data.next_url
     } catch (e) {
@@ -167,15 +168,15 @@ export class IllustDetailViewModel {
   // 收藏/取消收藏
   async bookmarkOrCancel() {
     if (!this.detailData) return;
-    const illustId = this.detailData.id;
+    const illust_id = this.detailData.id;
     try {
       if (this.detailData.is_bookmarked) {
         // 取消收藏
-        await PixState.pixiv.deleteBookmark(illustId);
+        await pixiv.deleteBookmark(illust_id);
         this.detailData.is_bookmarked = false;
       } else {
         // 收藏 (默认公开收藏)
-        await PixState.pixiv.addBookmark(illustId, 'public');
+        await pixiv.addBookmark(illust_id, 'public');
         this.detailData.is_bookmarked = true;
       }
     } catch (e) {

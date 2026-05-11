@@ -1,4 +1,4 @@
-import { Column } from "../../utils/database/decorator/Decorators";
+import { Column } from "../utils/database/decorator/Decorators";
 
 /**
  * 下载记录实体
@@ -15,13 +15,13 @@ export default class DownloadRecordInfo {
    * 系统下载任务的唯一标识
    */
   @Column({ name: 'task_id', type: 'TEXT', notNull: true, unique: true }) // 唯一索引，防止重复记录
-  taskId: string = '';
+  task_id: string = '';
 
   /**
    * Pixiv 作品 ID
    */
   @Column({ name: 'illust_id', type: 'INTEGER', notNull: true })
-  illustId: number = 0;
+  illust_id: number = 0;
 
   /**
    * 作品标题
@@ -39,7 +39,7 @@ export default class DownloadRecordInfo {
    * 画师头像 URL
    */
   @Column({ name: 'artist_avatar', type: 'TEXT' })
-  artistAvatar: string = '';
+  artist_avatar: string = '';
 
   /**
    * 作品缩略图 URL (用于在列表显示)
@@ -76,7 +76,7 @@ export default class DownloadRecordInfo {
    * 创建时间
    */
   @Column({ name: 'create_time', type: 'INTEGER', notNull: true })
-  createTime: number = Date.now();
+  create_time: number = Date.now();
 
   constructor() {
   }

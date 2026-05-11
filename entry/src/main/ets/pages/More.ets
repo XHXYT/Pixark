@@ -1,15 +1,16 @@
 import { moreVM } from '../viewmodel/MoreViewModel';
 import { PixivImageComponent } from '../components/PixivImage';
 import { PixState } from '../entryability/AppState';
-import { toastUtil } from '../utils/ToastUtils';
+import { toastUtil } from '../common/utils/ToastUtils';
 import { MoreItem } from '../common/entity/MoreItemEntity';
 import { UserDetailParams } from '../common/entity/UserDetailEntity';
-import { maskEmail } from '../utils/MaskEmail';
+import { maskEmail } from '../common/utils/MaskEmail';
 
 
 @ComponentV2
 export struct More {
 
+  private pageStack: NavPathStack = new NavPathStack()
   // 构建菜单数据
   private get menuList(): MoreItem[] {
     return [
@@ -121,6 +122,15 @@ export struct More {
           imageHeight: 64,
           imageBorder: { radius: 32 } // 圆形
         })
+          .hitTestBehavior(HitTestMode.Block)
+          .onClick(() => {
+            if (moreVM.currentUser) {
+              const params: UserDetailParams = { id: moreVM.currentUser.id };
+              this.pushTo('user_detail', params)
+            } else {
+              toastUtil.showToast({ message: '请先登录' });
+            }
+          })
         // 如果未登录，画个半透明遮罩提示点击
         if (!moreVM.isLogin) {
           Text($r('app.string.login'))
@@ -172,12 +182,7 @@ export struct More {
       offsetY: 2
     })
     .onClick(() => {
-      if (moreVM.currentUser) {
-        const params: UserDetailParams = { id: moreVM.currentUser.id };
-        PixState.pageStack.pushPathByName('user_detail', params, true);
-      } else {
-        toastUtil.showToast({ message: '请先登录' });
-      }
+      this.pushTo('user_accounts')
     })
   }
 
@@ -233,4 +238,14 @@ export struct More {
       }
     });
   }
+
+  pushTo(name: string, params?: UserDetailParams) {
+    if (PixState.widthBp > 1) {
+      this.pageStack.pushPathByName(name, params, true);
+    } else {
+      // 全屏路由
+      PixState.pageStack.pushPathByName(name, params, true);
+    }
+  }
+
 }

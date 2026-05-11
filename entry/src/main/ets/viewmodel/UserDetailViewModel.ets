@@ -1,8 +1,9 @@
 import { UserDetailParams } from '../common/entity/UserDetailEntity';
 import { PixState } from '../entryability/AppState';
 import { PixivIllust, PixivUser, UserDetailResponse } from '../services/PixivTypes';
-import { createLogger } from '../utils/Logger';
-import { toastUtil } from '../utils/ToastUtils';
+import { createLogger } from '../common/utils/Logger';
+import { toastUtil } from '../common/utils/ToastUtils';
+import { pixiv } from '../services/PixivService';
 
 const logger = createLogger('UserDetailViewModel')
 
@@ -76,7 +77,7 @@ export class UserDetailViewModel {
     logger.debug(`[loadUserDetail] Requesting userId=${userId}`);
 
     try {
-      const data = await PixState.pixiv.getUserDetail(userId);
+      const data = await pixiv.getUserDetail(userId);
       this.userData = data;
       // 更新关注状态
       this.isFollow = data.user?.is_followed ?? false;
@@ -110,7 +111,7 @@ export class UserDetailViewModel {
     logger.debug(`[loadUserIllusts] ${isLoadMore ? 'LoadMore' : 'Init'}. UserId: ${userId}, NextUrl: ${url ? 'Exists' : 'None'}`);
 
     try {
-      const data = await PixState.pixiv.getUserIllusts(userId, 'illust', url);
+      const data = await pixiv.getUserIllusts(userId, 'illust', url);
       const newIllusts = data.illusts || [];
 
       if (isLoadMore) {
@@ -141,7 +142,7 @@ export class UserDetailViewModel {
 
     try {
       // tag 和 maxBookmarkId 这里不需要，传 undefined
-      const data = await PixState.pixiv.getUserBookmarks(userId, 'public', undefined, undefined, url);
+      const data = await pixiv.getUserBookmarks(userId, 'public', undefined, undefined, url);
       const newBookmarks = data.illusts || [];
       if (isLoadMore) {
         this.userBookmarks.push(...newBookmarks);
@@ -185,11 +186,11 @@ export class UserDetailViewModel {
 
     try {
       if (this.isFollow) {
-        await PixState.pixiv.unfollowUser(userId, 'public');
+        await pixiv.unfollowUser(userId, 'public');
         this.isFollow = false;
         if (this.userData.user) this.userData.user.is_followed = false;
       } else {
-        await PixState.pixiv.followUser(userId, 'public');
+        await pixiv.followUser(userId, 'public');
         this.isFollow = true;
         if (this.userData.user) this.userData.user.is_followed = true;
       }

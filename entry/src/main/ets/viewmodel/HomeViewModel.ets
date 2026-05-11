@@ -1,10 +1,11 @@
 import { PixState } from '../entryability/AppState';
 import { PixivIllust, PixivUser, SpotlightArticle, SpotlightResponse, PixivListResult } from '../services/PixivTypes';
-import { createLogger } from '../utils/Logger';
+import { createLogger } from '../common/utils/Logger';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { toastUtil } from '../utils/ToastUtils';
-import { shuffleArray } from '../utils/FisherYates';
+import { toastUtil } from '../common/utils/ToastUtils';
+import { shuffleArray } from '../common/utils/FisherYates';
 import { MockData } from '../services/MockData';
+import { pixiv } from '../services/PixivService';
 
 const logger = createLogger('HomeViewModel')
 
@@ -67,7 +68,7 @@ class HomeViewModel {
     this.isRefreshing = true
     try {
       // 检查登录状态
-      if (!PixState.pixiv.isLogin() && !PixState.isTest) {
+      if (!pixiv.isLogin() && !PixState.isTest) {
         logger.warn('>>> 用户未登录，停止加载');
         return;
       }
@@ -82,8 +83,8 @@ class HomeViewModel {
         ];
       } else {
         tasks = [
-          PixState.pixiv.getSpotlight(),
-          PixState.pixiv.getRecommended(true)
+          pixiv.getSpotlight(),
+          pixiv.getRecommended(true)
         ];
       }
       // 等待所有任务完成
@@ -133,7 +134,7 @@ class HomeViewModel {
       logger.debug('>>> 开始刷新推荐列表...');
       this.isRefreshRecommend = true
       // 请求第一页数据
-      const data = await PixState.pixiv.getRecommended(true);
+      const data = await pixiv.getRecommended(true);
       const newIllusts = data.illusts || [];
       // 重置推荐列表
       this.recommendedIllusts = newIllusts;
@@ -176,7 +177,7 @@ class HomeViewModel {
       const targetUrl = url || this.nextRecommendedUrl;
       logger.debug(`>>> 开始加载更多推荐，URL: ${targetUrl}`);
       // 请求数据
-      const data = await PixState.pixiv.getRecommended(undefined, targetUrl);
+      const data = await pixiv.getRecommended(undefined, targetUrl);
       const newIllusts = data.illusts || [];
       // 更新下一页链接
       if (data.next_url) {

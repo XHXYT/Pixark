@@ -2,13 +2,13 @@ import { BannerView } from "../components/BannerView";
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, PixivUser } from "../services/PixivTypes";
-import { ListItemMarginValue} from "../utils/breakpoint/BreakPoint";
-import { createLogger } from "../utils/Logger";
-import { SnapShotUtils } from "../utils/SnapShotUtils";
+import { ListItemMarginValue} from "../common/utils/breakpoint/BreakPoint";
+import { createLogger } from "../common/utils/Logger";
+import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { image } from "@kit.ImageKit";
 import { DetailPageParams } from "../common/entity/IllustDetailEntity";
-import { CardUtil } from "../utils/CardUtil";
+import { CardUtil } from "../common/utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";
 

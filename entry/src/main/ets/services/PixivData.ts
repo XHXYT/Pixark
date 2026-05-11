@@ -4,7 +4,7 @@ import { PixivIllust, PixivListResult, PixivTrendingTag,
   UserDetailResponse,
   UserPreview } from './PixivTypes';
 import { PixivAuth } from './PixivAuth';
-import { createLogger } from '../utils/Logger';
+import { createLogger } from '../common/utils/Logger';
 
 const logger = createLogger('PixivData')
 
@@ -272,31 +272,31 @@ export class PixivData {
   /**
    * 获取作品详情
    * 包含图片的高清地址、标签、画师信息等
-   * @param illustId 作品 ID
+   * @param illust_id 作品 ID
    * @returns 返回作品详细信息对象
    */
-  async getIllustDetail(illustId: number): Promise<PixivIllust> {
+  async getIllustDetail(illust_id: number): Promise<PixivIllust> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
     const response = await this.auth.axiosInstance.get('/v1/illust/detail', {
-      params: { illust_id: illustId, filter: 'for_android' },
+      params: { illust_id: illust_id, filter: 'for_android' },
     });
     return response.data.illust;
   }
 
   /**
    * 获取相关推荐作品
-   * @param illustId 当前插画 ID
+   * @param illust_id 当前插画 ID
    * @returns 返回相关推荐作品列表
    */
-  async getRelatedIllusts(illustId: number): Promise<PixivListResult> {
+  async getRelatedIllusts(illust_id: number): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
-    logger.info(`Fetching related illusts for ID: ${illustId}`);
+    logger.info(`Fetching related illusts for ID: ${illust_id}`);
     // 使用 v2 接口获取相关推荐，功能比 v1 更全
     const response = await this.auth.axiosInstance.get('/v2/illust/related', {
       params: {
-        illust_id: illustId,
+        illust_id: illust_id,
         filter: 'for_android',
-        // seed: illustId // 可选，有时为了结果稳定性可以加上
+        // seed: illust_id // 可选，有时为了结果稳定性可以加上
       },
     });
 

@@ -1,5 +1,5 @@
 import { PixState } from "../entryability/AppState";
-import { createLogger } from "../utils/Logger";
+import { createLogger } from "../common/utils/Logger";
 
 const logger = createLogger('Rank')
 

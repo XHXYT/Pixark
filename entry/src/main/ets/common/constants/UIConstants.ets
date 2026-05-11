@@ -1,5 +1,5 @@
 
-export default class Constants {
+export default class UIConstants {
 
   /**
    * 动画速度

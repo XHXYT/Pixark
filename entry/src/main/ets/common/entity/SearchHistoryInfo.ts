@@ -1,4 +1,4 @@
-import { Column } from "../../utils/database/decorator/Decorators";
+import { Column } from "../utils/database/decorator/Decorators";
 
 /**
  * 搜索历史记录

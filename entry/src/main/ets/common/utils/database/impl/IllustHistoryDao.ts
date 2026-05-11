@@ -4,7 +4,7 @@ import { Table } from '../decorator/Decorators';
 import AutoTable from '../AutoTable';
 import { ValueType } from '@kit.ArkData';
 import { createLogger } from '../../Logger';
-import IllustHistoryInfo from '../../../common/entity/IllustHistoryInfo';
+import IllustHistoryInfo from '../../../entity/IllustHistoryInfo';
 
 const logger = createLogger('MoreViewModel');
 

@@ -1,6 +1,6 @@
 import { PixivAuth } from './PixivAuth';
-import { urlQueryString } from '../utils/Url2String';
-import { createLogger } from '../utils/Logger';
+import { urlQueryString } from '../common/utils/Url2String';
+import { createLogger } from '../common/utils/Logger';
 
 const logger = createLogger('PixivInteraction')
 
@@ -85,21 +85,21 @@ export class PixivInteraction {
 
   /**
    * 收藏插画
-   * @param illustId 作品 ID
+   * @param illust_id 作品 ID
    * @param restrict 收藏类型：'public' (公开收藏) 或 'private' (私密收藏)
    * @param tags 可选：自定义标签数组，最多 10 个
    */
   async addBookmark(
-    illustId: number,
+    illust_id: number,
     restrict: 'public' | 'private' = 'public',
     tags: string[] = []
   ): Promise<void> {
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
     }
-    logger.info(`[PixivInteraction] Adding bookmark: ${illustId}`);
+    logger.info(`[PixivInteraction] Adding bookmark: ${illust_id}`);
     const params: Record<string, string | number> = {
-      illust_id: illustId,
+      illust_id: illust_id,
       restrict: restrict,
     };
     // 如果有标签，将数组转换为用空格分隔的字符串
@@ -117,7 +117,7 @@ export class PixivInteraction {
           },
         }
       );
-      logger.info(`Bookmark added: ${illustId}`);
+      logger.info(`Bookmark added: ${illust_id}`);
     } catch (error: any) {
       logger.error(`Add bookmark failed: ` + JSON.stringify(error));
       throw error;
@@ -127,18 +127,18 @@ export class PixivInteraction {
 
   /**
    * 取消收藏插画
-   * @param illustId 作品 ID
+   * @param illust_id 作品 ID
    */
-  async deleteBookmark(illustId: number): Promise<void> {
+  async deleteBookmark(illust_id: number): Promise<void> {
     if (!this.auth.isLogin()) {
       throw new Error('请先登录');
     }
-    logger.info(`Deleting bookmark: ${illustId}`);
+    logger.info(`Deleting bookmark: ${illust_id}`);
     try {
       await this.auth.axiosInstance.post(
         '/v1/illust/bookmark/delete',
         urlQueryString({
-          illust_id: illustId,
+          illust_id: illust_id,
         }),
         {
           headers: {
@@ -146,7 +146,7 @@ export class PixivInteraction {
           },
         }
       );
-      logger.info(`Bookmark deleted: ${illustId}`);
+      logger.info(`Bookmark deleted: ${illust_id}`);
     } catch (error: any) {
       logger.error(`Delete bookmark failed: ` + JSON.stringify(error));
       throw error;

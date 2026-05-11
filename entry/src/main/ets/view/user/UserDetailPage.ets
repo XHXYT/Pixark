@@ -2,16 +2,17 @@ import { PixivImageComponent } from "../../components/PixivImage";
 import { PixState } from "../../entryability/AppState";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { UserDetailViewModel } from "../../viewmodel/UserDetailViewModel";
-import { toastUtil } from "../../utils/ToastUtils";
 import { UserDetailParams } from "../../common/entity/UserDetailEntity";
 import { DetailPageParams } from "../../common/entity/IllustDetailEntity"; // 用于跳转插画
 import { WaterFlowView } from "../../components/WaterFlowView";
-import { TopBuilder } from "../../components/TopBuilder";
+import { NaviContainer } from "../../components/NaviContainer";
+
 
 @Builder
 export function UserDetailBuilder(name: string, param: Object) {
   UserDetail()
 }
+
 
 @ComponentV2
 struct UserDetail {
@@ -19,7 +20,6 @@ struct UserDetail {
   @Local scroller: Scroller = new Scroller();
   @Local uDV: UserDetailViewModel =  new UserDetailViewModel()
 
-  // Tab 数据：使用资源化字符串
   private tabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
     { text: $r('app.string.works') },
     { text: $r('app.string.collection') },
@@ -27,79 +27,74 @@ struct UserDetail {
   ]);
 
   build() {
-    NavDestination() {
-      Stack({ alignContent: Alignment.TopStart }) {
-        // 主内容滚动区域
-        List() {
-          // 顶部背景 & 用户信息卡片
-          ListItem() {
-            this.UserHeader()
+    NaviContainer({
+      title: this.uDV.userData?.user.name,
+      content: () => {
+        this.Content()
+      },
+      onReady: (ctx: NavDestinationContext) => {
+        const params: UserDetailParams = ctx?.pathInfo?.param as UserDetailParams
+        this.uDV.onReady(ctx, params)
+      }
+    })
+  }
+
+  @Builder
+  Content() {
+    // 主内容滚动区域
+    List() {
+      // 顶部背景 & 用户信息卡片
+      ListItem() {
+        this.UserHeader()
+      }
+      // 内容主题
+      ListItem() {
+        Column() {
+          // 作品 收藏 详情分段按钮
+          Row() {
+            TabSegmentButtonV2({
+              items: this.tabItems,
+              selectedIndex: this.uDV.tabIndex,
+              onItemClicked: (tab) => {
+                this.uDV.handleTabChange(tab)
+              }
+            })
           }
-          // 内容主题
-          ListItem() {
-            Column() {
-              // 作品 收藏 详情分段按钮
-              Row() {
-                TabSegmentButtonV2({
-                  items: this.tabItems,
-                  selectedIndex: this.uDV.tabIndex,
-                  onItemClicked: (tab) => {
-                    this.uDV.handleTabChange(tab)
-                  }
-                })
+          .width('100%')
+          .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
+          .margin({ top: 20, bottom: 10 })
+          // 内容区域
+          if (this.uDV.tabIndex === 0 || this.uDV.tabIndex === 1) {
+            // 作品 / 收藏
+            WaterFlowView({
+              contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+              nestedScroll: this.uDV.nestedScrollOptions,
+              illustList: this.uDV.currentIllustList,
+              onCardClick: (illust) => {
+                const params: DetailPageParams = {
+                  id: illust.id,
+                  illust: illust
+                }
+                PixState.pageStack.pushPathByName('illust_detail', params, true);
+              },
+              onReachEnd: () => {
+                this.uDV.loadMoreCurrentData();
               }
-              .width('100%')
-              .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
-              .margin({ top: 20, bottom: 10 })
-              // 内容区域
-              if (this.uDV.tabIndex === 0 || this.uDV.tabIndex === 1) {
-                // 作品 / 收藏
-                WaterFlowView({
-                  contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
-                  nestedScroll: this.uDV.nestedScrollOptions,
-                  illustList: this.uDV.currentIllustList,
-                  onCardClick: (illust) => {
-                    const params: DetailPageParams = {
-                      id: illust.id,
-                      illust: illust
-                    }
-                    PixState.pageStack.pushPathByName('illust_detail', params, true);
-                  },
-                  onReachEnd: () => {
-                    this.uDV.loadMoreCurrentData();
-                  }
-                })
-              } else if (this.uDV.tabIndex === 2) {
-                // 详细信息
-                this.UserDetailList()
-              }
-            }
-            .width('100%')
+            })
+          } else if (this.uDV.tabIndex === 2) {
+            // 详细信息
+            this.UserDetailList()
           }
         }
-        .contentStartOffset(PixState.topRectHeight + 56)
-        .align(Alignment.TopStart)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
         .width('100%')
-        .height('100%')
-        // 顶栏
-        this.TopAction()
       }
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('sys.color.background_primary'))
     }
-    .hideToolBar(true)
-    .hideTitleBar(true)
-    .hideBackButton(true)
-    .onReady((ctx: NavDestinationContext) => {
-      const params: UserDetailParams = ctx?.pathInfo?.param as UserDetailParams
-      this.uDV.onReady(ctx, params)
-    })
-    .onDisAppear(() => {
-      // 清理逻辑
-    })
+    .backgroundColor($r('sys.color.background_primary'))
+    .contentStartOffset(PixState.topRectHeight + 56)
+    .edgeEffect(EdgeEffect.Spring)
+    .width('100%').height('100%')
+    .align(Alignment.TopStart)
+    .scrollBar(BarState.Off)
   }
 
   @Builder
@@ -284,14 +279,6 @@ struct UserDetail {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-  }
-
-  @Builder
-  TopAction() {
-    // 标题栏
-    TopBuilder({
-      pageInfos: PixState.pageStack
-    })
   }
 
 }

@@ -18,15 +18,15 @@ import { ComponentAttrUtils, RectInfoInPx } from '../ComponentAttrUtils';
 import { CardUtil } from '../CardUtil';
 import { CustomTransition } from './CustomNavigationUtils';
 import { BusinessError } from '@kit.BasicServicesKit';
-import Constants from '../../common/constants/UIConstants';
-import { _PixState } from '../../entryability/AppState';
+import UIConstants from '../../constants/UIConstants';
+import { _PixState } from '../../../entryability/AppState';
 
 const uiContext: UIContext | undefined = AppStorage.get('uiContext');
 
 // 封装自定义镜像转换动画
 @Observed
 export class LongTakeAnimationProperties {
-  public navDestinationBgColor: ResourceColor = Constants.INIT_OVERLAY_COLOR;
+  public navDestinationBgColor: ResourceColor = UIConstants.INIT_OVERLAY_COLOR;
   public snapShotOpacity: number = 1;
   public postPageOpacity: number = 0;
   public translateX: number = 0;
@@ -162,7 +162,7 @@ export class LongTakeAnimationProperties {
       this.positionYValue = 0;
       this.positionXValue = 0;
       this.radius = 34;
-      this.navDestinationBgColor = Constants.FINAL_OVERLAY_COLOR;
+      this.navDestinationBgColor = UIConstants.FINAL_OVERLAY_COLOR;
     });
 
     uiContext?.animateTo({
@@ -200,7 +200,7 @@ export class LongTakeAnimationProperties {
       this.radius = 16;
       this.positionXValue = this.initPositionValueX;
       this.positionYValue = this.initPositionValueY;
-      this.navDestinationBgColor = Constants.INIT_OVERLAY_COLOR;
+      this.navDestinationBgColor = UIConstants.INIT_OVERLAY_COLOR;
     });
 
     uiContext?.animateTo({
@@ -222,7 +222,7 @@ export class LongTakeAnimationProperties {
 
   // When you do not go through the custom transition, you need to set the state to the normal final state.
   public setFinalStatus(): void {
-    this.navDestinationBgColor = Constants.INIT_OVERLAY_COLOR;
+    this.navDestinationBgColor = UIConstants.INIT_OVERLAY_COLOR;
     this.clipWidth = '100%';
     this.clipHeight = '100%';
     this.snapShotOpacity = 0;

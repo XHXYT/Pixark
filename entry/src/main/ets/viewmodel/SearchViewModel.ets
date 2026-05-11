@@ -4,9 +4,10 @@ import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSugg
 import { PixState, _PixState } from '../entryability/AppState';
 import { MockData } from '../services/MockData';
 import { PixivIllust, PixivTrendingTag, UserPreview } from '../services/PixivTypes';
-import { SearchHistoryTable } from '../utils/database/impl/SearchHistoryDao';
-import { createLogger } from '../utils/Logger';
-import { toastUtil } from '../utils/ToastUtils';
+import { SearchHistoryTable } from '../common/utils/database/impl/SearchHistoryDao';
+import { createLogger } from '../common/utils/Logger';
+import { toastUtil } from '../common/utils/ToastUtils';
+import { pixiv } from '../services/PixivService';
 
 const logger = createLogger('SearchViewModel')
 
@@ -61,7 +62,7 @@ class SearchViewModel {
         // 调试数据
         this.trendingTags = await MockData.getTrendingTags();
       } else {
-        this.trendingTags = await PixState.pixiv.getTrendingTags();
+        this.trendingTags = await pixiv.getTrendingTags();
       }
     } catch (e) {
       logger.error('加载热门标签失败:', e);
@@ -95,7 +96,7 @@ class SearchViewModel {
     logger.debug(`[开始搜索] 类型: ${this.searchType}, 关键词: "${this.keyword}"`);
     try {
       if (this.searchType === 'illust') {
-        const data = await PixState.pixiv.searchIllust(this.keyword, undefined, {
+        const data = await pixiv.searchIllust(this.keyword, undefined, {
           sort: 'popular_desc',
           minBookmark: 1000,
           searchTarget: 'exact_match_for_tags'
@@ -105,7 +106,7 @@ class SearchViewModel {
         // 更新缓存
         this.lastSearchedIllustKeyword = this.keyword;
       } else {
-        const data = await PixState.pixiv.searchUser(this.keyword);
+        const data = await pixiv.searchUser(this.keyword);
         this.resultUsers = data.user_previews;
         this.userNextUrl = data.next_url || '';
         // 更新缓存
@@ -125,11 +126,11 @@ class SearchViewModel {
     }
     try {
       if (this.searchType === 'illust') {
-        const data = await PixState.pixiv.searchIllust('', nextUrl);
+        const data = await pixiv.searchIllust('', nextUrl);
         this.resultIllusts.push(...data.illusts);
         this.IllustNextUrl = data.next_url || '';
       } else {
-        const data = await PixState.pixiv.searchUser('', nextUrl);
+        const data = await pixiv.searchUser('', nextUrl);
         this.resultUsers.push(...data.user_previews);
         this.userNextUrl = data.next_url || '';
       }

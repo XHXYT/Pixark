@@ -1,8 +1,8 @@
 import { PixState } from "../entryability/AppState"
 import { PixivIllust } from "../services/PixivTypes"
-import { WaterFlowColumnsTemplate } from "../utils/breakpoint/BreakPoint"
-import { CardUtil } from "../utils/CardUtil"
-import { createLogger } from "../utils/Logger"
+import { WaterFlowColumnsTemplate } from "../common/utils/breakpoint/BreakPoint"
+import { CardUtil } from "../common/utils/CardUtil"
+import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
 
 const logger = createLogger('WaterFlowView')

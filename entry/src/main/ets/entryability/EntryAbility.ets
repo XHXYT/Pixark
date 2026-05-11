@@ -1,17 +1,22 @@
 import { AbilityConstant, common, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
-import { preferenceUtil } from '../utils/PreferenceUtil';
-import { kvDbUtil } from '../utils/KVdbUtil';
-import { toastUtil } from '../utils/ToastUtils';
+import { kvDbUtil } from '../common/utils/KVdbUtil';
+import { toastUtil } from '../common/utils/ToastUtils';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { AvoidanceManager, SmartAvoidance } from '../utils/AvoidManager';
+import { AvoidanceManager, SmartAvoidance } from '../common/utils/AvoidManager';
 import { PixState, _PixState } from './AppState';
-import { Logger } from '../utils/Logger';
 import { ImageKnife } from '@ohos/imageknifepro';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
+import { preferenceUtil } from '../common/utils/persistence/PreferenceUtil';
+import { appSettings } from '../common/entity/SettingsModel';
+import { AccountContext } from '../services/PixivTypes';
+import { homeViewModel } from '../viewmodel/HomeViewModel';
+import { createLogger } from '../common/utils/Logger';
+import { EventHub, EventKey } from '../common/utils/EventHub';
+import { pixiv } from '../services/PixivService';
 
 
-const logger = Logger.getInstance();
+const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
 const BREAKPOINT_RATIO_PORTRAIT = 1.2;
 
@@ -31,16 +36,26 @@ export default class EntryAbility extends UIAbility {
       await preferenceUtil.init(this.context, 'pixark_preference');
       // 初始化KV数据库
       await kvDbUtil.initKVManager(this.context, 'pixark')
+      // 加载设置数据
+      await appSettings.load()
+      // 初始化账号信息
+      await this.initAccounts()
+      // 注册数据获取事件
+      EventHub.on(EventKey.FetchData, () => {
+        this.loadData()
+      })
+      // 加载一次数据
+      this.loadData()
       logger.info('Init', 'preferenceUtil and kvDbUtil initialized successfully.');
     } catch (error) {
-      logger.error('Init', 'preferenceUtil or kvDbUtil initialization failed.', error);
+      logger.error(`'Init, preferenceUtil or kvDbUtil initialization failed, ${error}`)
     }
     try {
       const color_mode = await preferenceUtil.get<ConfigurationConstant.ColorMode>('color_mode', ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
       logger.info('ColorMode', `保存的颜色模式：${color_mode}`);
       this.context.getApplicationContext().setColorMode(color_mode);
     } catch (err) {
-      logger.error('ColorMode', 'Failed to set colorMode.', err);
+      logger.error(`'ColorMode, Failed to set colorMode, ${err}`)
     }
     _PixState.Context = this.context
     // 初始化 ImageKnife 文件缓存
@@ -60,7 +75,7 @@ export default class EntryAbility extends UIAbility {
     ezCustomTransition.init(windowStage)
     windowStage.loadContent('pages/Index', async (err) => {
       if (err.code) {
-        logger.error('WindowStage', 'Failed to load the content.', err);
+        logger.error(`'WindowStage, Failed to load the content., ${err}`)
         return;
       }
       try {
@@ -72,7 +87,7 @@ export default class EntryAbility extends UIAbility {
         // 初始化UI上下文
         _PixState.UIContext = data.getUIContext()
       } catch (error) {
-        logger.error('WindowStage', 'Failed to get the Main Window.', error);
+        logger.error(`'WindowStage, Failed to get the Main Window, ${error}`)
       }
       logger.info('WindowStage', 'Succeeded in loading the content.');
     });
@@ -108,6 +123,132 @@ export default class EntryAbility extends UIAbility {
     logger.info('Lifecycle', 'EntryAbility onBackground');
   }
 
+  async initAccounts() {
+    let savedAccounts: AccountContext[] = [];
+    let lastActiveUserId = '';
+
+    // 增加防时序重试机制，解决 KVStore 底层初始化的微秒级延迟
+    let retryCount = 3;
+    while (retryCount > 0) {
+      try {
+        const accountsJson = await kvDbUtil.getData<string>('pixiv_accounts', '[]');
+        savedAccounts = JSON.parse(accountsJson) as AccountContext[];
+        lastActiveUserId = await kvDbUtil.getData<string>('active_user_id', '');
+        break; // 读取成功，跳出循环
+      } catch (dbError) {
+        retryCount--;
+        if (retryCount > 0) {
+          logger.warn('InitAccounts', `KVStore not ready, waiting 100ms... (${3 - retryCount}/3)`);
+          // 延迟重试
+          await new Promise<void>((resolve: (value: void) => void) => {
+            setTimeout(() => resolve(), 100);
+          });
+        } else {
+          // 3次都失败，说明真的有问题，只能放弃本次初始化
+          logger.error('InitAccounts', `KVStore failed after 3 retries: ${dbError?.message}`);
+          return;
+        }
+      }
+    }
+
+    try {
+      // 兼容老版本：如果找不到多账号数据，尝试读取旧的单 token
+      if (savedAccounts.length === 0) {
+        const oldRefreshToken = await kvDbUtil.getData<string>('refresh_token', '');
+        if (oldRefreshToken) {
+          logger.info('InitAccounts', 'Migrating old single token to multi-account system...');
+          try {
+            const newAccount = await pixiv.loginWithRefreshToken(oldRefreshToken);
+            savedAccounts.push(newAccount);
+            await kvDbUtil.putData('pixiv_accounts', JSON.stringify(savedAccounts));
+            await kvDbUtil.putData('active_user_id', newAccount.userId);
+            pixiv.initAccounts(savedAccounts, newAccount.userId);
+            logger.info('InitAccounts', 'Old token migrated successfully.');
+            return;
+          } catch (migrateError) {
+            logger.error('InitAccounts', `Old token migration failed: ${JSON.stringify(migrateError)}`);
+            await kvDbUtil.putData('refresh_token', '');
+            return;
+          }
+        }
+      } else {
+        // 正常的多账号初始化
+        pixiv.initAccounts(savedAccounts, lastActiveUserId);
+        logger.info('InitAccounts', `Multi-account initialized. Count: ${savedAccounts.length}`);
+
+        // 后台静默刷新当前激活账号的 Token
+        const activeAccount = pixiv.getActiveAccount();
+        if (activeAccount?.refreshToken) {
+          try {
+            logger.info('InitAccounts', 'Silently refreshing active token in background...');
+            const updatedAccount = await pixiv.loginWithRefreshToken(activeAccount.refreshToken);
+            const index = savedAccounts.findIndex((a: AccountContext) => a.userId === updatedAccount.userId);
+            if (index !== -1) savedAccounts[index] = updatedAccount;
+            await kvDbUtil.putData('pixiv_accounts', JSON.stringify(savedAccounts));
+            logger.info('InitAccounts', 'Silent refresh successful.');
+          } catch (refreshError) {
+            logger.warn('InitAccounts', `Silent refresh failed: ${JSON.stringify(refreshError)}`);
+          }
+        }
+      }
+    } catch (e) {
+      logger.error('InitAccounts', `Account logic error: ${e?.message || JSON.stringify(e)}`);
+    }
+  }
+
+  // 加载数据
+  async loadData() {
+    PixState.isLoading = true;
+    // 开始初始化，标记为 true，显示过渡页
+    PixState.isInitializing = true;
+    try {
+      if (!PixState.isTest) {
+        // 直接检查是否登录即可 (Token 已在 onCreate 加载完成)
+        if (pixiv.isLogin()) {
+          PixState.isLoggedIn = true;
+
+          // 获取当前用户信息 (直接从内存拿，速度极快)
+          const currentUser = pixiv.getCurrentUser();
+          if (currentUser) {
+            PixState.currentUser = currentUser;
+
+            // 补全详细信息的逻辑保留
+            const email = currentUser.mail_address;
+            if (!currentUser.profile_image_urls?.medium) {
+              logger.warn('User 没有用户头像链接，重新获取详细信息');
+              const full = await pixiv.getUserDetail(currentUser.id);
+              PixState.currentUserDetail = full;
+              PixState.currentUser = full.user;
+              PixState.currentUser.mail_address = email;
+              // 同步更新 PixivAuth 内部状态
+              pixiv.updateAccountUser(currentUser.id.toString(), PixState.currentUser);
+              // 持久化到本地数据库
+              const allAccounts = pixiv.getAllAccounts();
+              await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
+            }
+
+          }
+          // 加载主页内容 (因为拦截器存在，不用操心 Token 过期问题)
+          homeViewModel.loadHomeData();
+        } else {
+          // 没登录就是没登录，不用再尝试 token 登录了
+          logger.warn('User not logged in, redirecting to login.');
+          PixState.isLoggedIn = false
+        }
+      } else {
+        // 测试模式
+        await homeViewModel.loadHomeData()
+        PixState.isLoggedIn = true
+      }
+    } catch (e) {
+      logger.error('Load data error: ' + e.message);
+    } finally {
+      // 统一关闭 Loading
+      PixState.isLoading = false;
+      PixState.isInitializing = false
+    }
+  }
+
   // 初始化窗口
   async intRectWindow(windowStage: window.WindowStage, UIContext: UIContext) {
     // 设置自动记忆最后关闭的窗口大小(仅2in1设备生效)
@@ -124,7 +265,7 @@ export default class EntryAbility extends UIAbility {
       windowClass.setWindowLayoutFullScreen(true).then(() => {
         logger.info('WindowRect', 'Succeeded in setting the window layout to full-screen mode.');
       }).catch((err: BusinessError) => {
-        logger.error('WindowRect', 'Failed to set the window layout to full-screen mode.', err);
+        logger.error(`'WindowRect, Failed to set the window layout to full-screen mode., ${err}`)
       });
 
       // 获取布局避让遮挡的区域
@@ -168,10 +309,10 @@ export default class EntryAbility extends UIAbility {
           this.onHeightBpChange(WindowHeight, WindowWidth)
         })
       } catch (error) {
-        logger.error('WindowChange', `#intRectWindow Failed to getWindowProperties.`, error)
+        logger.error(`'WindowChange, #intRectWindow Failed to getWindowProperties., ${error}`)
       }
     } catch (error) {
-      logger.error('WindowChange', `#intRectWindow Failed to getMainWindowSync.`, error)
+      logger.error(`'WindowChange, #intRectWindow Failed to getMainWindowSync., ${error}`)
     }
   }
 

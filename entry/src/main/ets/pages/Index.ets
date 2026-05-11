@@ -1,16 +1,13 @@
 import { PixState } from '../entryability/AppState';
-import { EventHub, EventKey } from '../utils/EventHub';
-import { toastUtil } from '../utils/ToastUtils';
-import { kvDbUtil } from '../utils/KVdbUtil';
 import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition,
   TabTitleFontSize,
   TabBarWidth,
   WindowTabBarWidth,
   TabBarHeight,
   TabBarAvoidHeight,
-  Window_BAR_HEIGHT} from '../utils/breakpoint/BreakPoint';
+  Window_BAR_HEIGHT} from '../common/utils/breakpoint/BreakPoint';
 import { LengthMetrics } from '@kit.ArkUI';
-import { animation } from '../utils/AnimationUtil';
+import { animation } from '../common/utils/AnimationUtil';
 import { TabBuild } from '../common/entity/IndexEntity';
 import { Home } from './Home';
 import { SearchPage } from './Search';
@@ -18,9 +15,9 @@ import { Favorite } from './Favorite';
 import { Rank } from './Rank';
 import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { Login } from './Login';
-import Constants from '../common/constants/UIConstants';
+import UIConstants from '../common/constants/UIConstants';
 import { More } from './More';
-import { createLogger } from '../utils/Logger';
+import { createLogger } from '../common/utils/Logger';
 
 
 const logger = createLogger('Index')
@@ -45,13 +42,6 @@ struct Index {
     logger.info('Page aboutToAppear');
     // 初始化动画
     animation.init(this.getUIContext())
-    EventHub.on(EventKey.FetchData, () => {
-      this.loadData()
-    })
-    // 首次进入刷新数据
-    setTimeout(() => {
-      this.loadData()
-    }, 600)
   }
 
   build() {
@@ -265,12 +255,12 @@ struct Index {
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         PixState.currentTab = index
-      }, Constants.AnimationSpeed_300, 'app', 0)
+      }, UIConstants.AnimationSpeed_300, 'app', 0)
     })
     .onAnimationStart((index: number, targetIndex: number) => {
       animation.animTo(() => {
         PixState.currentTab = targetIndex;
-      }, Constants.AnimationSpeed_300, 'app', 0)
+      }, UIConstants.AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
       PixState.tabsController.changeIndex(PixState.currentTab)
@@ -295,71 +285,6 @@ struct Index {
       SearchPage()
     } else {
       More()
-    }
-  }
-
-  // 加载数据
-  async loadData() {
-    PixState.isLoading = true;
-    // 开始初始化，标记为 true，显示过渡页
-    PixState.isInitializing = true;
-    try {
-      if (!PixState.isTest) {
-        // 尝试获取本地 Token
-        if (!PixState.refreshToken) {
-          logger.info('refresh token not found saved, trying to getData...');
-          PixState.refreshToken = await kvDbUtil.getData<string>('refresh_token', '');
-        }
-        // 存在本地 Token 且当前未登录，尝试登录
-        if (PixState.refreshToken && !PixState.pixiv.isLogin()) {
-          logger.info('Found saved refresh token, trying to login...');
-          try {
-            await PixState.pixiv.loadRefreshToken(PixState.refreshToken);
-            PixState.isLoggedIn = true;
-            logger.info('Auto-login successful!');
-            // 保存当前用户信息
-            PixState.currentUser = PixState.pixiv.getCurrentUser()
-            const email = PixState.currentUser.mail_address
-            if (!PixState.currentUser.profile_image_urls.medium) {
-              logger.warn('User 没有用户头像链接，重新获取详细信息');
-              const full = await PixState.pixiv.getUserDetail(PixState.currentUser.id)
-              PixState.currentUserDetail = full
-              PixState.currentUser = full.user
-              PixState.currentUser.mail_address = email
-            }
-            // 保存新的 RefreshToken
-            const newToken = PixState.pixiv.getCurrentRefreshToken();
-            if (newToken !== PixState.refreshToken) {
-              await kvDbUtil.putData('refresh_token', newToken);
-              PixState.refreshToken = newToken;
-            }
-          } catch (e) {
-            logger.warn('Auto-login failed, token may be expired.', e);
-            // 登录失败后，不再继续请求数据
-            toastUtil.showToast({ message: "登录已过期，请重新登录" })
-            return;
-          }
-        }
-        // 登录成功（或者原本就处于登录状态），获取各数据
-        // tips: 因为有拦截器存在，即使 Token 快过期了，getRecommended 等也会自动刷新并成功
-        if (PixState.pixiv.isLogin()) {
-          // 加载主页内容
-          homeViewModel.loadHomeData()
-        } else {
-          logger.warn('User not logged in, cannot load data.');
-        }
-      } else {
-        // 加载主页内容
-        await homeViewModel.loadHomeData()
-        PixState.isLoggedIn = true
-      }
-    } catch (e) {
-      // 捕获 getRecommended 过程中的其他网络错误
-      logger.error('Load data error: ' + e.message);
-    } finally {
-      // 统一关闭 Loading
-      PixState.isLoading = false;
-      PixState.isInitializing = false
     }
   }
 

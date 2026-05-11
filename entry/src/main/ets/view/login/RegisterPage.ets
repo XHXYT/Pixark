@@ -1,6 +1,8 @@
 import { webview } from "@kit.ArkWeb";
 import { PixState } from "../../entryability/AppState";
-import { createLogger } from "../../utils/Logger";
+import { createLogger } from "../../common/utils/Logger";
+import { NaviContainer } from "../../components/NaviContainer";
+import { AppConstants } from "../../common/constants/AppConstants";
 
 const logger = createLogger('Register')
 
@@ -15,15 +17,21 @@ struct RegisterPageComponent {
   webviewController: webview.WebviewController = new webview.WebviewController();
 
   build() {
-    NavDestination() {
-      Web({ src: 'https://accounts.pixiv.net/signup', controller: this.webviewController })
-        .domStorageAccess(true)
-        .javaScriptAccess(true)
-        .width('100%')
-        .layoutWeight(1)
-    }
-    .padding({ top: PixState.topRectHeight, bottom: PixState.bottomRectHeight })
-    .hideToolBar(true)
-    .title('注册')
+    NaviContainer({
+      title: $r('app.string.register'),
+      content: () => {
+        this.Content()
+      }
+    })
   }
+
+  @Builder
+  Content() {
+    Web({ src: AppConstants.REGISTER_URL, controller: this.webviewController })
+      .domStorageAccess(true)
+      .javaScriptAccess(true)
+      .width('100%')
+      .layoutWeight(1)
+  }
+
 }

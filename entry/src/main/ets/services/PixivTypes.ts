@@ -95,6 +95,17 @@ export interface PixivTag {
 }
 
 /**
+ * 账号上下文：存储单个账号的所有凭证和状态
+ */
+export interface AccountContext {
+  userId: string;       // Pixiv 用户 ID，作为唯一标识
+  accessToken: string;
+  refreshToken: string;
+  user: PixivUser;
+}
+
+
+/**
  * 用户预览（用于 /v1/search/user）
  * 包含用户信息 + 若干预览作品
  */

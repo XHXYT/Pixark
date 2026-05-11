@@ -1,18 +1,17 @@
-import { PixivService } from "../services/PixivService"
-import { PixivIllust, PixivUser, UserDetailResponse } from "../services/PixivTypes"
+
+import { PixivUser, UserDetailResponse } from "../services/PixivTypes"
 import { ConfigurationConstant, common } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
 import { PageMargin,
   TabBarAvoidHeight,
-  TabBarHeight, TabBarVertical, Window_BAR_HEIGHT } from "../utils/breakpoint/BreakPoint"
-import { createLogger } from "../utils/Logger"
+  TabBarHeight, TabBarVertical, Window_BAR_HEIGHT } from "../common/utils/breakpoint/BreakPoint"
+import { createLogger } from "../common/utils/Logger"
 
 const logger = createLogger('PixivState')
 
 @ObservedV2
 export class _PixState {
-  // Pixiv
-  @Trace pixiv = new PixivService()
+
   // 当前登录用户
   @Trace currentUser: PixivUser | null = null
   @Trace currentUserDetail: UserDetailResponse | null = null
@@ -20,6 +19,8 @@ export class _PixState {
   @Trace loginMethod: 'password' | 'token' = 'token'
   // refresh token
   @Trace refreshToken: string = ''
+  // 是否处于多账号添加模式
+  @Trace isAddingAccount: boolean = false
   // 是否初始化
   @Trace isInitializing: boolean = true
   // 加载状态

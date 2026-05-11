@@ -1,9 +1,10 @@
 import { UserDetailParams } from "../common/entity/UserDetailEntity"
 import { PixState } from "../entryability/AppState"
 import { PixivUser } from "../services/PixivTypes"
-import { createLogger } from "../utils/Logger"
-import { toastUtil } from "../utils/ToastUtils"
+import { createLogger } from "../common/utils/Logger"
+import { toastUtil } from "../common/utils/ToastUtils"
 import { PixivImageComponent } from "./PixivImage"
+import { pixiv } from "../services/PixivService"
 
 const logger = createLogger('UserItem')
 
@@ -49,7 +50,7 @@ export struct UserItem {
               return
             }
             try {
-              await PixState.pixiv.unfollowUser(this.user.id, 'public')
+              await pixiv.unfollowUser(this.user.id, 'public')
               this.user.is_followed = false
               toastUtil.showToast({ message: $r('app.string.unfollow_success', this.user.name) })
               this.onButtonClick(false)
@@ -65,7 +66,7 @@ export struct UserItem {
               return
             }
             try {
-              await PixState.pixiv.followUser(this.user.id, 'public')
+              await pixiv.followUser(this.user.id, 'public')
               this.user.is_followed = true
               toastUtil.showToast({ message: $r('app.string.follow_success', this.user.name) })
               this.onButtonClick(true)

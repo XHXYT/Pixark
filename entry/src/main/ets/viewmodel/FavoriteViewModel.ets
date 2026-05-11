@@ -2,7 +2,8 @@ import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, UserPreview } from "../services/PixivTypes";
-import { createLogger } from "../utils/Logger";
+import { createLogger } from "../common/utils/Logger";
+import { pixiv } from "../services/PixivService";
 
 const logger = createLogger('FavoriteViewModel');
 
@@ -73,8 +74,8 @@ class FavoriteViewModel {
       if (this.filterIndex === 0) {
         // 并行请求公开和私密
         const results = await Promise.all([
-          PixState.pixiv.getFollowingIllusts('public', isLoadMore ? this.nextTrendUrlPublic : undefined),
-          PixState.pixiv.getFollowingIllusts('private', isLoadMore ? this.nextTrendUrlPrivate : undefined)
+          pixiv.getFollowingIllusts('public', isLoadMore ? this.nextTrendUrlPublic : undefined),
+          pixiv.getFollowingIllusts('private', isLoadMore ? this.nextTrendUrlPrivate : undefined)
         ]);
         const publicRes = results[0]
         const privateRes = results[1]
@@ -87,13 +88,13 @@ class FavoriteViewModel {
       }
       // 仅公开
       else if (this.filterIndex === 1) {
-        const res = await PixState.pixiv.getFollowingIllusts('public', isLoadMore ? this.nextTrendUrlPublic : undefined);
+        const res = await pixiv.getFollowingIllusts('public', isLoadMore ? this.nextTrendUrlPublic : undefined);
         this.nextTrendUrlPublic = res.next_url || '';
         newData = res.illusts || [];
       }
       // 仅私密
       else if (this.filterIndex === 2) {
-        const res = await PixState.pixiv.getFollowingIllusts('private', isLoadMore ? this.nextTrendUrlPrivate : undefined);
+        const res = await pixiv.getFollowingIllusts('private', isLoadMore ? this.nextTrendUrlPrivate : undefined);
         this.nextTrendUrlPrivate = res.next_url || '';
         newData = res.illusts || [];
       }
@@ -123,8 +124,8 @@ class FavoriteViewModel {
       let newData: PixivIllust[] = [];
       if (this.filterIndex === 0) {
         const results = await Promise.all([
-          PixState.pixiv.getUserBookmarks(userId, 'public', undefined, undefined, isLoadMore ? this.nextCollectionUrlPublic : undefined),
-          PixState.pixiv.getUserBookmarks(userId, 'private', undefined, undefined, isLoadMore ? this.nextCollectionUrlPrivate : undefined)
+          pixiv.getUserBookmarks(userId, 'public', undefined, undefined, isLoadMore ? this.nextCollectionUrlPublic : undefined),
+          pixiv.getUserBookmarks(userId, 'private', undefined, undefined, isLoadMore ? this.nextCollectionUrlPrivate : undefined)
         ]);
         const publicRes = results[0]
         const privateRes = results[1]
@@ -132,11 +133,11 @@ class FavoriteViewModel {
         this.nextCollectionUrlPrivate = privateRes.next_url || '';
         newData = [...(publicRes.illusts || []), ...(privateRes.illusts || [])];
       } else if (this.filterIndex === 1) {
-        const res = await PixState.pixiv.getUserBookmarks(userId, 'public', undefined, undefined, isLoadMore ? this.nextCollectionUrlPublic : undefined);
+        const res = await pixiv.getUserBookmarks(userId, 'public', undefined, undefined, isLoadMore ? this.nextCollectionUrlPublic : undefined);
         this.nextCollectionUrlPublic = res.next_url || '';
         newData = res.illusts || [];
       } else if (this.filterIndex === 2) {
-        const res = await PixState.pixiv.getUserBookmarks(userId, 'private', undefined, undefined, isLoadMore ? this.nextCollectionUrlPrivate : undefined);
+        const res = await pixiv.getUserBookmarks(userId, 'private', undefined, undefined, isLoadMore ? this.nextCollectionUrlPrivate : undefined);
         this.nextCollectionUrlPrivate = res.next_url || '';
         newData = res.illusts || [];
       }
@@ -167,8 +168,8 @@ class FavoriteViewModel {
 
       if (this.filterIndex === 0) {
         const results = await Promise.all([
-          PixState.pixiv.getUserFollowing(userId, 'public', isLoadMore ? this.nextFollowUrlPublic : undefined),
-          PixState.pixiv.getUserFollowing(userId, 'private', isLoadMore ? this.nextFollowUrlPrivate : undefined)
+          pixiv.getUserFollowing(userId, 'public', isLoadMore ? this.nextFollowUrlPublic : undefined),
+          pixiv.getUserFollowing(userId, 'private', isLoadMore ? this.nextFollowUrlPrivate : undefined)
         ]);
         const publicRes = results[0]
         const privateRes = results[1]
@@ -176,11 +177,11 @@ class FavoriteViewModel {
         this.nextFollowUrlPrivate = privateRes.next_url || '';
         newData = [...(publicRes.user_previews || []), ...(privateRes.user_previews || [])];
       } else if (this.filterIndex === 1) {
-        const res = await PixState.pixiv.getUserFollowing(userId, 'public', isLoadMore ? this.nextFollowUrlPublic : undefined);
+        const res = await pixiv.getUserFollowing(userId, 'public', isLoadMore ? this.nextFollowUrlPublic : undefined);
         this.nextFollowUrlPublic = res.next_url || '';
         newData = res.user_previews || [];
       } else if (this.filterIndex === 2) {
-        const res = await PixState.pixiv.getUserFollowing(userId, 'private', isLoadMore ? this.nextFollowUrlPrivate : undefined);
+        const res = await pixiv.getUserFollowing(userId, 'private', isLoadMore ? this.nextFollowUrlPrivate : undefined);
         this.nextFollowUrlPrivate = res.next_url || '';
         newData = res.user_previews || [];
       }

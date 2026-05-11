@@ -1,7 +1,9 @@
 import { PixivAuth } from './PixivAuth';
 import { PixivData } from './PixivData';
 import { PixivInteraction } from './PixivInteraction';
-import { PixivAuthResponse, PixivIllust, PixivListResult,
+import {
+  AccountContext,
+  PixivIllust, PixivListResult,
   PixivUser,
   SearchFilterOptions,
   SearchUserResult, SpotlightResponse,
@@ -26,41 +28,59 @@ export class PixivService {
   }
 
   // --- 认证方法 ---
-
   isLogin(): boolean {
     return this.auth.isLogin();
   }
 
-  getCurrentUser(): PixivUser {
-    return this.auth.getCurrentUser();
+  async loginWithAuthCode(code: string, codeVerifier: string): Promise<AccountContext> {
+    return this.auth.loginWithAuthCode(code, codeVerifier);
   }
 
-  // 已废弃
-  async loginWithPassword(username: string, password: string): Promise<PixivAuthResponse> {
-    return this.auth.loginWithPassword(username, password);
-  }
-
-  async loginWithAuthCode(code: string, codeVerifier: string): Promise<PixivAuthResponse> {
-		return this.auth.loginWithAuthCode(code, codeVerifier);
-	}
-
-  async loginWithRefreshToken(refreshToken: string): Promise<PixivAuthResponse> {
+  async loginWithRefreshToken(refreshToken: string): Promise<AccountContext> {
     return this.auth.loginWithRefreshToken(refreshToken);
   }
 
-  async refreshAuthToken(): Promise<PixivAuthResponse> {
+  async refreshAuthToken(): Promise<AccountContext> {
     const token = this.auth.getCurrentRefreshToken();
     return this.auth.loginWithRefreshToken(token);
-  }
-
-  getCurrentRefreshToken(): string {
-    return this.auth.getCurrentRefreshToken();
   }
 
   async loadRefreshToken(refreshToken: string): Promise<void> {
     await this.auth.loginWithRefreshToken(refreshToken);
   }
 
+  getCurrentRefreshToken(): string {
+    return this.auth.getCurrentRefreshToken();
+  }
+
+  getCurrentUser(): PixivUser {
+    return this.auth.getCurrentUser();
+  }
+
+  // --- 多账号管理方法 ---
+  getAllAccounts(): AccountContext[] {
+    return this.auth.getAllAccounts();
+  }
+
+  updateAccountUser(userId: string, updatedUser: PixivUser) {
+    return this.auth.updateAccountUser(userId, updatedUser)
+  }
+
+  switchAccount(userId: string) {
+    this.auth.switchAccount(userId);
+  }
+
+  removeAccount(userId: string) {
+    this.auth.removeAccount(userId);
+  }
+
+  initAccounts(accounts: AccountContext[], activeId?: string) {
+    this.auth.initAccounts(accounts, activeId);
+  }
+
+  getActiveAccount(): AccountContext | undefined {
+    return this.auth.getActiveAccount();
+  }
 
   // --- 数据接口方法 ---
   /**
@@ -129,12 +149,12 @@ export class PixivService {
     return this.data.getRecommended(includeRanking, url);
   }
 
-  async getIllustDetail(illustId: number): Promise<PixivIllust> {
-    return this.data.getIllustDetail(illustId);
+  async getIllustDetail(illust_id: number): Promise<PixivIllust> {
+    return this.data.getIllustDetail(illust_id);
   }
 
-  async getRelatedIllusts(illustId: number): Promise<PixivListResult> {
-    return this.data.getRelatedIllusts(illustId);
+  async getRelatedIllusts(illust_id: number): Promise<PixivListResult> {
+    return this.data.getRelatedIllusts(illust_id);
   }
 
   /**
@@ -189,7 +209,6 @@ export class PixivService {
 
 
   // --- 用户交互方法  ---
-
   /**
    * 关注用户
    */
@@ -207,16 +226,18 @@ export class PixivService {
   /**
    * 收藏插画
    */
-  async addBookmark(illustId: number, restrict: 'public' | 'private' = 'public', tags: string[] = []) {
-    return this.interaction.addBookmark(illustId, restrict, tags);
+  async addBookmark(illust_id: number, restrict: 'public' | 'private' = 'public', tags: string[] = []) {
+    return this.interaction.addBookmark(illust_id, restrict, tags);
   }
 
   /**
    * 取消收藏插画
    */
-  async deleteBookmark(illustId: number) {
-    return this.interaction.deleteBookmark(illustId);
+  async deleteBookmark(illust_id: number) {
+    return this.interaction.deleteBookmark(illust_id);
   }
 
 }
+
+export const pixiv: PixivService = new PixivService()
 
