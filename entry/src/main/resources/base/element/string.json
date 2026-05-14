@@ -363,6 +363,26 @@
     {
       "name": "login_successfully",
       "value": "登录成功"
+    },
+    {
+      "name": "account",
+      "value": "账号"
+    },
+    {
+      "name": "old_password",
+      "value": "旧密码"
+    },
+    {
+      "name": "new_password",
+      "value": "新密码"
+    },
+    {
+      "name": "mail_address",
+      "value": "邮箱"
+    },
+    {
+      "name": "export_token",
+      "value": "导出Token"
     }
   ]
 }

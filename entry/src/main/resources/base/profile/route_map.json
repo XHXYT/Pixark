@@ -49,6 +49,11 @@
       "name": "login",
       "pageSourceFile": "src/main/ets/pages/Login.ets",
       "buildFunction": "LoginBuilder"
+    },
+    {
+      "name": "account_info",
+      "pageSourceFile": "src/main/ets/view/user/AccountInfo.ets",
+      "buildFunction": "AccountInfoBuilder"
     }
   ]
 }

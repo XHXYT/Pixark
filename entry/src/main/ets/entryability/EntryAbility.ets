@@ -14,6 +14,7 @@ import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { createLogger } from '../common/utils/Logger';
 import { EventHub, EventKey } from '../common/utils/EventHub';
 import { pixiv } from '../services/PixivService';
+import { ColorUtils } from '../common/utils/ColorUtils';
 
 
 const logger = createLogger('EntryAbility')
@@ -22,6 +23,7 @@ const BREAKPOINT_RATIO_PORTRAIT = 1.2;
 
 export default class EntryAbility extends UIAbility {
 
+  private isFirstStart: boolean = true
   private avoidManager: AvoidanceManager | undefined = undefined;
   private avoidListener: (avoidance: SmartAvoidance) => void = (newAvoidance) => {
     PixState.bottomRectHeight = newAvoidance.bottom
@@ -46,6 +48,8 @@ export default class EntryAbility extends UIAbility {
       })
       // 加载一次数据
       this.loadData()
+      // 初始化颜色工具
+      ColorUtils.init(this.context)
       logger.info('Init', 'preferenceUtil and kvDbUtil initialized successfully.');
     } catch (error) {
       logger.error(`'Init, preferenceUtil or kvDbUtil initialization failed, ${error}`)
@@ -291,11 +295,9 @@ export default class EntryAbility extends UIAbility {
         PixState.windowWidth = WindowWidth
         logger.info('WindowRect', `窗口高度：${rect.height} px 宽度：${rect.width} px`)
         // 初始化设备窗口模式
-        // this.onWindowModeChange(windowStage, windowClass)
+        this.onWindowModeChange(windowClass)
         // 监听窗口大小变化
         windowClass.on('windowSizeChange', async (data) => {
-          // 动态监听设备窗口模式
-          this.onWindowModeChange(windowStage, windowClass)
           logger.info('WindowChange', 'Succeeded in enabling the listener for window size changes. Data: ' + JSON.stringify(data))
           WindowWidth = UIContext.px2vp(data.width)!
           WindowHeight = UIContext.px2vp(data.height)!
@@ -310,6 +312,17 @@ export default class EntryAbility extends UIAbility {
         })
       } catch (error) {
         logger.error(`'WindowChange, #intRectWindow Failed to getWindowProperties., ${error}`)
+      }
+      // 窗口模式状态监听
+      try {
+        windowClass.on('freeWindowModeChange', (data) => {
+          PixState.windowMode = data
+          // 动态监听设备窗口模式
+          this.onWindowModeChange(windowClass)
+          console.debug(`WindowMode 当前窗口状态：${PixState.windowMode}`)
+        });
+      } catch (exception) {
+        console.error(`Failed to enable the listener for free window mode changes. Cause code: ${exception.code}, message: ${exception.message}`);
       }
     } catch (error) {
       logger.error(`'WindowChange, #intRectWindow Failed to getMainWindowSync., ${error}`)
@@ -337,7 +350,7 @@ export default class EntryAbility extends UIAbility {
     PixState.heightBp = heightBp
   }
 
-  async onWindowModeChange(windowStage: window.WindowStage, windowClass: window.Window) {
+  async onWindowModeChange(windowClass: window.Window) {
     try {
       // 设置默认标题栏是否显示
       windowClass.setWindowDecorVisible(false)
@@ -345,29 +358,24 @@ export default class EntryAbility extends UIAbility {
       windowClass.setWindowTitleButtonVisible(true, true, true)
       // 全屏时鼠标移动至顶部不显示标题栏和dock栏，平板自由多窗则是无法唤起状态栏
       await windowClass.setTitleAndDockHoverShown(false, false)
-      /*      try {
-              if (this.isFirstStart) {
-                const systemLimits = windowClass.getWindowLimits()
-                this.windowLimits.maxWidth = systemLimits.maxWidth
-                this.windowLimits.maxHeight = systemLimits.maxHeight
-                this.isFirstStart = false
-              }
-              console.info(`WindowMode  the window limits. FirstLimits: ${JSON.stringify(this.windowLimits)}`);
-              let promise = windowClass.setWindowLimits(this.windowLimits, true);
-              promise.then((data) => {
-                console.info(`WindowMode Succeeded in changing the window limits. limits: ${JSON.stringify(data)}`);
-              }).catch((err: BusinessError) => {
-                console.error(`WindowMode Failed to change the window limits. Cause code: ${err.code}, message: ${err.message}`);
-              });
-            } catch (exception) {
-              console.error(`WindowMode Failed to change the window limits. Cause code: ${exception.code}, message: ${exception.message}`);
-            }*/
-      // 设置标题栏高度
-      PixState.windowMode = true
+      try {
+        if (this.isFirstStart) {
+          PixState.windowMode = windowClass.isInFreeWindowMode()
+          this.isFirstStart = false
+        }
+        // console.info(`WindowMode  the window limits. FirstLimits: ${JSON.stringify(this.windowLimits)}`);
+        // let promise = windowClass.setWindowLimits(this.windowLimits, true);
+        // promise.then((data) => {
+        //   console.info(`WindowMode Succeeded in changing the window limits. limits: ${JSON.stringify(data)}`);
+        // }).catch((err: BusinessError) => {
+        //   console.error(`WindowMode Failed to change the window limits. Cause code: ${err.code}, message: ${err.message}`);
+        // });
+      } catch (exception) {
+        console.error(`WindowMode Failed to change the window limits. Cause code: ${exception.code}, message: ${exception.message}`);
+      }
       logger.info("WindowMode", `当前为PC窗口模式 bottom: ${PixState.bottomRectHeight} mode: ${PixState.windowMode}`)
     } catch (exception) {
       logger.error("WindowMode", `#onWindowModeChange error: ${JSON.stringify(exception)}`)
-      PixState.windowMode = false
       logger.info("WindowMode", `当前为普通窗口模式 bottom: ${PixState.bottomRectHeight} mode: ${PixState.windowMode}`)
     }
   }

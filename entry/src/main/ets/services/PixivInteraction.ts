@@ -1,6 +1,6 @@
 import { PixivAuth } from './PixivAuth';
-import { urlQueryString } from '../common/utils/Url2String';
 import { createLogger } from '../common/utils/Logger';
+import { UrlUtils } from '../common/utils/UrlUtils';
 
 const logger = createLogger('PixivInteraction')
 
@@ -31,7 +31,7 @@ export class PixivInteraction {
     try {
       await this.auth.axiosInstance.post(
         '/v1/user/follow/add',
-        urlQueryString({
+        UrlUtils.encodeQuery({
           user_id: userId,
           restrict: restrict,
         }),
@@ -63,7 +63,7 @@ export class PixivInteraction {
     try {
       await this.auth.axiosInstance.post(
         '/v1/user/follow/delete',
-        urlQueryString({
+        UrlUtils.encodeQuery({
           user_id: userId,
           restrict: restrict,
         }),
@@ -110,7 +110,7 @@ export class PixivInteraction {
     try {
       await this.auth.axiosInstance.post(
         '/v2/illust/bookmark/add',
-        urlQueryString(params),
+        UrlUtils.encodeQuery(params),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -137,7 +137,7 @@ export class PixivInteraction {
     try {
       await this.auth.axiosInstance.post(
         '/v1/illust/bookmark/delete',
-        urlQueryString({
+        UrlUtils.encodeQuery({
           illust_id: illust_id,
         }),
         {

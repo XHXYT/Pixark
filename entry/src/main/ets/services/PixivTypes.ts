@@ -102,8 +102,12 @@ export interface AccountContext {
   accessToken: string;
   refreshToken: string;
   user: PixivUser;
+  // 本地缓存的密码 (用于修改邮箱/密码时自动填充旧密码) TODO 明文存储密码存在安全风险
+  passWord?: string;
+  // 是否通过邮箱授权登录 (1=是, 0=否)
+  // Pixiv 登录方式有多种（邮箱、Google、Apple等），如果是非邮箱登录，可能没有传统密码概念
+  isMailAuthorized?: number;
 }
-
 
 /**
  * 用户预览（用于 /v1/search/user）

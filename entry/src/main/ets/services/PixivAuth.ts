@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from '@ohos/axios';
 import { createLogger } from '../common/utils/Logger';
 import { md5String } from '../common/utils/MD5';
 import { Date2UTCTimeString } from '../common/utils/TimeUtils';
-import { urlQueryString } from '../common/utils/Url2String';
+import { UrlUtils } from '../common/utils/UrlUtils';
 import { AccountContext, PixivAuthResponse, PixivUser } from './PixivTypes';
 
 const logger = createLogger('PixivAuth')
@@ -168,6 +168,53 @@ export class PixivAuth {
     }
   }
 
+  /**
+   * 修改账户信息 (邮箱/密码)
+   * @param currentPassword 当前密码 (必填)
+   * @param newMailAddress 新邮箱 (可选)
+   * @param newPassword 新密码 (可选)
+   */
+  async editAccount(currentPassword: string, newMailAddress?: string, newPassword?: string): Promise<boolean> {
+    logger.info('Editing account info...');
+    // 构造请求参数，过滤掉空值
+    const params: Record<string, string> = {
+      current_password: currentPassword,
+    };
+    if (newMailAddress) params.new_mail_address = newMailAddress;
+    if (newPassword) params.new_password = newPassword;
+
+    try {
+      // 复用 axiosInstance，拦截器会自动注入 Bearer Token
+      const response = await this.axiosInstance.post(
+        '/v1/user/account/edit',
+        UrlUtils.encodeQuery({   // 表单格式提交
+          current_password: currentPassword,
+          new_mail_address: newMailAddress,
+          new_password: newPassword
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          }
+        }
+      );
+      logger.info('Account edit successful!');
+
+      // 修改成功后，更新本地存储的邮箱和密码 (参考 PixEz 逻辑)
+      const activeAccount = this.getActiveAccount();
+      if (activeAccount) {
+        if (newMailAddress) activeAccount.user.mail_address = newMailAddress;
+        // TODO 本地密码一般不存明文
+        this.accounts.set(activeAccount.userId, activeAccount);
+      }
+      return true;
+    } catch (error: any) {
+      logger.error('Account edit failed.', error?.response?.data || error.message);
+      // 抛出错误，UI 层提示用户 (Pixiv 会返回 validation_errors)
+      throw error?.response?.data?.body?.validation_errors || error;
+    }
+  }
+
 
   /** 获取当前所有账号列表 (给 UI 画侧滑菜单用) */
   getAllAccounts(): AccountContext[] {
@@ -235,7 +282,7 @@ export class PixivAuth {
       try {
         const response = await this.retryRequest(() => axios.post(
           'https://oauth.secure.pixiv.net/auth/token',
-          urlQueryString({
+          UrlUtils.encodeQuery({
             client_id: creds.client_id,
             client_secret: creds.client_secret,
             get_secure_url: '1',
@@ -283,7 +330,7 @@ export class PixivAuth {
 
     const response = await this.retryRequest(() => axios.post(
       'https://oauth.secure.pixiv.net/auth/token',
-      urlQueryString({
+      UrlUtils.encodeQuery({
         client_id: creds.client_id,
         client_secret: creds.client_secret,
         get_secure_url: '1',
@@ -327,7 +374,7 @@ export class PixivAuth {
 
     const response = await this.retryRequest(() => axios.post(
       'https://oauth.secure.pixiv.net/auth/token',
-      urlQueryString({
+      UrlUtils.encodeQuery({
         client_id: this.CREDENTIALS[0].client_id,
         client_secret: this.CREDENTIALS[0].client_secret,
         get_secure_url: '1',
@@ -357,10 +404,16 @@ export class PixivAuth {
   /**
    * 内部方法：更新/添加账号上下文，并设为激活状态
    */
-  private updateAccountContext(access: string, refresh: string, user: PixivUser): AccountContext {
-    const userId = user.id.toString(); // 假设 PixivUser 有 id 字段
-    const context: AccountContext = { userId, accessToken: access, refreshToken: refresh, user };
-
+  private updateAccountContext(access: string, refresh: string, user: PixivUser, password?: string): AccountContext {
+    const userId = user.id.toString();
+    const context: AccountContext = {
+      userId,
+      accessToken: access,
+      refreshToken: refresh,
+      user,
+      passWord: password || '', // 如果是密码登录，传入密码；如果是Token登录，则为空
+      isMailAuthorized: user.mail_address?.length > 0 ? 1 : 0
+    };
     // 存入或更新映射表
     this.accounts.set(userId, context);
     // 设为当前激活账号

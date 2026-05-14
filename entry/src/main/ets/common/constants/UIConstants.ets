@@ -6,6 +6,10 @@ export default class UIConstants {
    */
   static readonly AnimationSpeed_300: number = 300
 
+  static readonly BORDER_RADIUS_20: number = 20
+  static readonly PADDING_VALUE_16: number = 16
+  static readonly PADDING_VALUE_12: number = 12
+
   /**
    * 默认颜色
    */

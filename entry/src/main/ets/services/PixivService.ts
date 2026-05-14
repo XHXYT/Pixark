@@ -49,6 +49,10 @@ export class PixivService {
     await this.auth.loginWithRefreshToken(refreshToken);
   }
 
+  async editAccount(currentPassword: string, newMailAddress?: string, newPassword?: string): Promise<boolean> {
+    return this.auth.editAccount(currentPassword, newMailAddress, newPassword);
+  }
+
   getCurrentRefreshToken(): string {
     return this.auth.getCurrentRefreshToken();
   }
@@ -56,6 +60,7 @@ export class PixivService {
   getCurrentUser(): PixivUser {
     return this.auth.getCurrentUser();
   }
+
 
   // --- 多账号管理方法 ---
   getAllAccounts(): AccountContext[] {

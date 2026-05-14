@@ -8,9 +8,13 @@ import { PixState } from "../../entryability/AppState";
 import { EventHub, EventKey } from "../../common/utils/EventHub";
 
 
-@Builder export function UserAccountsBuilder() { UserAccounts() }
+@Builder
+export function UserAccountsBuilder() {
+  UserAccounts()
+}
 
-@ComponentV2 struct UserAccounts {
+@ComponentV2
+struct UserAccounts {
 
   @Local users: AccountContext[] = []
   @Local isLoading: boolean = false
