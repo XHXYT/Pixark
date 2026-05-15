@@ -11,23 +11,44 @@ import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { CardUtil } from "../common/utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";
+import { LengthMetrics } from "@kit.ArkUI";
 
 const logger = createLogger('Home')
 
 @ComponentV2
 export struct Home {
 
+  @Local skeletonOpacity: number = 1;
+  private intervalId: number = -1;
+
   build() {
+    if (homeViewModel.isInitialLoading) {
+      this.HomeSkeleton()
+    } else {
+      this.HomeContent()
+      // this.HomeSkeleton()
+    }
+  }
+
+  aboutToAppear(): void {
+    // 骨架屏闪烁动画
+    this.intervalId = setInterval(() => {
+      this.skeletonOpacity = this.skeletonOpacity === 1 ? 0.4 : 1;
+    }, 800);
+  }
+
+  aboutToDisappear(): void {
+    if (this.intervalId !== -1) clearInterval(this.intervalId);
+  }
+
+  @Builder
+  HomeContent() {
     Refresh({ refreshing: homeViewModel.isRefreshing }) {
       List({ scroller: homeViewModel.listScroller }) {
         // 顶部亮点 (全部分类)
         ListItem() {
-          BannerView({
-            bannerList: homeViewModel.spotlightList,
-            swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0
-          })
+          BannerView({ bannerList: homeViewModel.spotlightList, swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0 })
         }
-
         // 推荐作者 (横向滚动 List)
         ListItem() {
           Column() {
@@ -36,11 +57,7 @@ export struct Home {
               ForEach(homeViewModel.recommendedUsers, (user: PixivUser) => {
                 ListItem() {
                   Column() {
-                    PixivImageComponent({
-                      imageUrl: user.profile_image_urls.medium,
-                      imageWidth: 50, imageHeight: 50,
-                      imageBorder: { radius: 50 }
-                    })
+                    PixivImageComponent({ imageUrl: user.profile_image_urls.medium, imageWidth: 50, imageHeight: 50, imageBorder: { radius: 50 } })
                     Text(user.name)
                       .constraintSize({ maxWidth: 65 })
                       .margin({ top: 3 })
@@ -49,17 +66,13 @@ export struct Home {
                   }
                 }
                 .onClick(() => {
-                  const params: UserDetailParams = {
-                    id: user.id,
-                    user: user
-                  }
-                  // 跳转详情页
+                  const params: UserDetailParams = { id: user.id, user: user }
                   PixState.pageStack.pushPathByName('user_detail', params, true);
                 })
               })
             }
             .padding(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue }))
-            .listDirection(Axis.Horizontal) // 横向
+            .listDirection(Axis.Horizontal)
             .scrollBar(BarState.Off)
             .margin({ bottom: 5 })
             .width('100%')
@@ -67,53 +80,19 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-
+        // 推荐插画
         ListItem() {
           Column() {
-            // 推荐插画
             this.Title($r('app.string.recommend_illust'))
             WaterFlowView({
               contentEndOffset: 52,
               illustList: homeViewModel.recommendedIllusts,
               nestedScroll: homeViewModel.nestedScrollOptions,
-              onCardClick: (illust) => {
-                this.onCardClick(illust)
-              },
+              onCardClick: (illust) => { this.onCardClick(illust) },
               onReachEnd: () => {
-                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-                if (!PixState.isTest) {
-                  homeViewModel.loadMoreRecommended();
-                }
+                if (!PixState.isTest) { homeViewModel.loadMoreRecommended(); }
               }
             })
-         /*   WaterFlow() {
-              ForEach(homeViewModel.recommendedIllusts, (illust: PixivIllust) => {
-                FlowItem() {
-                  PixivImageComponent({
-                    imageUrl: illust.image_urls.medium,
-                    imageObjectFit: ImageFit.Auto,
-                    imageBorderRadius: 16,
-                  })
-                    .id(CardUtil.getFlowItemIdByIndex(illust.id))
-                    // .visibility(homeViewModel.hiddenIllustId === illust.id ? Visibility.None : Visibility.Visible)
-                }
-                .onClick(() => {
-
-                })
-              }, (iilust: PixivIllust) => `${iilust.id}${iilust.title}`)
-            }
-            .rowsGap(5)
-            .columnsGap(10)
-            .layoutWeight(1)
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.Spring)
-            .nestedScroll(homeViewModel.nestedScrollOptions)
-            .columnsTemplate(WaterFlowColumnsTemplate(PixState.widthBp)) // 瀑布流列数
-            .onReachEnd(() => {
-
-              logger.debug('WaterFlow 滚动到底部，开始加载更多');
-
-            })*/
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
@@ -121,20 +100,89 @@ export struct Home {
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
-      .margin({
-        right: PixState.rightAvoidWidth,
-        left: PixState.leftAvoidWidth
-      })
+      .margin({ right: PixState.rightAvoidWidth, left: PixState.leftAvoidWidth })
     }
     .onRefreshing(async () => {
-      // 下拉刷新所有主页数据
       await homeViewModel.loadHomeData()
     })
-
   }
 
+  // 首页骨架屏
   @Builder
-  Title(title: ResourceStr) {
+  HomeSkeleton() {
+    Scroll() {
+      Column({ space: 15 }) {
+        // 模拟 Banner 区域
+        Row()
+          .width('100%')
+          .height(150)
+          .borderRadius(12)
+          .backgroundColor($r('sys.color.comp_divider')) // 系统分割线颜色，偏灰
+          .margin({ top: 15 })
+          .opacity(this.skeletonOpacity) // 绑定透明度
+          .animation({ duration: 800, curve: Curve.EaseInOut })
+        // 模拟推荐作者区域
+        Column({ space: 8 }) {
+          Row()
+            .borderRadius(6)
+            .width(100).height(20)
+            .opacity(this.skeletonOpacity) // 绑定透明度
+            .backgroundColor($r('sys.color.comp_divider'))
+            .animation({ duration: 800, curve: Curve.EaseInOut })
+          Row({ space: 15 }) {
+            ForEach([1, 2, 3, 4, 5], (item: number) => {
+              Column({ space: 4 }) {
+                Row()
+                  .borderRadius(25)
+                  .width(50).height(50)
+                  .opacity(this.skeletonOpacity)
+                  .backgroundColor($r('sys.color.comp_divider'))
+                  .animation({ duration: 800, curve: Curve.EaseInOut })
+                Row()
+                  .borderRadius(4)
+                  .width(40).height(12)
+                  .opacity(this.skeletonOpacity)
+                  .backgroundColor($r('sys.color.comp_divider'))
+                  .animation({ duration: 800, curve: Curve.EaseInOut })
+              }
+            })
+          }
+          .width('100%')
+        }
+        .alignItems(HorizontalAlign.Start)
+        // 模拟推荐插画瀑布流区域
+        Column({ space: 8 }) {
+          Row()
+            .borderRadius(6)
+            .width(100).height(20)
+            .opacity(this.skeletonOpacity) // 绑定透明度
+            .backgroundColor($r('sys.color.comp_divider'))
+            .animation({ duration: 800, curve: Curve.EaseInOut })
+          // 简单模拟不同高度的矩形占位
+          Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start, space: { main: LengthMetrics.vp(10), cross: LengthMetrics.vp(10) } }) {
+            ForEach([200, 240, 200, 260], (height: number) => {
+              Column()
+                .width('48%')
+                .height(height)
+                .borderRadius(12)
+                .opacity(this.skeletonOpacity)
+                .backgroundColor($r('sys.color.comp_divider'))
+                .animation({ duration: 800, curve: Curve.EaseInOut })
+            })
+          }
+          .width('100%')
+        }
+        .alignItems(HorizontalAlign.Start)
+
+      }
+      .width('100%')
+      .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
+    }
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
+  }
+
+  @Builder Title(title: ResourceStr) {
     Text(title)
       .fontSize(18)
       .fontWeight(FontWeight.Bold)

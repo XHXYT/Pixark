@@ -19,21 +19,22 @@ class FavoriteViewModel {
   @Trace filterIndex: number = 0;
 
   // --- 数据状态 ---
+  // 是否正在刷新加载所有数据
+  @Trace isRefreshing: boolean = false
+  // 首次加载状态，用于骨架屏/加载动画
+  @Trace isInitialLoading: boolean = true;
   // 动态数据
   @Trace trendList: PixivIllust[] = [];
-  @Trace isTrendLoading: boolean = false;
   private nextTrendUrlPublic: string = '';
   private nextTrendUrlPrivate: string = '';
 
   // 收藏数据
   @Trace collectionList: PixivIllust[] = [];
-  @Trace isCollectionLoading: boolean = false;
   private nextCollectionUrlPublic: string = '';
   private nextCollectionUrlPrivate: string = '';
 
   // 关注数据
   @Trace followList: UserPreview[] = [];
-  @Trace isFollowLoading: boolean = false;
   private nextFollowUrlPublic: string = '';
   private nextFollowUrlPrivate: string = '';
 
@@ -54,20 +55,57 @@ class FavoriteViewModel {
   // --- 核心加载逻辑 ---
   // 加载当前 Tab 的数据
   async loadCurrentTabData() {
-    if (this.mainTabIndex === 0) {
-      await this.loadTrendData();
-    } else if (this.mainTabIndex === 1) {
-      await this.loadCollectionData();
-    } else if (this.mainTabIndex === 2) {
-      await this.loadFollowData();
+    if (this.isRefreshing) return; // 防抖：如果正在刷新，不重复触发
+    this.isRefreshing = true;
+    logger.debug('>>> 开始加载喜欢数据...');
+    try {
+      if (this.mainTabIndex === 0) {
+        await this.loadTrendData();
+      } else if (this.mainTabIndex === 1) {
+        await this.loadCollectionData();
+      } else if (this.mainTabIndex === 2) {
+        await this.loadFollowData();
+      }
+    } catch (e) {
+      logger.error(`[loadCurrentTabData] Failed: ${e.message}`);
+    } finally {
+      // 确保无论成功失败，都要关闭刷新状态
+      this.isRefreshing = false;
+      // 关闭首次加载动画
+      this.isInitialLoading = false;
     }
   }
+
+  // 强制重置并重新加载 (用于切换账号)
+  public resetAndLoad() {
+    logger.debug('[resetAndLoad] Resetting all data for account switch.');
+    // 清空所有旧数据
+    this.trendList = [];
+    this.collectionList = [];
+    this.followList = [];
+    // 清空所有分页 URL
+    this.nextTrendUrlPublic = '';
+    this.nextTrendUrlPrivate = '';
+    this.nextCollectionUrlPublic = '';
+    this.nextCollectionUrlPrivate = '';
+    this.nextFollowUrlPublic = '';
+    this.nextFollowUrlPrivate = '';
+    // 重置加载状态
+    this.hasLoadedTrend = false;
+    this.hasLoadedCollection = false;
+    this.hasLoadedFollow = false;
+    this.lastFilterIndex = -1;
+    // 恢复首次加载动画状态
+    this.isInitialLoading = true;
+    // 重新加载当前 Tab
+    this.loadCurrentTabData();
+  }
+
 
   // 加载动态 (支持全部/公开/隐藏)
   async loadTrendData(isLoadMore: boolean = false) {
     // 检查防抖：如果是加载更多，或者是初次加载，或者是筛选器变了
     if (!isLoadMore && this.hasLoadedTrend && this.lastFilterIndex === this.filterIndex) return;
-    this.isTrendLoading = true;
     try {
       let newData: PixivIllust[] = [];
       // 全部 (请求公开 + 私密)
@@ -104,21 +142,17 @@ class FavoriteViewModel {
       } else {
         this.trendList = newData;
       }
-
       this.hasLoadedTrend = true;
       this.lastFilterIndex = this.filterIndex;
       logger.debug(`[loadTrendData] Filter: ${this.filterIndex}, Loaded ${newData.length} items.`);
     } catch (e) {
       logger.error(`[loadTrendData] Failed: ${e.message}`);
-    } finally {
-      this.isTrendLoading = false;
     }
   }
 
   // 加载收藏 (支持全部/公开/隐藏)
   async loadCollectionData(isLoadMore: boolean = false) {
     if (!isLoadMore && this.hasLoadedCollection && this.lastFilterIndex === this.filterIndex) return;
-    this.isCollectionLoading = true;
     try {
       const userId = PixState.currentUser?.id || 0;
       let newData: PixivIllust[] = [];
@@ -153,15 +187,12 @@ class FavoriteViewModel {
       logger.debug(`[loadCollectionData] Filter: ${this.filterIndex}, Loaded ${newData.length} items.`);
     } catch (e) {
       logger.error(`[loadCollectionData] Failed: ${e.message}`);
-    } finally {
-      this.isCollectionLoading = false;
     }
   }
 
   // 加载关注 (支持全部/公开/隐藏)
   async loadFollowData(isLoadMore: boolean = false) {
     if (!isLoadMore && this.hasLoadedFollow && this.lastFilterIndex === this.filterIndex) return;
-    this.isFollowLoading = true;
     try {
       const userId = PixState.currentUser?.id || 0;
       let newData: UserPreview[] = [];
@@ -197,8 +228,6 @@ class FavoriteViewModel {
       logger.debug(`[loadFollowData] Filter: ${this.filterIndex}, Loaded ${newData.length} users.`);
     } catch (e) {
       logger.error(`[loadFollowData] Failed: ${e.message}`);
-    } finally {
-      this.isFollowLoading = false;
     }
   }
 

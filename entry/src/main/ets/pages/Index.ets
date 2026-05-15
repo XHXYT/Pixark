@@ -39,19 +39,12 @@ struct Index {
     ];
 
   aboutToAppear() {
-    logger.info('Page aboutToAppear');
-    // 初始化动画
-    animation.init(this.getUIContext())
+    logger.debug('Page aboutToAppear');
   }
 
   build() {
-    // 初始化中，显示过渡界面
-    if (PixState.isInitializing) {
-      // Logo
-      this.LogoStartLoading()
-    }
-    // 已登录显示内容
-    else if (PixState.isLoggedIn) {
+    // 存在账号信息显示内容
+    if (PixState.isLoggedIn) {
       Navigation(PixState.pageStack) {
         this.MainContent()
       }

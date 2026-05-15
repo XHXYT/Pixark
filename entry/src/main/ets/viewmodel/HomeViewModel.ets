@@ -24,8 +24,10 @@ class HomeViewModel {
   @Trace isRefreshRecommend: boolean = false
   // 是否正在加载更多（用于防止滚动到底部重复触发）
   @Trace isLoadingMore: boolean = false;
-  // 是否正在刷新加载所有数据
+  // 是否正在刷新数据
   @Trace isRefreshing: boolean = false
+  // 首次加载状态
+  @Trace isInitialLoading: boolean = true;
 
   // 外层 List 的滚动控制器
   listScroller: Scroller = new Scroller();
@@ -118,7 +120,20 @@ class HomeViewModel {
       logger.error(`!!! 加载首页数据失败: code[${err.code}], msg[${err.message}]`);
     } finally {
       this.isRefreshing = false
+      // 关闭首次加载动画
+      this.isInitialLoading = false
     }
+  }
+
+  // 强制重置并重新加载 (用于切换账号)
+  public resetAndLoad() {
+    logger.debug('[resetAndLoad] Resetting home data for account switch.');
+    this.recommendedIllusts = [];
+    this.recommendedUsers = [];
+    this.spotlightList = [];
+    this.nextRecommendedUrl = '';
+    this.isInitialLoading = true;
+    this.loadHomeData();
   }
 
   /**

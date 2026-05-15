@@ -15,14 +15,14 @@ import { createLogger } from '../common/utils/Logger';
 import { EventHub, EventKey } from '../common/utils/EventHub';
 import { pixiv } from '../services/PixivService';
 import { ColorUtils } from '../common/utils/ColorUtils';
-
+import { favVM } from '../viewmodel/FavoriteViewModel';
+import { animation } from '../common/utils/AnimationUtil';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
 const BREAKPOINT_RATIO_PORTRAIT = 1.2;
 
 export default class EntryAbility extends UIAbility {
-
   private isFirstStart: boolean = true
   private avoidManager: AvoidanceManager | undefined = undefined;
   private avoidListener: (avoidance: SmartAvoidance) => void = (newAvoidance) => {
@@ -32,41 +32,15 @@ export default class EntryAbility extends UIAbility {
     PixState.rightAvoidWidth = newAvoidance.right
   }
 
+  // --- 生命周期 ---
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     try {
-      // 初始化首选项
-      await preferenceUtil.init(this.context, 'pixark_preference');
-      // 初始化KV数据库
-      await kvDbUtil.initKVManager(this.context, 'pixark')
-      // 加载设置数据
-      await appSettings.load()
-      // 初始化账号信息
-      await this.initAccounts()
-      // 注册数据获取事件
-      EventHub.on(EventKey.FetchData, () => {
-        this.loadData()
-      })
-      // 加载一次数据
-      this.loadData()
-      // 初始化颜色工具
-      ColorUtils.init(this.context)
-      logger.info('Init', 'preferenceUtil and kvDbUtil initialized successfully.');
+      await this.initAppEnvironment();
+      await this.initAppStateAndAuth();
+      logger.info('Init', 'App environment and state initialized successfully.');
     } catch (error) {
-      logger.error(`'Init, preferenceUtil or kvDbUtil initialization failed, ${error}`)
+      logger.error(`Init`, `Initialization failed, ${error}`);
     }
-    try {
-      const color_mode = await preferenceUtil.get<ConfigurationConstant.ColorMode>('color_mode', ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
-      logger.info('ColorMode', `保存的颜色模式：${color_mode}`);
-      this.context.getApplicationContext().setColorMode(color_mode);
-    } catch (err) {
-      logger.error(`'ColorMode, Failed to set colorMode, ${err}`)
-    }
-    _PixState.Context = this.context
-    // 初始化 ImageKnife 文件缓存
-    await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
-    // 全局添加 Pixiv 必需的 Referer
-    ImageKnife.getInstance().addHeader('Referer', 'https://www.pixiv.net/') ;
-    logger.info('Lifecycle', 'EntryAbility onCreate End');
   }
 
   onDestroy(): void {
@@ -74,24 +48,25 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // Main window is created, set main page for this ability
     logger.info('Lifecycle', 'EntryAbility onWindowStageCreate');
     ezCustomTransition.init(windowStage)
     windowStage.loadContent('pages/Index', async (err) => {
       if (err.code) {
-        logger.error(`'WindowStage, Failed to load the content., ${err}`)
+        logger.error(`WindowStage`, `Failed to load the content., ${err}`)
         return;
       }
       try {
         const data = await windowStage.getMainWindow()
         // 初始化通知工具
         toastUtil.initContext(data.getUIContext(), data.getUIContext().getHostContext() as common.UIAbilityContext)
-        // 初始化 window
-        this.intRectWindow(windowStage, data.getUIContext())
         // 初始化UI上下文
         _PixState.UIContext = data.getUIContext()
+        // 初始化动画工具
+        animation.init(_PixState.UIContext)
+        // 初始化窗口相关
+        this.intRectWindow(windowStage, data.getUIContext())
       } catch (error) {
-        logger.error(`'WindowStage, Failed to get the Main Window, ${error}`)
+        logger.error(`WindowStage`, `Failed to get the Main Window, ${error}`)
       }
       logger.info('WindowStage', 'Succeeded in loading the content.');
     });
@@ -102,7 +77,6 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageWillDestroy(windowStage: window.WindowStage): void {
-    // Main window will destroy, release UI related resources
     // 销毁避让管理器并移除监听
     if (this.avoidManager) {
       this.avoidManager.offChangeListener(this.avoidListener);
@@ -113,42 +87,106 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageDestroy(): void {
-    // Main window is destroyed, release UI related resources
     logger.info('Lifecycle', 'EntryAbility onWindowStageDestroy');
   }
 
   onForeground(): void {
-    // Ability has brought to foreground
     logger.info('Lifecycle', 'EntryAbility onForeground');
   }
 
   onBackground(): void {
-    // Ability has back to background
     logger.info('Lifecycle', 'EntryAbility onBackground');
   }
 
-  async initAccounts() {
+  // --- 核心初始化 ---
+  /**
+   * 初始化应用基础环境 (偏好设置、数据库、颜色、图片缓存等)
+   */
+  private async initAppEnvironment() {
+    // 初始化首选项
+    await preferenceUtil.init(this.context, 'pixark_preference');
+    // 初始化KV数据库
+    await kvDbUtil.initKVManager(this.context, 'pixark')
+    // 加载设置数据
+    await appSettings.load()
+
+    // 初始化颜色工具
+    ColorUtils.init(this.context)
+
+    // 设置深浅色模式
+    try {
+      const color_mode = await preferenceUtil.get<ConfigurationConstant.ColorMode>('color_mode', ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
+      logger.info('ColorMode', `保存的颜色模式：${color_mode}`);
+      this.context.getApplicationContext().setColorMode(color_mode);
+    } catch (err) {
+      logger.error(`ColorMode`, `Failed to set colorMode, ${err}`)
+    }
+
+    _PixState.Context = this.context
+
+    // 初始化 ImageKnife 文件缓存
+    await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
+    // 全局添加 Pixiv 必需的 Referer
+    ImageKnife.getInstance().addHeader('Referer', 'https://www.pixiv.net/');
+  }
+
+  /**
+   * 初始化账号状态与授权逻辑 (决定进入主页还是登录页)
+   */
+  private async initAppStateAndAuth() {
+    // 标记进入初始化阶段
+    PixState.isLoading = true;
+    PixState.isInitializing = true;
+
+    // 初始化账号信息 (仅读取本地，速度极快)
+    await this.initAccounts()
+
+    // 只要本地有账号，立即关闭 Loading，优先渲染出主界面
+    if (pixiv.isLogin()) {
+      PixState.isLoggedIn = true;
+      const currentUser = pixiv.getCurrentUser();
+      if (currentUser) {
+        PixState.currentUser = currentUser;
+      }
+      // 立即关闭初始化状态，UI 渲染主界面
+      PixState.isLoading = false;
+      PixState.isInitializing = false;
+
+      // 在后台静默同步 Token 和加载数据 (不阻塞 UI)
+      this.backgroundSyncData();
+    } else {
+      // 没有账号，也要关闭 Loading，让 UI 跳转到登录页
+      PixState.isLoggedIn = false;
+      PixState.isLoading = false;
+      PixState.isInitializing = false;
+    }
+
+    // 注册数据获取事件
+    EventHub.on(EventKey.FetchData, () => {
+      this.handleFetchDataEvent();
+    });
+  }
+
+  /**
+   * 纯本地账号初始化(不包含网络请求)
+   */
+  private async initAccounts() {
     let savedAccounts: AccountContext[] = [];
     let lastActiveUserId = '';
-
-    // 增加防时序重试机制，解决 KVStore 底层初始化的微秒级延迟
     let retryCount = 3;
+
     while (retryCount > 0) {
       try {
         const accountsJson = await kvDbUtil.getData<string>('pixiv_accounts', '[]');
         savedAccounts = JSON.parse(accountsJson) as AccountContext[];
         lastActiveUserId = await kvDbUtil.getData<string>('active_user_id', '');
-        break; // 读取成功，跳出循环
+        break;
       } catch (dbError) {
         retryCount--;
         if (retryCount > 0) {
           logger.warn('InitAccounts', `KVStore not ready, waiting 100ms... (${3 - retryCount}/3)`);
-          // 延迟重试
-          await new Promise<void>((resolve: (value: void) => void) => {
-            setTimeout(() => resolve(), 100);
-          });
+          await new Promise<void>((resolve: (value: void) => void) => { setTimeout(() => resolve(), 100); });
         } else {
-          // 3次都失败，说明真的有问题，只能放弃本次初始化
           logger.error('InitAccounts', `KVStore failed after 3 retries: ${dbError?.message}`);
           return;
         }
@@ -156,7 +194,7 @@ export default class EntryAbility extends UIAbility {
     }
 
     try {
-      // 兼容老版本：如果找不到多账号数据，尝试读取旧的单 token
+      // 兼容老版本：单 token 迁移 (仅老用户首次升级触发，可接受短暂等待)
       if (savedAccounts.length === 0) {
         const oldRefreshToken = await kvDbUtil.getData<string>('refresh_token', '');
         if (oldRefreshToken) {
@@ -176,100 +214,110 @@ export default class EntryAbility extends UIAbility {
           }
         }
       } else {
-        // 正常的多账号初始化
+        // 🌟 正常的多账号初始化 (纯内存操作，极快)
         pixiv.initAccounts(savedAccounts, lastActiveUserId);
         logger.info('InitAccounts', `Multi-account initialized. Count: ${savedAccounts.length}`);
-
-        // 后台静默刷新当前激活账号的 Token
-        const activeAccount = pixiv.getActiveAccount();
-        if (activeAccount?.refreshToken) {
-          try {
-            logger.info('InitAccounts', 'Silently refreshing active token in background...');
-            const updatedAccount = await pixiv.loginWithRefreshToken(activeAccount.refreshToken);
-            const index = savedAccounts.findIndex((a: AccountContext) => a.userId === updatedAccount.userId);
-            if (index !== -1) savedAccounts[index] = updatedAccount;
-            await kvDbUtil.putData('pixiv_accounts', JSON.stringify(savedAccounts));
-            logger.info('InitAccounts', 'Silent refresh successful.');
-          } catch (refreshError) {
-            logger.warn('InitAccounts', `Silent refresh failed: ${JSON.stringify(refreshError)}`);
-          }
-        }
       }
     } catch (e) {
       logger.error('InitAccounts', `Account logic error: ${e?.message || JSON.stringify(e)}`);
     }
   }
 
-  // 加载数据
-  async loadData() {
-    PixState.isLoading = true;
-    // 开始初始化，标记为 true，显示过渡页
-    PixState.isInitializing = true;
+  // --- 数据同步与事件 ---
+  /**
+   * 全局数据刷新事件处理 (核心调度中心)
+   */
+  private async handleFetchDataEvent() {
+    logger.info('FetchDataEvent', 'Received FetchData event, reloading all data...');
+
+    if (!pixiv.isLogin()) {
+      PixState.isLoggedIn = false;
+      return;
+    }
+
+    // 更新全局基础状态
+    PixState.isLoggedIn = true;
+    const currentUser = pixiv.getCurrentUser();
+    if (currentUser) {
+      PixState.currentUser = currentUser;
+      PixState.currentUserDetail = null;
+    }
+
+    // 通知所有 ViewModel 重置并重新加载
+    homeViewModel.resetAndLoad();
+    favVM.resetAndLoad();
+    // 以后有新的 ViewModel 往这里加
+  }
+
+  /**
+   * 后台静默同步数据 (Token刷新、用户详情、首页数据)
+   * 不阻塞 UI 渲染，已经加载主界面
+   */
+  private async backgroundSyncData() {
     try {
-      if (!PixState.isTest) {
-        // 直接检查是否登录即可 (Token 已在 onCreate 加载完成)
-        if (pixiv.isLogin()) {
-          PixState.isLoggedIn = true;
-
-          // 获取当前用户信息 (直接从内存拿，速度极快)
-          const currentUser = pixiv.getCurrentUser();
-          if (currentUser) {
-            PixState.currentUser = currentUser;
-
-            // 补全详细信息的逻辑保留
-            const email = currentUser.mail_address;
-            if (!currentUser.profile_image_urls?.medium) {
-              logger.warn('User 没有用户头像链接，重新获取详细信息');
-              const full = await pixiv.getUserDetail(currentUser.id);
-              PixState.currentUserDetail = full;
-              PixState.currentUser = full.user;
-              PixState.currentUser.mail_address = email;
-              // 同步更新 PixivAuth 内部状态
-              pixiv.updateAccountUser(currentUser.id.toString(), PixState.currentUser);
-              // 持久化到本地数据库
-              const allAccounts = pixiv.getAllAccounts();
-              await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
-            }
-
-          }
-          // 加载主页内容 (因为拦截器存在，不用操心 Token 过期问题)
-          homeViewModel.loadHomeData();
-        } else {
-          // 没登录就是没登录，不用再尝试 token 登录了
-          logger.warn('User not logged in, redirecting to login.');
-          PixState.isLoggedIn = false
+      // 后台静默刷新当前激活账号的 Token
+      const activeAccount = pixiv.getActiveAccount();
+      if (activeAccount?.refreshToken) {
+        try {
+          logger.info('BackgroundSync', 'Silently refreshing active token in background...');
+          const updatedAccount = await pixiv.loginWithRefreshToken(activeAccount.refreshToken);
+          const allAccounts = pixiv.getAllAccounts();
+          const index = allAccounts.findIndex((a: AccountContext) => a.userId === updatedAccount.userId);
+          if (index !== -1) allAccounts[index] = updatedAccount;
+          await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
+          logger.info('BackgroundSync', 'Silent refresh successful.');
+        } catch (refreshError) {
+          logger.warn('BackgroundSync', `Silent refresh failed: ${JSON.stringify(refreshError)}`);
         }
+      }
+
+      // 补全用户详细信息
+      const currentUser = PixState.currentUser;
+      if (currentUser && !currentUser.profile_image_urls?.medium) {
+        logger.warn('BackgroundSync', 'Fetching missing user detail...');
+        const full = await pixiv.getUserDetail(currentUser.id);
+        PixState.currentUserDetail = full;
+        const email = PixState.currentUser?.mail_address;
+        PixState.currentUser = full.user;
+        if (email) PixState.currentUser.mail_address = email;
+        pixiv.updateAccountUser(currentUser.id.toString(), PixState.currentUser);
+        const allAccounts = pixiv.getAllAccounts();
+        await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
+      }
+
+      // 加载主页内容 (展示骨架屏)
+      if (!PixState.isTest) {
+        homeViewModel.loadHomeData();
       } else {
-        // 测试模式
-        await homeViewModel.loadHomeData()
-        PixState.isLoggedIn = true
+        await homeViewModel.loadHomeData();
       }
     } catch (e) {
-      logger.error('Load data error: ' + e.message);
-    } finally {
-      // 统一关闭 Loading
-      PixState.isLoading = false;
-      PixState.isInitializing = false
+      logger.error('BackgroundSync', `Error: ${e?.message || JSON.stringify(e)}`);
     }
   }
 
-  // 初始化窗口
+  // --- 窗口与UI管理 ---
+  /**
+   * 初始化窗口
+   */
   async intRectWindow(windowStage: window.WindowStage, UIContext: UIContext) {
     // 设置自动记忆最后关闭的窗口大小(仅2in1设备生效)
     try {
       await windowStage.setWindowRectAutoSave(true);
       logger.info("WindowAutoSave", 'Succeeded in setting window rect auto-save')
     } catch (exception) {
-      logger.error("WindowAutoSave", `Failed to set window rect auto-save. Cause code: ${exception.code} smessage: ${exception.message}` )
+      logger.error("WindowAutoSave", `Failed to set window rect auto-save. Cause code: ${exception.code} smessage: ${exception.message}`)
     }
+
     // 获取应用主窗口
     try {
       const windowClass: window.Window = windowStage.getMainWindowSync();
+
       // 设置窗口全屏
       windowClass.setWindowLayoutFullScreen(true).then(() => {
         logger.info('WindowRect', 'Succeeded in setting the window layout to full-screen mode.');
       }).catch((err: BusinessError) => {
-        logger.error(`'WindowRect, Failed to set the window layout to full-screen mode., ${err}`)
+        logger.error(`WindowRect`, `Failed to set the window layout to full-screen mode., ${err}`)
       });
 
       // 获取布局避让遮挡的区域
@@ -279,53 +327,71 @@ export default class EntryAbility extends UIAbility {
       this.avoidManager.onChangeListener(this.avoidListener);
       logger.info('WindowRect', 'Manager initialized and listener registered.');
 
-      // 应用窗口初始高度和宽度
-      try {
-        let properties = windowClass.getWindowProperties()
-        let rect = properties.windowRect
-        let WindowHeight = UIContext.px2vp(rect.height)
-        let WindowWidth = UIContext.px2vp(rect.width)
-        const widthBp: WidthBreakpoint = UIContext.getWindowWidthBreakpoint()
-        // 获取窗口宽度和高度
-        _PixState.window = windowStage.getMainWindowSync();
-        _PixState.windowWidth_px = rect.width;
-        _PixState.windowHeight_px = rect.height;
-        PixState.widthBp = widthBp
-        PixState.windowHeight = WindowHeight
-        PixState.windowWidth = WindowWidth
-        logger.info('WindowRect', `窗口高度：${rect.height} px 宽度：${rect.width} px`)
-        // 初始化设备窗口模式
-        this.onWindowModeChange(windowClass)
-        // 监听窗口大小变化
-        windowClass.on('windowSizeChange', async (data) => {
-          logger.info('WindowChange', 'Succeeded in enabling the listener for window size changes. Data: ' + JSON.stringify(data))
-          WindowWidth = UIContext.px2vp(data.width)!
-          WindowHeight = UIContext.px2vp(data.height)!
-          // 980px 约等于 512vp
-          PixState.windowHeight = WindowHeight
-          PixState.windowWidth = WindowWidth
-          _PixState.windowWidth_px = data.width;
-          _PixState.windowHeight_px = data.height;
-          // 动态监听断点
-          this.onWidthBpChange(UIContext)
-          this.onHeightBpChange(WindowHeight, WindowWidth)
-        })
-      } catch (error) {
-        logger.error(`'WindowChange, #intRectWindow Failed to getWindowProperties., ${error}`)
-      }
-      // 窗口模式状态监听
-      try {
-        windowClass.on('freeWindowModeChange', (data) => {
-          PixState.windowMode = data
-          // 动态监听设备窗口模式
-          this.onWindowModeChange(windowClass)
-          console.debug(`WindowMode 当前窗口状态：${PixState.windowMode}`)
-        });
-      } catch (exception) {
-        console.error(`Failed to enable the listener for free window mode changes. Cause code: ${exception.code}, message: ${exception.message}`);
-      }
+      // 初始化窗口尺寸与断点
+      this.initWindowDimensions(windowClass, UIContext);
+
+      // 注册窗口状态监听器
+      this.registerWindowListeners(windowClass, UIContext);
+
     } catch (error) {
-      logger.error(`'WindowChange, #intRectWindow Failed to getMainWindowSync., ${error}`)
+      logger.error(`WindowChange`, `#intRectWindow Failed to getMainWindowSync., ${error}`)
+    }
+  }
+
+  /**
+   * 初始化窗口尺寸与断点计算
+   */
+  private initWindowDimensions(windowClass: window.Window, UIContext: UIContext) {
+    try {
+      let properties = windowClass.getWindowProperties()
+      let rect = properties.windowRect
+      let WindowHeight = UIContext.px2vp(rect.height)
+      let WindowWidth = UIContext.px2vp(rect.width)
+      const widthBp: WidthBreakpoint = UIContext.getWindowWidthBreakpoint()
+
+      _PixState.window = windowClass;
+      _PixState.windowWidth_px = rect.width;
+      _PixState.windowHeight_px = rect.height;
+      PixState.widthBp = widthBp
+      PixState.windowHeight = WindowHeight
+      PixState.windowWidth = WindowWidth
+      logger.info('WindowRect', `窗口高度：${rect.height} px 宽度：${rect.width} px`)
+
+      // 初始化设备窗口模式
+      this.onWindowModeChange(windowClass)
+    } catch (error) {
+      logger.error(`WindowDimensions`, `Failed to getWindowProperties., ${error}`)
+    }
+  }
+
+  /**
+   * 注册窗口大小与模式变化监听
+   */
+  private registerWindowListeners(windowClass: window.Window, UIContext: UIContext) {
+    // 监听窗口大小变化
+    windowClass.on('windowSizeChange', async (data) => {
+      logger.info('WindowChange', 'Succeeded in enabling the listener for window size changes. Data: ' + JSON.stringify(data))
+      let WindowWidth = UIContext.px2vp(data.width)!
+      let WindowHeight = UIContext.px2vp(data.height)!
+
+      PixState.windowHeight = WindowHeight
+      PixState.windowWidth = WindowWidth
+      _PixState.windowWidth_px = data.width;
+      _PixState.windowHeight_px = data.height;
+
+      this.onWidthBpChange(UIContext)
+      this.onHeightBpChange(WindowHeight, WindowWidth)
+    });
+
+    // 窗口模式状态监听
+    try {
+      windowClass.on('freeWindowModeChange', (data) => {
+        PixState.windowMode = data
+        this.onWindowModeChange(windowClass)
+        console.debug(`WindowMode 当前窗口状态：${PixState.windowMode}`)
+      });
+    } catch (exception) {
+      console.error(`Failed to enable the listener for free window mode changes. Cause code: ${exception.code}, message: ${exception.message}`);
     }
   }
 
@@ -336,7 +402,8 @@ export default class EntryAbility extends UIAbility {
 
   onHeightBpChange(WindowHeight: number, WindowWidth: number) {
     let heightBp = 0
-    const WindowAspectRatio = WindowHeight / WindowWidth // 重写高度断点
+    const WindowAspectRatio = WindowHeight / WindowWidth
+    // 重写高度断点
     if (WindowAspectRatio < BREAKPOINT_RATIO_LANDSCAPE) {
       heightBp = 0
       logger.debug('Layout', `断点测试 heightBp: ${heightBp} 高宽比：${WindowAspectRatio}`)
@@ -363,13 +430,6 @@ export default class EntryAbility extends UIAbility {
           PixState.windowMode = windowClass.isInFreeWindowMode()
           this.isFirstStart = false
         }
-        // console.info(`WindowMode  the window limits. FirstLimits: ${JSON.stringify(this.windowLimits)}`);
-        // let promise = windowClass.setWindowLimits(this.windowLimits, true);
-        // promise.then((data) => {
-        //   console.info(`WindowMode Succeeded in changing the window limits. limits: ${JSON.stringify(data)}`);
-        // }).catch((err: BusinessError) => {
-        //   console.error(`WindowMode Failed to change the window limits. Cause code: ${err.code}, message: ${err.message}`);
-        // });
       } catch (exception) {
         console.error(`WindowMode Failed to change the window limits. Cause code: ${exception.code}, message: ${exception.message}`);
       }

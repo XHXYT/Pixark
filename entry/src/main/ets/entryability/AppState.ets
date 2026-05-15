@@ -25,7 +25,7 @@ export class _PixState {
   @Trace isInitializing: boolean = true
   // 加载状态
   @Trace isLoading: boolean = false
-  // 是否登录
+  // 是否登录过
   @Trace isLoggedIn: boolean = false
 
   // 窗口对象

@@ -49,21 +49,28 @@ struct UserAccounts {
           this.UserAccount(item)
         }
         .onClick(async () => {
-          if (item.userId === this.activeUserId) {
-            return; // 点击的是自己，不处理
+          if (item.userId === this.activeUserId) return;
+          // 防抖，防止用户连续快速点击切换
+          if (this.isLoading) return;
+          this.isLoading = true;
+          try {
+            // 切换底层激活账号
+            pixiv.switchAccount(item.userId);
+            this.activeUserId = item.userId;
+            // 立即更新全局状态 (UI 响应刷新)
+            PixState.currentUser = pixiv.getCurrentUser();
+            PixState.isLoggedIn = true;
+            // 持久化当前的选择
+            await kvDbUtil.putData('active_user_id', item.userId);
+            // 发出全局刷新事件 (EntryAbility 会接收并重置所有 VM)
+            EventHub.sendEvent(EventKey.FetchData);
+            // 返回主页
+            // PixState.pageStack.pop();
+          } catch (error) {
+            console.error('Switch account failed', error);
+          } finally {
+            this.isLoading = false;
           }
-          // 切换底层激活账号
-          pixiv.switchAccount(item.userId);
-          this.activeUserId = item.userId;
-          // 同步更新全局状态
-          PixState.currentUser = pixiv.getCurrentUser();
-          PixState.isLoggedIn = true;
-          // 持久化当前的选择
-          await kvDbUtil.putData('active_user_id', item.userId);
-          // 通知首页重新加载数据
-          EventHub.sendEvent(EventKey.FetchData);
-          // 返回上一页 (通常切换完就回主页)
-          PixState.pageStack.pop();
         })
       })
     }
