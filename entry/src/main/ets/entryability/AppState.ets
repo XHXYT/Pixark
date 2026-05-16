@@ -1,6 +1,6 @@
 
 import { PixivUser, UserDetailResponse } from "../services/PixivTypes"
-import { ConfigurationConstant, common } from "@kit.AbilityKit"
+import { common } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
 import { PageMargin,
   TabBarAvoidHeight,
@@ -8,6 +8,7 @@ import { PageMargin,
 import { createLogger } from "../common/utils/Logger"
 
 const logger = createLogger('PixivState')
+
 
 @ObservedV2
 export class _PixState {
@@ -68,8 +69,6 @@ export class _PixState {
   @Trace transitionEffect: TransitionEffect = TransitionEffect.IDENTITY;
   /** @description 当前主题色(Resource) */
   @Trace CurrentAppThemeColor: Resource = $r('sys.color.icon_emphasize')
-  // 当前颜色模式
-  @Trace currentColorMode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET
 
   @Computed
   get TabBarVertical() {

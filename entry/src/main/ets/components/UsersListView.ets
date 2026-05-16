@@ -5,6 +5,7 @@ import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
 import { ConfigurationConstant } from "@kit.AbilityKit"
 import { UserItem } from "./UserItem"
+import { appSettings } from "../common/entity/SettingsModel"
 
 
 const logger = createLogger('UserListView')
@@ -59,7 +60,7 @@ export struct UserListView {
         .clip(true)
         .borderRadius(16)
         .backgroundColor($r('sys.color.comp_background_tertiary'))
-        .shadow({ radius: 16, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
+        .shadow({ radius: 16, color: appSettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
         .margin(({
           left: PixState.PageMarginValue,
           right: PixState.PageMarginValue

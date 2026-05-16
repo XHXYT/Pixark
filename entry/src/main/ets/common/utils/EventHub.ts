@@ -5,7 +5,6 @@ const logger = createLogger('EventHub')
 
 export enum EventKey {
   FetchData = 10000,
-
 }
 
 export class EventHub {

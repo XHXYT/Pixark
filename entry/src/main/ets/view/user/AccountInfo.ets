@@ -89,7 +89,7 @@ export struct AccountInfo {
       // 账号 ID (只读)
       new CustomItemInfo({
         id: 'account',
-        label: $r('app.string.account'),
+        title: $r('app.string.account'),
         type: ItemActionType.INPUT,
         enabled: false,
         value: currentUser?.account || activeAccount?.userId || ''
@@ -97,7 +97,7 @@ export struct AccountInfo {
 
       // 旧密码 (必填验证身份)
       new CustomItemInfo({
-        label: $r('app.string.old_password'),
+        title: $r('app.string.old_password'),
         type: ItemActionType.INPUT,
         id: 'old_password',
         value: savedPassword, // 如果本地有保存则自动填入
@@ -109,7 +109,7 @@ export struct AccountInfo {
 
       // 新密码 (可选)
       new CustomItemInfo({
-        label: $r('app.string.new_password'),
+        title: $r('app.string.new_password'),
         type: ItemActionType.INPUT,
         id: 'new_password',
         value: '',
@@ -121,7 +121,7 @@ export struct AccountInfo {
 
       // 邮箱地址 (可编辑)
       new CustomItemInfo({
-        label: $r('app.string.mail_address'),
+        title: $r('app.string.mail_address'),
         type: ItemActionType.INPUT,
         id: 'mail_address',
         value: this.mailAddress,
@@ -132,7 +132,7 @@ export struct AccountInfo {
 
       // 导出 Token (仅当邮箱授权登录时显示，参考 PixEz 逻辑)
       new CustomItemInfo({
-        label: '导出 Token',
+        title: '导出 Token',
         type: ItemActionType.TEXT,
         id: 'export_token',
         value: activeAccount?.refreshToken ? '点击复制' : '未登录',
@@ -147,7 +147,7 @@ export struct AccountInfo {
 
       // 注销账号 (高危操作，标红)
       new CustomItemInfo({
-        label: '注销账号',
+        title: '注销账号',
         type: ItemActionType.ROUTER,
         id: 'account_deletion',
         isDanger: true,

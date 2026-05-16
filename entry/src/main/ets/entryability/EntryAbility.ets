@@ -17,6 +17,8 @@ import { pixiv } from '../services/PixivService';
 import { ColorUtils } from '../common/utils/ColorUtils';
 import { favVM } from '../viewmodel/FavoriteViewModel';
 import { animation } from '../common/utils/AnimationUtil';
+import { SettingsUtils } from '../common/utils/SettingsUtils';
+import { ResourceUtils } from '../common/utils/ResourceUtil';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -57,14 +59,14 @@ export default class EntryAbility extends UIAbility {
       }
       try {
         const data = await windowStage.getMainWindow()
-        // 初始化通知工具
-        toastUtil.initContext(data.getUIContext(), data.getUIContext().getHostContext() as common.UIAbilityContext)
         // 初始化UI上下文
         _PixState.UIContext = data.getUIContext()
+        // 初始化通知工具
+        toastUtil.initContext(_PixState.UIContext, _PixState.UIContext.getHostContext() as common.UIAbilityContext)
         // 初始化动画工具
         animation.init(_PixState.UIContext)
         // 初始化窗口相关
-        this.intRectWindow(windowStage, data.getUIContext())
+        this.intRectWindow(windowStage, _PixState.UIContext)
       } catch (error) {
         logger.error(`WindowStage`, `Failed to get the Main Window, ${error}`)
       }
@@ -112,18 +114,12 @@ export default class EntryAbility extends UIAbility {
 
     // 初始化颜色工具
     ColorUtils.init(this.context)
-
-    // 设置深浅色模式
-    try {
-      const color_mode = await preferenceUtil.get<ConfigurationConstant.ColorMode>('color_mode', ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
-      logger.info('ColorMode', `保存的颜色模式：${color_mode}`);
-      this.context.getApplicationContext().setColorMode(color_mode);
-    } catch (err) {
-      logger.error(`ColorMode`, `Failed to set colorMode, ${err}`)
-    }
-
+    // 初始化资源工具
+    ResourceUtils.init(this.context)
+    // 初始化上下文
     _PixState.Context = this.context
-
+    // 设置深浅色模式
+    SettingsUtils.setColorMode()
     // 初始化 ImageKnife 文件缓存
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
     // 全局添加 Pixiv 必需的 Referer
@@ -395,12 +391,12 @@ export default class EntryAbility extends UIAbility {
     }
   }
 
-  onWidthBpChange(UIContext: UIContext) {
+  private onWidthBpChange(UIContext: UIContext) {
     const widthBp: WidthBreakpoint = UIContext.getWindowWidthBreakpoint();
     PixState.widthBp = widthBp
   }
 
-  onHeightBpChange(WindowHeight: number, WindowWidth: number) {
+  private onHeightBpChange(WindowHeight: number, WindowWidth: number) {
     let heightBp = 0
     const WindowAspectRatio = WindowHeight / WindowWidth
     // 重写高度断点
@@ -417,7 +413,7 @@ export default class EntryAbility extends UIAbility {
     PixState.heightBp = heightBp
   }
 
-  async onWindowModeChange(windowClass: window.Window) {
+  private async onWindowModeChange(windowClass: window.Window) {
     try {
       // 设置默认标题栏是否显示
       windowClass.setWindowDecorVisible(false)

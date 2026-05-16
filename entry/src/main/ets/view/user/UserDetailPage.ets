@@ -266,9 +266,9 @@ struct UserDetail {
   }
 
   @Builder
-  InfoRow(label: ResourceStr, value: ResourceStr) {
+  InfoRow(title: ResourceStr, value: ResourceStr) {
     Row() {
-      Text(label)
+      Text(title)
         .fontColor($r('sys.color.font_tertiary'))
         .fontSize(14)
         .width(100)

@@ -18,6 +18,7 @@ import { Login } from './Login';
 import UIConstants from '../common/constants/UIConstants';
 import { More } from './More';
 import { createLogger } from '../common/utils/Logger';
+import { appSettings } from '../common/entity/SettingsModel';
 
 
 const logger = createLogger('Index')
@@ -239,11 +240,11 @@ struct Index {
       })
     }
     .zIndex(1)
+    .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
+    .barBackgroundBlurStyle(!PixState.TabBarVertical ? BlurStyle.Thin : undefined)
     .backgroundColor($r('sys.color.background_primary'))
     .barOverlap(!PixState.TabBarVertical)
-    .barBackgroundBlurStyle(!PixState.TabBarVertical ? BlurStyle.Thin : undefined)
     .vertical(PixState.TabBarVertical)
-    .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
     .barHeight(PixState.TabBarHeight)
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
@@ -256,10 +257,9 @@ struct Index {
       }, UIConstants.AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
-      PixState.tabsController.changeIndex(PixState.currentTab)
+      PixState.tabsController.changeIndex(Number(appSettings.main_show))
     })
-    .width('100%').height('100%')
-    .fadingEdge(true)
+    .width('100%').height('100%').fadingEdge(true)
     .margin({ top: PixState.windowMode ? 42 : 0 })
     .padding({
       top: PixState.topRectHeight,

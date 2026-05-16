@@ -20,64 +20,106 @@ export struct More {
       // 功能
       new CustomItemInfo({
         id: 'function',
-        label: '功能',
+        title: '功能',
         type: ItemActionType.GROUP
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.person_crop_circle_fill'),
-        label: $r('app.string.account_info'),
+        title: $r('app.string.account_info'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'account_info',
-        onChange: (value) => {
+        onChange: () => {
           this.pushTo('account_info')
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_counterclockwise_clock'),
-        label: $r('app.string.history'),
+        title: $r('app.string.history'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'illust_history',
-        onChange: (value) => {
+        onChange: () => {
           toastUtil.showToast({ message: '历史记录功能开发中' })
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.gearshape_fill'),
-        label: $r('app.string.preference'),
+        title: $r('app.string.preference'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'settings',
-        onChange: (value) => {
-          toastUtil.showToast({ message: '偏好设置功能开发中' })
+        onChange: () => {
+          this.pushTo('user_settings')
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_down_circle'),
-        label: $r('app.string.download_manage'),
+        title: $r('app.string.download_manage'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'download_manager',
-        onChange: (value) => {
+        onChange: () => {
           this.pushTo('download_manager');
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.folder_circle'),
-        label: $r('app.string.app_data'),
+        title: $r('app.string.app_data'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'app_data',
-        onChange: (value) => {
+        onChange: () => {
           toastUtil.showToast({ message: '应用数据功能开发中' })
         }
       }),
+      // new CustomItemInfo({
+      //   symbol: $r('sys.symbol.trash'),
+      //   title: '清理缓存',
+      //   type: ItemActionType.DIALOG, // 使用 DIALOG 类型，点击弹出确认框
+      //   id: 'clear_cache',
+      //   value: '12.5 MB',
+      //   dialogConfig: new DialogConfig({
+      //     width: undefined,
+      //     onWillAppear: undefined,
+      //     buttons: ['取消', '清理'],
+      //     onClick: (btn, index, dialog) => {
+      //       if (index === 1) {
+      //         // TODO: 执行清理缓存逻辑
+      //         toastUtil.showToast({ message: '缓存已清理' })
+      //       }
+      //       dialog?.close()
+      //     }
+      //   })
+      // }),
       // 其他
       new CustomItemInfo({
         id: 'other',
-        label: '其他',
+        title: '其他',
         type: ItemActionType.GROUP
       }),
+
       // 关于
+      new CustomItemInfo({ id: 'about', title: '关于', type: ItemActionType.GROUP }),
+      // new CustomItemInfo({
+      //   symbol: $r('sys.symbol.arrow_2_circlepath'),
+      //   title: '检查更新',
+      //   type: ItemActionType.ROUTER,
+      //   id: 'check_update',
+      //   value: 'v1.0.0', // 右侧显示版本号
+      //   onChange: () => {
+      //     // TODO: 触发检查更新逻辑
+      //     toastUtil.showToast({ message: '正在检查更新...' })
+      //   }
+      // }),
+      // new CustomItemInfo({
+      //   symbol: $r('sys.symbol.doc_plaintext'),
+      //   title: '项目地址 / 开源协议',
+      //   type: ItemActionType.ROUTER,
+      //   id: 'about_app',
+      //   onChange: () => {
+      //     // TODO: 跳转关于页面或打开浏览器
+      //     toastUtil.showToast({ message: '关于页面开发中' })
+      //   }
+      // }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.info_circle'),
-        label:$r('app.string.about'),
+        title:$r('app.string.about'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'about',
         onChange: (value) => {
@@ -86,13 +128,13 @@ export struct More {
       }),
       new CustomItemInfo({
         id: 'other_1',
-        label: '',
+        title: '',
         type: ItemActionType.GROUP
       }),
       // 退出登录
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_left_circle'),
-        label:$r('app.string.logout'),
+        title:$r('app.string.logout'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'exit_account',
         onChange: (value) => {
@@ -112,8 +154,8 @@ export struct More {
         List({ space: 12 }) {
           ForEach(makeItemGroups(this.itemList), (group: ItemGroupData) => {
             ListItemGroup({
-              // 如果分组项有 label 则渲染头部，否则不渲染
-              header: group.group?.label ? this.GroupHeader(group.group.label) : undefined
+              // 如果分组项有 title 则渲染头部，否则不渲染
+              header: group.group?.title ? this.GroupHeader(group.group.title) : undefined
             }) {
               ForEach(group.items, (item: CustomItemInfo) => {
                 ListItem() {

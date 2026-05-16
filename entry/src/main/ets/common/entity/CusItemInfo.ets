@@ -1,3 +1,4 @@
+import { SymbolGlyphModifier } from "@kit.ArkUI";
 
 // 定义构造参数接口
 export interface CustomItemInfoParam {
@@ -5,7 +6,7 @@ export interface CustomItemInfoParam {
   icon?: ResourceStr;
   symbol?: Resource;
   iconColor?: ResourceColor;
-  label?: ResourceStr;
+  title?: ResourceStr;
   subtitle?: ResourceStr;
   type: ItemActionType;
   value?: string | boolean | number;
@@ -19,6 +20,13 @@ export interface CustomItemInfoParam {
   menuDisabled?: (item: MenuOption, index: number) => boolean;
 }
 
+export interface DialogConfigParam {
+  width?: Dimension;
+  buttons?: ResourceStr[];
+  onWillAppear?: () => void;
+  onClick?: (button: ResourceStr, index: number, dialog: CustomDialogController | undefined) => void;
+}
+
 /**
  * 自定义列表项信息
  */
@@ -28,8 +36,8 @@ export class CustomItemInfo {
   @Trace id: string = ''; // 唯一标识
   @Trace icon: ResourceStr | undefined = undefined; // 图标
   @Trace symbol: Resource | undefined = undefined;
-  @Trace iconColor: ResourceColor = $r('sys.color.ohos_id_color_primary'); // 图标颜色
-  @Trace label: ResourceStr = ''; // 主标题
+  @Trace iconColor: ResourceColor = $r('sys.color.icon_emphasize'); // 图标颜色
+  @Trace title: ResourceStr = ''; // 主标题
   @Trace subtitle: ResourceStr = ''; // 副标题/描述内容
 
   // 交互状态
@@ -60,7 +68,7 @@ export class CustomItemInfo {
       if (init.icon !== undefined) this.icon = init.icon;
       if (init.symbol !== undefined) this.symbol = init.symbol;
       if (init.iconColor !== undefined) this.iconColor = init.iconColor;
-      if (init.label !== undefined) this.label = init.label;
+      if (init.title !== undefined) this.title = init.title;
       if (init.subtitle !== undefined) this.subtitle = init.subtitle;
 
       if (init.type !== undefined) this.type = init.type;
@@ -83,8 +91,8 @@ export class CustomItemInfo {
     return this;
   }
 
-  setLabel(label: ResourceStr): CustomItemInfo {
-    this.label = label;
+  setLabel(title: ResourceStr): CustomItemInfo {
+    this.title = title;
     return this;
   }
 
@@ -142,7 +150,7 @@ export class DialogConfig {
   onWillAppear?: () => void;
   onClick?: (button: ResourceStr, index: number, dialog: CustomDialogController | undefined) => void;
 
-  constructor(init?: Partial<DialogConfig>) {
+  constructor(init?: DialogConfigParam) {
     if (init) {
       this.width = init.width;
       this.buttons = init.buttons;
@@ -173,13 +181,14 @@ export class SliderConfig {
 
 @ObservedV2
 export class MenuOption {
-  @Trace label?: ResourceStr;
+  @Trace title?: ResourceStr;
   @Trace value: string;
   @Trace symbolIcon?: SymbolGlyphModifier;
 
-  constructor(value: string, label?: ResourceStr) {
+  constructor(value: string, title?: ResourceStr, symbol?: Resource) {
     this.value = value;
-    this.label = label;
+    this.title = title;
+    this.symbolIcon = new SymbolGlyphModifier(symbol)
   }
 }
 

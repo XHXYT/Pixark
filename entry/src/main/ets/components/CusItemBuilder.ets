@@ -4,6 +4,8 @@ import { CustomItemInfo, ItemActionType, MenuOption } from "../common/entity/Cus
 import { ColorUtils } from "../common/utils/ColorUtils";
 import { ButtonOptions } from "@ohos.arkui.advanced.Dialog"
 import { Colors, Theme } from "@ohos.arkui.theme"
+import { toastUtil } from "../common/utils/ToastUtils";
+import { ResourceUtils } from "../common/utils/ResourceUtil";
 
 
 @ComponentV2
@@ -96,7 +98,7 @@ export struct CustomListItem {
 
       this.dialogController = new CustomDialogController({
         builder: CustomContentDialog({
-          primaryTitle: this.item.label,
+          primaryTitle: this.item.title,
           contentBuilder: (): void => {
             if (this.dialogContent) {
               this.dialogContent(this.item)
@@ -137,7 +139,7 @@ export struct CustomListItem {
 
         Column() {
           if (this.item.type === ItemActionType.INPUT) {
-            Text(this.item.label)
+            Text(this.item.title)
               .fontColor(this.item.enabled ? this.item.isDanger ? Color.Red : $r('sys.color.font_primary') : ColorUtils.getUnableColor($r('sys.color.font_primary')))
               .fontSize(12)
             TextInput({ text: this.item.value as ResourceStr, placeholder: this.item.subtitle })
@@ -150,7 +152,7 @@ export struct CustomListItem {
               }
             })
           } else {
-            Text(this.item.label)
+            Text(this.item.title)
               .fontColor(this.item.enabled ? this.item.isDanger ? Color.Red : $r('sys.color.font_primary') : ColorUtils.getUnableColor($r('sys.color.font_primary')))
               .fontSize(16)
             if (this.item.subtitle) {
@@ -182,6 +184,7 @@ export struct CustomListItem {
       this.showMenu,
       this.item.type == ItemActionType.MENU ? MenuSelectWitch(this.item, (menu) => {
         this.item.value = menu.value
+        toastUtil.showToast({ message: `${this.item.title}切换为: ${ResourceUtils.getString(menu?.title || menu.value)}` })
       }) : undefined,
       {
         placement: Placement.BottomRight,
@@ -229,7 +232,7 @@ export struct ListItemRightAction {
   getMenuLabel(): ResourceStr {
     const currentVal = this.item.value;
     const found = this.item.menuOptions?.find(m => m.value === currentVal);
-    return found?.label || found?.value || currentVal as ResourceStr;
+    return found?.title || found?.value || currentVal as ResourceStr;
   }
 
   build() {
@@ -329,12 +332,12 @@ function menuSymbolGlyph(size: number, enable: boolean = true) {
 @Builder
 export function MenuSelectWitch(item: CustomItemInfo, onSelect: (item: MenuOption) => void) {
   Menu() {
-    MenuItem({ content: item.label }).contentFont({ weight: FontWeight.Bold })
+    MenuItem({ content: item.title }).contentFont({ weight: FontWeight.Bold })
 
     Repeat<MenuOption>(item.menuOptions || [])
       .each((ri: RepeatItem<MenuOption>) => {
         MenuItem({
-          content: ri.item.label ?? ri.item.value,
+          content: ri.item.title ?? ri.item.value,
           symbolStartIcon: ri.item.symbolIcon ? defaultIcon(ri) : undefined,
           symbolEndIcon: item.value == ri.item.value ? new SymbolGlyphModifier($r("sys.symbol.checkmark")).fontColor([menuColor(item, ri)]) : undefined,
         })

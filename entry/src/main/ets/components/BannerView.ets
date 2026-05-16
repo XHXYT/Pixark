@@ -5,6 +5,7 @@ import { PixivImageComponent } from "./PixivImage";
 import { SpotlightArticle } from "../services/PixivTypes";
 import { HomeBannerBannerMargin, HomeBannerDisplayCount } from "../common/utils/breakpoint/BreakPoint";
 import { PixState } from "../entryability/AppState";
+import { appSettings } from "../common/entity/SettingsModel";
 
 // 主页轮播图
 @ComponentV2
@@ -55,8 +56,8 @@ export struct BannerView {
         .width('100%')
         .borderRadius(16)
         .aspectRatio(1.75)
-        .backgroundColor(PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
-        .shadow({ radius: 16, color: PixState.currentColorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
+        .backgroundColor(appSettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
+        .shadow({ radius: 16, color: appSettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
       // 标题
       Text(article.title)
         .fontColor(Color.White)

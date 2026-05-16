@@ -54,6 +54,11 @@
       "name": "account_info",
       "pageSourceFile": "src/main/ets/view/user/AccountInfo.ets",
       "buildFunction": "AccountInfoBuilder"
+    },
+    {
+      "name": "user_settings",
+      "pageSourceFile": "src/main/ets/view/more/UserSettings.ets",
+      "buildFunction": "UserSettingsBuilder"
     }
   ]
 }
