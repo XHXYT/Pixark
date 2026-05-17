@@ -170,6 +170,7 @@ struct UserSettings {
       new CustomItemInfo({
         symbol: $r('sys.symbol.doc_text'),
         title: $r('app.string.file_save_format'),
+        subtitle: appSettings.file_name,
         type: ItemActionType.ROUTER,
         id: 'file_save_format',
         onChange: () => {

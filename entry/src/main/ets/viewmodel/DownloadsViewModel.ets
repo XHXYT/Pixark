@@ -595,34 +595,40 @@ export class DownloadsViewModel {
   private _generateSafeFileName(illustInfo: PixivIllust, url: string): string {
     // 获取后缀名
     const extension = url.split('.').pop() || 'jpg';
-    const pageMatch = url.match(/(_p\d+)/);
-    // 提取并安全化各个字段（沙箱文件名绝对不能有除后缀外点号，防止底层报错）
-    const safeId = `${illustInfo.id}`;
-    const safeP = pageMatch ? pageMatch[0] : '';
+    // 只提取页码数字部分（如 _p0 → "0"，_p12 → "12"）
+    const pageMatch = url.match(/_p(\d+)/);
+
+    // 提取并安全化各个字段
+    const safeIllustId = `${illustInfo.id}`;
+    const safePart = pageMatch ? pageMatch[1] : '0'; // 纯数字，单图默认 "0"
     const safeUid = `${illustInfo.user?.id || '0'}`;
+
     // 安全过滤：去除非法字符和点号，保留空格
     const safeTitle = (illustInfo.title || 'Untitled')
-      .replace(/[\\/:*?"<>|.]+/g, '_')  // 1. 替换非法字符和点号为下划线
-      .trim()                           // 2. 去掉首尾可能存在的空格
-      .replace(/\s+/g, ' ')             // 3. 将中间的多个连续空格压缩成单空格
-      .replace(/^_|_$/g, '');           // 4. 兜底去掉首尾可能产生的下划线（防奇葩标题）
-    const safeName = (illustInfo.user?.name || 'Pixiv')
       .replace(/[\\/:*?"<>|.]+/g, '_')
       .trim()
       .replace(/\s+/g, ' ')
       .replace(/^_|_$/g, '');
+    const safeUserName = (illustInfo.user?.name || 'Pixiv')
+      .replace(/[\\/:*?"<>|.]+/g, '_')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/^_|_$/g, '');
+
     // 读取模板，为空则使用默认模板
-    const template = appSettings.file_name.trim() || '{id}{p}_{title}_{name}';
+    const template = appSettings.file_name.trim() || '{illust_id}_p{part}_{title}_{user_name}';
+
     // 执行占位符替换
     let fileName = template
-      .replace(/{id}/g, safeId)
-      .replace(/{p}/g, safeP)
+      .replace(/{illust_id}/g, safeIllustId)
+      .replace(/{part}/g, safePart)
       .replace(/{title}/g, safeTitle)
-      .replace(/{name}/g, safeName)
+      .replace(/{user_name}/g, safeUserName)
       .replace(/{uid}/g, safeUid);
+
     // 兜底防错（防止用户在设置页瞎填一堆非法字符导致替换完为空）
     if (!fileName || fileName.trim() === '') {
-      fileName = `pixiv_${safeId}_${safeP}`;
+      fileName = `pixiv_${safeIllustId}_p${safePart}`;
     }
 
     return `${fileName}.${extension}`;

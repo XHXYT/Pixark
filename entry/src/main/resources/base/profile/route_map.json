@@ -59,6 +59,11 @@
       "name": "user_settings",
       "pageSourceFile": "src/main/ets/view/more/UserSettings.ets",
       "buildFunction": "UserSettingsBuilder"
+    },
+    {
+      "name": "file_save_format",
+      "pageSourceFile": "src/main/ets/view/more/SaveFormat.ets",
+      "buildFunction": "SaveFormatBuilder"
     }
   ]
 }

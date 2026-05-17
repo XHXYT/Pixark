@@ -79,7 +79,6 @@ export class IllustDetailViewModel {
    */
   async downloadCurrentImage(index: number = 0) {
     const context: common.Context = _PixState.Context;
-    // const appConfig: APPConfigInfo = Xb_getPersistence(APPConfigInfo)!;
     if (!this.detailData) return;
 
     // 获取原图 URL

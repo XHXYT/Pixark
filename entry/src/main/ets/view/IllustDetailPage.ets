@@ -132,7 +132,6 @@ struct IllustDetail {
           },
           onShare: (url, index) => {
             // TODO 调用系统分享
-
           }
         })
       }
@@ -238,8 +237,7 @@ struct IllustDetail {
       }
       .width('100%')
       // 分割线
-      Divider()
-        .color($r('sys.color.ohos_id_color_text_field_sub_bg'))
+      Divider().color($r('sys.color.ohos_id_color_text_field_sub_bg'))
 
       // 作者行：头像 + 名称 + 关注按钮
       UserItem({
@@ -254,13 +252,13 @@ struct IllustDetail {
       Flex({ wrap: FlexWrap.Wrap, space: { main: LengthMetrics.vp(8), cross: LengthMetrics.vp(8) } }) {
         ForEach(this.iDV.detailData!.tags, (tag: PixivTag) => {
           Text(`#${tag.name}`)
-            .fontSize(13)
-            .fontColor('#0096fa')
+            .fontColor($r('sys.color.icon_emphasize'))
             .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
             .backgroundColor('#EDF5FF')
             .borderRadius(4)
+            .fontSize(13)
             .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
         })
       }
       .width('100%')

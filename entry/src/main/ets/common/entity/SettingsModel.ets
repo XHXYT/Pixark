@@ -1,6 +1,7 @@
 import { AppConstants } from "../constants/AppConstants";
 import { preferenceUtil } from "../utils/persistence/PreferenceUtil";
 import { ConfigurationConstant } from "@kit.AbilityKit";
+import { FunctionConstants } from "../constants/FunctionConstants";
 
 @ObservedV2
 export class AppSettings {
@@ -12,7 +13,7 @@ export class AppSettings {
   @Trace image_preview_quality: string = 'medium'
   @Trace image_detail_quality: string = 'large'
   @Trace image_view_quality: string = 'original'
-  @Trace file_name: string = '{id}{p}_{title}_{name}'
+  @Trace file_name: string = FunctionConstants.DEFAULT_SAVE_FORMAT
   @Trace show_ai_sign: boolean = true
   @Trace show_H: boolean = false
   @Trace private_collecting: boolean = false
@@ -101,7 +102,7 @@ export class AppSettings {
       this.image_detail_quality = 'large';
       this.image_view_quality = 'original';
 
-      this.file_name = '{id}{p}_{title}_{name}';
+      this.file_name = FunctionConstants.DEFAULT_SAVE_FORMAT;
       this.show_ai_sign = true;
       this.show_H = false;
       this.private_collecting = false

@@ -137,12 +137,16 @@ export struct CustomListItem {
             .height(21)
         }
 
-        Column() {
+        Column({ space: 2 }) {
           if (this.item.type === ItemActionType.INPUT) {
             Text(this.item.title)
               .fontColor(this.item.enabled ? this.item.isDanger ? Color.Red : $r('sys.color.font_primary') : ColorUtils.getUnableColor($r('sys.color.font_primary')))
               .fontSize(12)
             TextInput({ text: this.item.value as ResourceStr, placeholder: this.item.subtitle })
+              .type(InputType.Normal)
+              .width('100%')
+              .height(48)
+              .borderRadius(8)
               .fontSize(14)
               .enabled(this.item.enabled)
               .onChange((v) => {
@@ -166,15 +170,18 @@ export struct CustomListItem {
         .alignItems(HorizontalAlign.Start)
       }.layoutWeight(1)
 
-      ListItemRightAction({
-        item: this.item,
-        onSliderChange: (v: number) => {
-          this.item.value = v;
-          if (this.item.onChange) {
-            this.item.onChange(v)
+      if (this.item.type !== ItemActionType.INPUT) {
+        ListItemRightAction({
+          item: this.item,
+          onSliderChange: (v: number) => {
+            this.item.value = v;
+            if (this.item.onChange) {
+              this.item.onChange(v)
+            }
           }
-        }
-      })
+        })
+      }
+
     }
     .enabled(this.item.enabled)
     .padding(this.itemPadding)
