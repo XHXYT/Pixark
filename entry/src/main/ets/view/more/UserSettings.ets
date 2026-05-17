@@ -1,9 +1,9 @@
+import { FunctionConstants } from "../../common/constants/FunctionConstants"
 import { CustomItemInfo, ItemActionType,
   ItemGroupData,
   makeItemGroups,
   MenuOption } from "../../common/entity/CusItemInfo"
 import { appSettings } from "../../common/entity/SettingsModel"
-import { EventHub, EventKey } from "../../common/utils/EventHub"
 import { SettingsUtils } from "../../common/utils/SettingsUtils"
 import { toastUtil } from "../../common/utils/ToastUtils"
 import { CustomListItem } from "../../components/CusItemBuilder"
@@ -23,17 +23,17 @@ struct UserSettings {
   private get itemList(): CustomItemInfo[] {
     return [
       // 通用设置
-      new CustomItemInfo({ id: 'general', title: '通用设置', type: ItemActionType.GROUP }),
+      new CustomItemInfo({ id: 'general', title: $r('app.string.general_settings'), type: ItemActionType.GROUP }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.paintpalette_fill'),
-        title: '颜色模式',
+        title: $r('app.string.color_mode'),
         type: ItemActionType.MENU,
-        id: 'theme_mode',
+        id: 'color_mode',
         value: appSettings.color_mode.toString(), // 默认跟随系统
         menuOptions: [
-          new MenuOption('1', '浅色模式'),
-          new MenuOption('0', '深色模式'),
-          new MenuOption('-1', '跟随系统')
+          new MenuOption('1', $r('app.string.light_mode')),
+          new MenuOption('0', $r('app.string.dark_mode')),
+          new MenuOption('-1', $r('app.string.follow_system'))
         ],
         onChange: (value) => {
           appSettings.color_mode = Number(value)
@@ -43,12 +43,12 @@ struct UserSettings {
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.Language_arrow_2_circlepath'),
-        title: '语言',
+        title: $r('app.string.language'),
         type: ItemActionType.MENU,
         id: 'language',
         value: appSettings.language,
         menuOptions: [
-          new MenuOption('zh-CN', '简体中文'),
+          new MenuOption('zh-CN', $r('app.string.zh_cn')),
           new MenuOption('en', 'English')
         ],
         onChange: (value) => {
@@ -58,55 +58,46 @@ struct UserSettings {
         }
       }),
       // 浏览与展示
-      new CustomItemInfo({ id: 'display', title: '浏览与展示', type: ItemActionType.GROUP }),
+      new CustomItemInfo({ id: 'display', title: $r('app.string.browse_and_show'), type: ItemActionType.GROUP }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.doc_plaintext_fill'),
-        title: '列表预览质量',
+        title: $r('app.string.image_preview_quality'),
         type: ItemActionType.MENU,
-        id: 'image_list_quality',
-        value: 'medium',
-        menuOptions: [
-          new MenuOption('medium', '中等 (省流)'),
-          new MenuOption('large', '大图 (清晰)'),
-          new MenuOption('original', '原图 (极耗流量)')
-        ],
+        id: 'image_preview_quality',
+        value:  appSettings.image_preview_quality,
+        menuOptions: FunctionConstants.IMAGE_QUALITY_MENU,
         onChange: (value) => {
-          // TODO: 修改图片质量逻辑
+          appSettings.image_preview_quality = value as string
+          appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.picture_fill'),
-        title: '插画详情质量',
+        title: $r('app.string.image_detail_quality'),
         type: ItemActionType.MENU,
         id: 'image_detail_quality',
-        value: 'medium',
-        menuOptions: [
-          new MenuOption('medium', '中等 (省流)'),
-          new MenuOption('large', '大图 (清晰)'),
-          new MenuOption('original', '原图 (耗流)')
-        ],
+        value: appSettings.image_detail_quality,
+        menuOptions: FunctionConstants.IMAGE_QUALITY_MENU,
         onChange: (value) => {
-          // TODO: 修改图片质量逻辑
+          appSettings.image_detail_quality = value as string
+          appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.fullscreen'),
-        title: '大图查看质量',
+        title: $r('app.string.image_view_quality'),
         type: ItemActionType.MENU,
-        id: 'image_big_quality',
-        value: 'medium',
-        menuOptions: [
-          new MenuOption('medium', '中等 (省流)'),
-          new MenuOption('large', '大图 (清晰)'),
-          new MenuOption('original', '原图 (耗流)')
-        ],
+        id: 'image_view_quality',
+        value: appSettings.image_view_quality,
+        menuOptions: FunctionConstants.IMAGE_QUALITY_MENU,
         onChange: (value) => {
-          // TODO: 修改图片质量逻辑
+          appSettings.image_view_quality = value as string
+          appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.heart_house_fill'),
-        title: '首页展示',
+        title: $r('app.string.main_show'),
         type: ItemActionType.MENU,
         id: 'main_show',
         value: appSettings.main_show,
@@ -129,13 +120,18 @@ struct UserSettings {
         id: 'no_H',
         value: !appSettings.show_H,
         onChange: (value) => {
+          if (value) {
+            toastUtil.showToast({ message: '不可以瑟瑟哦' })
+          } else {
+            toastUtil.showToast({ message: '可以瑟瑟' })
+          };
           appSettings.show_H = !value as boolean
           appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.ai_edit'),
-        title: '显示 AI 作品标记',
+        title: $r('app.string.display_ai_tag'),
         type: ItemActionType.TOGGLE,
         id: 'sign_ai',
         value: appSettings.show_ai_sign,
@@ -145,44 +141,44 @@ struct UserSettings {
         }
       }),
       // 个人偏好
-      new CustomItemInfo({ id: 'download', title: '个人偏好', type: ItemActionType.GROUP }),
+      new CustomItemInfo({ id: 'download', title: $r('app.string.personal_preference'), type: ItemActionType.GROUP }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_down_layer'),
-        title: '同时下载数目',
+        title: $r('app.string.the_number_of_downloads'),
         type: ItemActionType.MENU,
-        id: 'download_sum',
-        value: appSettings.download_sum,
+        id: 'max_download_count',
+        value: appSettings.max_download_count,
         menuOptions: [
           new MenuOption('3', '3'),
           new MenuOption('5', '5'),
           new MenuOption('10', '10')
         ],
         onChange: (value) => {
-          appSettings.download_sum = value.toString()
+          appSettings.max_download_count = value.toString()
           appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.AI_typeset'),
-        title: '分享格式',
+        title: $r('app.string.share_format'),
         type: ItemActionType.ROUTER,
         id: 'share_format',
-        onChange: (value) => {
-          // TODO: 修改分享格式
+        onChange: () => {
+          this.pushTo('share_format')
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.doc_text'),
-        title: '保存格式',
+        title: $r('app.string.file_save_format'),
         type: ItemActionType.ROUTER,
-        id: 'file_format',
-        onChange: (value) => {
-          // TODO: 修改文件格式
+        id: 'file_save_format',
+        onChange: () => {
+          this.pushTo('file_save_format')
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.person_badge_heart_fill'),
-        title: '收藏后关注画师',
+        title: $r('app.string.follow_after_collecting'),
         type: ItemActionType.TOGGLE,
         id: 'follow_after_collecting',
         value: appSettings.follow_after_collecting,
@@ -193,20 +189,20 @@ struct UserSettings {
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.heart_square_stack_fill'),
-        title: '默认私密收藏',
+        title: $r('app.string.private_collecting'),
         type: ItemActionType.TOGGLE,
-        id: 'sign_ai',
-        value: appSettings.show_ai_sign,
+        id: 'private_collecting',
+        value: appSettings.private_collecting,
         onChange: (value) => {
-          appSettings.show_ai_sign = value as boolean
+          appSettings.private_collecting = value as boolean
           appSettings.save()
         }
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.download_fill'),
-        title: '收藏后自动下载',
+        title: $r('app.string.download_after_collecting'),
         type: ItemActionType.TOGGLE,
-        id: 'download_after_collecting',
+        id: '',
         value: appSettings.download_after_collecting,
         onChange: (value) => {
           appSettings.download_after_collecting = value as boolean
@@ -215,7 +211,7 @@ struct UserSettings {
       }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.globe_badge_heart'),
-        title: '下载时自动收藏',
+        title: $r('app.string.collecting_when_download'),
         type: ItemActionType.TOGGLE,
         id: 'collecting_when_download',
         value: appSettings.collecting_when_download,
@@ -291,4 +287,5 @@ struct UserSettings {
       PixState.pageStack.pushPathByName(name, params, true);
     }
   }
+
 }

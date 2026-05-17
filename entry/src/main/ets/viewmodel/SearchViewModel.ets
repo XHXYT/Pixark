@@ -172,6 +172,15 @@ class SearchViewModel {
     this.doSearch(force);
   }
 
+  handleIllustClick(illust: PixivIllust) {
+    const params: DetailPageParams = {
+      id: illust.id,
+      illust: illust
+    }
+    // 跳转详情页
+    PixState.pageStack.pushPathByName('illust_detail', params, true);
+  }
+
   updateSuggestions(input: string) {
     this.showSuggestions = true
     if (this.debounceTimerId !== -1) {

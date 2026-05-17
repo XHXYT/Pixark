@@ -1,5 +1,5 @@
 import { PixState } from "../entryability/AppState"
-import { PixivIllust, PixivUser, UserPreview } from "../services/PixivTypes"
+import { PixivIllust, UserPreview } from "../services/PixivTypes"
 import { ListColumnsTemplate } from "../common/utils/breakpoint/BreakPoint"
 import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
@@ -21,6 +21,7 @@ export struct UserListView {
   @Param nestedScroll: NestedScrollOptions | undefined = undefined
   @Param isFollow: boolean = false
   @Event onButtonClick: (result: boolean, err?: string) => void
+  @Event onImageClick: (illust: PixivIllust) => void
   @Event onReachEnd: () => void
 
   build() {
@@ -33,17 +34,32 @@ export struct UserListView {
               PixivImageComponent({
                 imageUrl: userPre.illusts?.[0]?.image_urls?.square_medium || '',
                 imageObjectFit: ImageFit.Auto,
-                imageAspectRatio: 1
+                imageAspectRatio: 1,
+                needClick: true,
+                onImageClick: () => {
+                  if (!userPre.illusts?.[0]) return
+                  this.onImageClick(userPre.illusts?.[0])
+                }
               })
               PixivImageComponent({
                 imageUrl: userPre.illusts?.[1]?.image_urls?.square_medium || '',
                 imageObjectFit: ImageFit.Auto,
-                imageAspectRatio: 1
+                imageAspectRatio: 1,
+                needClick: true,
+                onImageClick: () => {
+                  if (!userPre.illusts?.[1]) return
+                  this.onImageClick(userPre.illusts?.[1])
+                }
               })
               PixivImageComponent({
                 imageUrl: userPre.illusts?.[2]?.image_urls?.square_medium || '',
                 imageObjectFit: ImageFit.Auto,
-                imageAspectRatio: 1
+                imageAspectRatio: 1,
+                needClick: true,
+                onImageClick: () => {
+                  if (!userPre.illusts?.[2]) return
+                  this.onImageClick(userPre.illusts?.[2])
+                }
               })
             }
             // 头像 名称 关注

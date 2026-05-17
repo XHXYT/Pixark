@@ -66,6 +66,15 @@ export interface PixivIllust {
   bookmark_id?: number;       // 标记该作品在用户收藏列表中的 ID，用于分页
   is_bookmarked: boolean;     // 该插画是否被当前登录用户收藏
 
+  /**
+   * AI 类型标识
+   * 0: 普通作品 / 未标记
+   * 1: 非 AI
+   * 2: AI 辅助
+   * 3: AI 生成
+   */
+  illust_ai_type?: number;
+
   meta_single_page?: {
     original_image_url?: string;
   };

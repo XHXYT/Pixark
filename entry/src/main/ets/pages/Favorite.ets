@@ -4,6 +4,7 @@ import { LengthMetrics, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.Ar
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserListView } from "../components/UsersListView";
 import { TabBuild } from "../common/entity/IndexEntity";
+import { PixivIllust } from "../services/PixivTypes";
 
 
 @ComponentV2
@@ -178,6 +179,9 @@ export struct Favorite {
             userPres: favVM.followList,
             isFollow: true,
             onButtonClick: (result: boolean, err?: string) => {
+            },
+            onImageClick: (illust: PixivIllust) => {
+              favVM.handleIllustClick(illust)
             },
             onReachEnd: () => {
               favVM.loadMore();

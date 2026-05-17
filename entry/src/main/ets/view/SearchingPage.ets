@@ -7,6 +7,7 @@ import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { searchVM } from '../viewmodel/SearchViewModel';
 import { NaviContainer } from '../components/NaviContainer';
+import { PixivIllust } from '../services/PixivTypes';
 
 
 @Builder
@@ -164,12 +165,7 @@ export default struct SearchingPage {
           WaterFlowView({
             illustList: searchVM.resultIllusts,
             onCardClick: (illust) => {
-              const params: DetailPageParams = {
-                id: illust.id,
-                illust: illust
-              }
-              // 跳转详情页
-              PixState.pageStack.pushPathByName('illust_detail', params, true);
+              searchVM.handleIllustClick(illust)
             },
             onReachEnd: () => {
               // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
@@ -188,6 +184,9 @@ export default struct SearchingPage {
           UserListView({
             userPres: searchVM.resultUsers,
             onButtonClick: (result: boolean, err?: string) => {
+            },
+            onImageClick: (illust: PixivIllust) => {
+              searchVM.handleIllustClick(illust)
             },
             onReachEnd: () => {
               // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新

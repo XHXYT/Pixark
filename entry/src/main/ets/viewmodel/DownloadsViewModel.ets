@@ -23,7 +23,6 @@ export class DownloadsViewModel {
   @Trace currentPage: number = 0
 
   private downloadDir = ""
-  private maxTaskCount = 5
   private context: common.Context | null = null
 
   // 公共请求头
@@ -473,7 +472,7 @@ export class DownloadsViewModel {
 
   private async TryRunTask(task: request.agent.Task, resume: boolean = false) {
     const running = await request.agent.search({ state: request.agent.State.RUNNING });
-    if (running.length < this.maxTaskCount) {
+    if (running.length < Number(appSettings.max_download_count)) {
       resume ? await task.resume() : await task.start();
       return true;
     }

@@ -8,11 +8,14 @@ export class AppSettings {
   @Trace language: string = 'zh-CN'
   @Trace main_show: string = '0'
   @Trace color_mode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET // number类型
-
-  @Trace download_sum: string = '5'
+  @Trace max_download_count: string = '5'
+  @Trace image_preview_quality: string = 'medium'
+  @Trace image_detail_quality: string = 'large'
+  @Trace image_view_quality: string = 'original'
   @Trace file_name: string = '{id}{p}_{title}_{name}'
   @Trace show_ai_sign: boolean = true
   @Trace show_H: boolean = false
+  @Trace private_collecting: boolean = false
   @Trace follow_after_collecting: boolean = false
   @Trace download_after_collecting: boolean = false
   @Trace collecting_when_download: boolean = false
@@ -33,9 +36,16 @@ export class AppSettings {
       this.language = (json["language"] as string) ?? this.language;
       this.main_show = (json["main_show"] as string) ?? this.main_show;
       this.color_mode = (json["color_mode"] as number) ?? this.color_mode;
+
+      this.max_download_count = (json["max_download_count"] as string) ?? this.max_download_count;
+      this.image_preview_quality = (json["image_preview_quality"] as string) ?? this.image_preview_quality;
+      this.image_detail_quality = (json["image_detail_quality"] as string) ?? this.image_detail_quality;
+      this.image_view_quality = (json["image_view_quality"] as string) ?? this.image_view_quality;
+
       this.file_name = (json["file_name"] as string) ?? this.file_name;
       this.show_ai_sign = (json["show_ai_sign"] as boolean) ?? this.show_ai_sign;
       this.show_H = (json["show_H"] as boolean) ?? this.show_H;
+      this.private_collecting = (json["private_collecting"] as boolean) ?? this.private_collecting;
       this.follow_after_collecting = (json["follow_after_collecting"] as boolean) ?? this.follow_after_collecting;
       this.download_after_collecting = (json["download_after_collecting"] as boolean) ?? this.download_after_collecting;
       this.collecting_when_download = (json["collecting_when_download"] as boolean) ?? this.collecting_when_download;
@@ -56,9 +66,14 @@ export class AppSettings {
         "language": this.language,
         "main_show": this.main_show,
         "color_mode": this.color_mode,
+        "max_download_count": this.max_download_count,
+        "image_preview_quality": this.image_preview_quality,
+        "image_detail_quality": this.image_detail_quality,
+        "image_view_quality": this.image_view_quality,
         "file_name": this.file_name,
         "show_ai_sign": this.show_ai_sign,
         "show_H": this.show_H,
+        "private_collecting": this.private_collecting,
         "follow_after_collecting": this.follow_after_collecting,
         "download_after_collecting": this.download_after_collecting,
         "collecting_when_download": this.collecting_when_download
@@ -80,15 +95,21 @@ export class AppSettings {
       this.language = 'zh-CN';
       this.main_show = '0'
       this.color_mode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+      // 补全：重置图片与下载相关配置
+      this.max_download_count = '5';
+      this.image_preview_quality = 'medium';
+      this.image_detail_quality = 'large';
+      this.image_view_quality = 'original';
+
       this.file_name = '{id}{p}_{title}_{name}';
       this.show_ai_sign = true;
       this.show_H = false;
+      this.private_collecting = false
       this.follow_after_collecting = false;
       this.download_after_collecting = false;
       this.collecting_when_download = false;
 
-      // 删除首选项中持久化的 JSON 字符串
-      // await preferenceUtil.delete(AppConstants.KEY_APP_SETTINGS);
+      this.save()
       console.info("[AppSettings] 配置已恢复默认");
     } catch (error) {
       console.error("[AppSettings] 重置失败:", error);

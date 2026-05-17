@@ -11,6 +11,7 @@ import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
 import { NaviContainer } from "../components/NaviContainer";
+import { appSettings } from "../common/entity/SettingsModel";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -64,7 +65,7 @@ struct IllustDetail {
           ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
             ListItem() {
               PixivImageComponent({
-                imageUrl: illust.medium,
+                imageUrl: this.iDV.detailImageUrls[index] || illust.medium,
                 imageObjectFit: ImageFit.Auto,
                 imageBorder: { radius: 0 },
               })
@@ -124,6 +125,10 @@ struct IllustDetail {
           onDownload: (index) => {
             // 调用下载逻辑
             this.iDV.downloadCurrentImage(index);
+            // 下载时自动收藏
+            if (appSettings.collecting_when_download) {
+              this.iDV.bookmarkOrCancel(true)
+            }
           },
           onShare: (url, index) => {
             // TODO 调用系统分享

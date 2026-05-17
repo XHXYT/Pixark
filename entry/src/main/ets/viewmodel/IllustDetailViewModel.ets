@@ -1,4 +1,4 @@
-import { PixState, _PixState } from '../entryability/AppState';
+import { _PixState } from '../entryability/AppState';
 import { PixivIllust, PixivImage } from '../services/PixivTypes';
 import { createLogger } from '../common/utils/Logger';
 import { LongTakeAnimationProperties } from '../common/utils/customtransition/LongTakeAnimationProperties';
@@ -10,8 +10,11 @@ import { toastUtil } from '../common/utils/ToastUtils';
 import { downloaderVM } from './DownloadsViewModel';
 import { common } from '@kit.AbilityKit';
 import { pixiv } from '../services/PixivService';
+import { appSettings } from '../common/entity/SettingsModel';
+import { ImageUtils } from '../common/utils/ImageUtils';
 
 const logger = createLogger('IllustDetailViewModel')
+
 
 @ObservedV2
 export class IllustDetailViewModel {
@@ -22,7 +25,9 @@ export class IllustDetailViewModel {
   @Trace relatedIllusts: PixivIllust[] = []
 
   @Trace isDetailLoading: boolean = false;
-  // 关注状态（本地缓存，用于 UI 响应）
+  // 收藏状态
+  @Trace isBookmarked: boolean = false
+  // 关注状态
   @Trace isFollow: boolean = false
 
   // 当前浏览的大图索引（瀑布流列表索引）
@@ -104,6 +109,11 @@ export class IllustDetailViewModel {
     return illust.image_urls?.large || null;
   }
 
+  // 详情页图片 URL 列表 (受 image_detail_quality 控制)
+  get detailImageUrls(): string[] {
+    return this.imageList.map(img => ImageUtils.getImageUrlByQuality(img, appSettings.image_detail_quality));
+  }
+
   // 处理动画初始化逻辑
   handleTransitionReady(ctx: NavDestinationContext, params: DetailPageParams) {
     const fromId = params.fromId as string;
@@ -158,7 +168,7 @@ export class IllustDetailViewModel {
     }
   }
 
-  // 关注/取消关注
+  // 关注/取消关注 (本地状态同步)
   async followOrCancel(result: boolean, err?: string) {
     this.isFollow = result;
     if (this.detailData)
@@ -166,23 +176,63 @@ export class IllustDetailViewModel {
   }
 
   // 收藏/取消收藏
-  async bookmarkOrCancel() {
+  async bookmarkOrCancel(isBookmark?: boolean) {
     if (!this.detailData) return;
     const illust_id = this.detailData.id;
+
+    // 确定目标状态：传了参数就以参数为准，没传就取反当前状态
+    const targetBookmark = isBookmark ?? !this.detailData.is_bookmarked;
+    // 防抖优化：如果目标状态和当前状态一致，说明无需操作，直接返回
+    if (targetBookmark === this.detailData.is_bookmarked) return;
+
     try {
-      if (this.detailData.is_bookmarked) {
-        // 取消收藏
+      if (targetBookmark) {
+        // === 执行收藏 ===
+        await pixiv.addBookmark(illust_id, appSettings.private_collecting ? 'private' : 'public');
+        this.detailData.is_bookmarked = true;
+        // 收藏后关注画师
+        if (appSettings.follow_after_collecting && !this.detailData.user.is_followed) {
+          try {
+            await pixiv.followUser(this.detailData.user.id, appSettings.private_collecting ? 'private' : 'public');
+            this.detailData.user.is_followed = true;
+            this.isFollow = true;
+          } catch (followErr) {
+            logger.error(`自动关注失败: ${JSON.stringify(followErr)}`);
+          }
+        }
+        // 收藏后自动下载
+        if (appSettings.download_after_collecting) {
+          this.downloadAllImages(); // 调用上面写的批量下载方法
+        }
+      } else {
+        // === 执行取消收藏 ===
         await pixiv.deleteBookmark(illust_id);
         this.detailData.is_bookmarked = false;
-      } else {
-        // 收藏 (默认公开收藏)
-        await pixiv.addBookmark(illust_id, 'public');
-        this.detailData.is_bookmarked = true;
       }
     } catch (e) {
       logger.error(`!!! 收藏操作失败: ${JSON.stringify(e)}`);
-      toastUtil.showToast({ message: "收藏失败" })
+      toastUtil.showToast({ message: "收藏失败" });
     }
+  }
+
+  /**
+   * 下载当前插画的所有图片 (处理单图和多图)
+   */
+  private async downloadAllImages() {
+    if (!this.detailData) return;
+    const context: common.Context = _PixState.Context;
+    // 利用已有的 imageList 获取总页数
+    const totalPages = this.imageList.length;
+    if (totalPages === 0) return;
+
+    for (let i = 0; i < totalPages; i++) {
+      const originalUrl = this.getOriginalUrl(this.detailData, i);
+      if (originalUrl) {
+        // 循环调用全局下载器，将每一页都加入队列
+        downloaderVM.addTask(context, this.detailData, originalUrl);
+      }
+    }
+    toastUtil.showToast({ message: `已加入下载队列 (共${totalPages}张)` });
   }
 
   /**

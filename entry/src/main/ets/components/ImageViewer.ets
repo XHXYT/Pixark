@@ -1,11 +1,12 @@
 import { PixState } from "../entryability/AppState";
 import { PixivImageComponent } from "./PixivImage";
 import { PixivImage } from '../services/PixivTypes';
-
+import { appSettings } from '../common/entity/SettingsModel';
+import { ImageUtils } from '../common/utils/ImageUtils';
 
 @ComponentV2
 export struct PixivImageViewer {
-  // 图片URL列表
+  // 图片URL列表 (保持接收完整的 PixivImage 对象)
   @Param imageUrls: PixivImage[] = [];
   // 初始索引
   @Param startIndex: number = 0;
@@ -25,14 +26,15 @@ export struct PixivImageViewer {
     this.currentIndex = this.startIndex;
   }
 
+
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
       // Swiper 图片浏览区
       Swiper(this.swiperController) {
         ForEach(this.imageUrls, (image: PixivImage) => {
           PixivImageComponent({
-            imageUrl: image.large,
-            imageObjectFit: ImageFit.Contain, // 查看器通常使用 Contain 模式
+            imageUrl: ImageUtils.getImageUrlByQuality(image, appSettings.image_view_quality),
+            imageObjectFit: ImageFit.Contain,
             imageWidth: '100%',
             imageHeight: '100%',
             needMask: false
@@ -41,20 +43,19 @@ export struct PixivImageViewer {
       }
       .index(this.startIndex)
       .loop(false)
-      .indicator(false) // 不使用默认指示器，我们在自定义工具栏显示
-      .cachedCount(1)   // 缓存前后各1页，提升体验
+      .indicator(false)
+      .cachedCount(1)
       .onChange((index) => {
         this.currentIndex = index;
       })
       .width('100%')
       .height('100%')
-      .backgroundColor(Color.Black) // 背景黑色，沉浸感更强
+      .backgroundColor(Color.Black)
       .onClick(() => {
-        // 点击图片区域关闭查看器 (常见交互)
         this.onClose();
       })
 
-      // 底部工具栏 (透明背景)
+      // 底部工具栏
       Row() {
         // 左侧：图片组进度序号
         Row({ space: 6 }) {
@@ -66,28 +67,30 @@ export struct PixivImageViewer {
             .fontColor(Color.White)
             .fontWeight(FontWeight.Medium)
         }
+
         Blank()
-        // 右侧：操作按钮 (返回、下载、分享)
+
+        // 右侧：操作按钮
         Row({ space: 24 }) {
-          // 返回按钮
           SymbolGlyph($r('sys.symbol.chevron_left'))
             .fontSize(24)
             .fontColor([Color.White])
             .onClick(() => this.onClose())
-          // 下载按钮
+
           SymbolGlyph($r('sys.symbol.circle_and_arrow_down'))
             .fontSize(22)
             .fontColor([Color.White])
             .onClick(() => {
               this.onDownload(this.currentIndex);
             })
-          // 分享按钮
+
           SymbolGlyph($r('sys.symbol.share'))
             .fontSize(22)
             .fontColor([Color.White])
             .onClick(() => {
               const image = this.imageUrls[this.currentIndex]
-              const currentUrl = image?.original || image.large;
+              // 分享的链接也跟随当前展示的质量设置
+              const currentUrl = ImageUtils.getImageUrlByQuality(image, appSettings.image_view_quality);
               this.onShare(currentUrl, this.currentIndex);
             })
         }
@@ -95,13 +98,9 @@ export struct PixivImageViewer {
       .width('100%')
       .height(60)
       .padding({ left: 24, right: 24 })
-      .backgroundColor(Color.Transparent) // 背景透明
-      // 添加轻微的背景模糊，防止图片太白导致图标看不清
-      .linearGradient({
-        angle: 180,
-        colors: [['#80000000', 0.0]]
-      })
-      .margin({ bottom: PixState.bottomRectHeight }) // 距离底部一点距离
+      .backgroundColor(Color.Transparent)
+      .linearGradient({ angle: 180, colors: [['#80000000', 0.0]] })
+      .margin({ bottom: PixState.bottomRectHeight })
     }
     .width('100%')
     .height('100%')

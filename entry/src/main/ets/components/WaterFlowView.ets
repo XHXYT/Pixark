@@ -1,11 +1,15 @@
-import { PixState } from "../entryability/AppState"
+import { PixState, _PixState } from "../entryability/AppState"
 import { PixivIllust } from "../services/PixivTypes"
 import { WaterFlowColumnsTemplate } from "../common/utils/breakpoint/BreakPoint"
 import { CardUtil } from "../common/utils/CardUtil"
 import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
+import { appSettings } from "../common/entity/SettingsModel"
+import { ImageUtils } from '../common/utils/ImageUtils';
+import { FunctionConstants } from "../common/constants/FunctionConstants"
 
 const logger = createLogger('WaterFlowView')
+
 
 /**
  * 瀑布流视图
@@ -25,13 +29,16 @@ export struct WaterFlowView {
       ForEach(this.illustList, (illust: PixivIllust) => {
         FlowItem() {
           PixivImageComponent({
-            imageUrl: illust.image_urls.medium,
+            showHTips: showHTips(illust),
+            showAISign: isAIIllust(illust),
+            imageUrl: ImageUtils.getImageUrlByQuality(illust.image_urls, appSettings.image_preview_quality),
             imageObjectFit: ImageFit.Auto,
             imageBorder: { radius: 16 },
           })
             .id(CardUtil.getFlowItemIdByIndex(illust.id))
           // .visibility(homeViewModel.hiddenIllustId === illust.id ? Visibility.None : Visibility.Visible)
         }
+        .clip(true)
         .onClick(() => {
           this.onCardClick(illust)
         })
@@ -52,4 +59,26 @@ export struct WaterFlowView {
     })
   }
 
+}
+
+function showHTips(illust: PixivIllust): boolean {
+  if (appSettings.show_H) return false
+  if (!illust.tags || illust.tags.length === 0) return false;
+  const aiTagNames = FunctionConstants.R18_TAG;
+  return illust.tags.some(tag => aiTagNames.includes(tag.name))
+}
+
+/**
+ * 判断插画是否为 AI 作品
+ * @param illust 插画对象
+ * @returns true 表示是 AI 作品
+ */
+export function isAIIllust(illust: PixivIllust): boolean {
+  const aiType = (illust as PixivIllust).illust_ai_type;
+  if (aiType === 2 || aiType === 3) {
+    return true;
+  }
+  if (!illust.tags || illust.tags.length === 0) return false;
+  const aiTagNames = FunctionConstants.AI_TAG;
+  return illust.tags.some(tag => aiTagNames.includes(tag.name));
 }

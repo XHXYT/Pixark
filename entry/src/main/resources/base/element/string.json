@@ -383,6 +383,102 @@
     {
       "name": "export_token",
       "value": "导出Token"
+    },
+    {
+      "name": "color_mode",
+      "value": "颜色模式"
+    },
+    {
+      "name": "light_mode",
+      "value": "浅色模式"
+    },
+    {
+      "name": "dark_mode",
+      "value": "深色模式"
+    },
+    {
+      "name": "follow_system",
+      "value": "跟随系统"
+    },
+    {
+      "name": "language",
+      "value": "语言"
+    },
+    {
+      "name": "zh_cn",
+      "value": "简体中文"
+    },
+    {
+      "name": "browse_and_show",
+      "value": "浏览与展示"
+    },
+    {
+      "name": "image_preview_quality",
+      "value": "列表预览质量"
+    },
+    {
+      "name": "image_detail_quality",
+      "value": "插画详情质量"
+    },
+    {
+      "name": "image_view_quality",
+      "value": "大图查看质量"
+    },
+    {
+      "name": "main_show",
+      "value": "首页展示"
+    },
+    {
+      "name": "display_ai_tag",
+      "value": "显示 AI 作品标记"
+    },
+    {
+      "name": "the_number_of_downloads",
+      "value": "同时下载数目"
+    },
+    {
+      "name": "share_format",
+      "value": "分享格式"
+    },
+    {
+      "name": "file_save_format",
+      "value": "保存格式"
+    },
+    {
+      "name": "follow_after_collecting",
+      "value": "收藏后关注画师"
+    },
+    {
+      "name": "private_collecting",
+      "value": "默认私密收藏"
+    },
+    {
+      "name": "download_after_collecting",
+      "value": "收藏后自动下载"
+    },
+    {
+      "name": "collecting_when_download",
+      "value": "下载时自动收藏"
+    },
+    {
+      "name": "general_settings",
+      "value": "通用设置"
+    },
+    {
+      "name": "personal_preference",
+      "value": "个人偏好"
+    },
+    {
+      "name": "medium",
+      "value": "中等 (省流)"
+    },
+    {
+      "name": "large",
+      "value": "大图 (清晰)"
+    },
+    {
+      "name": "original",
+      "value": "原图 (耗流)"
     }
   ]
 }
