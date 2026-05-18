@@ -64,6 +64,11 @@
       "name": "file_save_format",
       "pageSourceFile": "src/main/ets/view/more/SaveFormat.ets",
       "buildFunction": "SaveFormatBuilder"
+    },
+    {
+      "name": "share_format",
+      "pageSourceFile": "src/main/ets/view/more/ShareFormat.ets",
+      "buildFunction": "ShareFormatBuilder"
     }
   ]
 }

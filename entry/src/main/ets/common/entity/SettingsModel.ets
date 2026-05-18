@@ -14,6 +14,7 @@ export class AppSettings {
   @Trace image_detail_quality: string = 'large'
   @Trace image_view_quality: string = 'original'
   @Trace file_name: string = FunctionConstants.DEFAULT_SAVE_FORMAT
+  @Trace share_text: string = FunctionConstants.DEFAULT_SHARE_FORMAT
   @Trace show_ai_sign: boolean = true
   @Trace show_H: boolean = false
   @Trace private_collecting: boolean = false
@@ -44,6 +45,7 @@ export class AppSettings {
       this.image_view_quality = (json["image_view_quality"] as string) ?? this.image_view_quality;
 
       this.file_name = (json["file_name"] as string) ?? this.file_name;
+      this.share_text = (json["share_text"] as string) ?? this.share_text;
       this.show_ai_sign = (json["show_ai_sign"] as boolean) ?? this.show_ai_sign;
       this.show_H = (json["show_H"] as boolean) ?? this.show_H;
       this.private_collecting = (json["private_collecting"] as boolean) ?? this.private_collecting;
@@ -72,6 +74,7 @@ export class AppSettings {
         "image_detail_quality": this.image_detail_quality,
         "image_view_quality": this.image_view_quality,
         "file_name": this.file_name,
+        "share_text": this.share_text,
         "show_ai_sign": this.show_ai_sign,
         "show_H": this.show_H,
         "private_collecting": this.private_collecting,
@@ -103,6 +106,7 @@ export class AppSettings {
       this.image_view_quality = 'original';
 
       this.file_name = FunctionConstants.DEFAULT_SAVE_FORMAT;
+      this.share_text = FunctionConstants.DEFAULT_SHARE_FORMAT;
       this.show_ai_sign = true;
       this.show_H = false;
       this.private_collecting = false

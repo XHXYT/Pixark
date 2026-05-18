@@ -479,6 +479,122 @@
     {
       "name": "original",
       "value": "原图 (耗流)"
+    },
+    {
+      "name": "share_info_format",
+      "value": "分享信息格式"
+    },
+    {
+      "name": "file_name_format",
+      "value": "文件名格式"
+    },
+    {
+      "name": "save_format_placeholder",
+      "value": "请输入保存格式"
+    },
+    {
+      "name": "share_text_format",
+      "value": "分享文本格式"
+    },
+    {
+      "name": "share_format_placeholder",
+      "value": "请输入分享格式"
+    },
+    {
+      "name": "preview_effect",
+      "value": "预览效果"
+    },
+    {
+      "name": "available_variables",
+      "value": "可用变量 (点击插入)"
+    },
+    {
+      "name": "placeholder",
+      "value": "占位符"
+    },
+    {
+      "name": "placeholder_template",
+      "value": "占位符 / 模板"
+    },
+    {
+      "name": "description",
+      "value": "说明"
+    },
+    {
+      "name": "example",
+      "value": "示例"
+    },
+    {
+      "name": "action",
+      "value": "操作"
+    },
+    {
+      "name": "illust_id_desc",
+      "value": "作品ID"
+    },
+    {
+      "name": "part_desc",
+      "value": "多图序号"
+    },
+    {
+      "name": "title_desc",
+      "value": "作品标题"
+    },
+    {
+      "name": "title_example",
+      "value": "阳光沙滩"
+    },
+    {
+      "name": "user_name_desc",
+      "value": "画师名称"
+    },
+    {
+      "name": "user_name_example",
+      "value": "小可爱"
+    },
+    {
+      "name": "uid_desc",
+      "value": "画师UID"
+    },
+    {
+      "name": "underline_desc",
+      "value": "下划线"
+    },
+    {
+      "name": "part_type_desc",
+      "value": "图号类型"
+    },
+    {
+      "name": "tags_desc",
+      "value": "作品标签"
+    },
+    {
+      "name": "tags_example",
+      "value": "插画, 风景"
+    },
+    {
+      "name": "illust_link_desc",
+      "value": "作品链接"
+    },
+    {
+      "name": "user_link_desc",
+      "value": "画师主页"
+    },
+    {
+      "name": "click_to_insert",
+      "value": "点击插入"
+    },
+    {
+      "name": "insert_template",
+      "value": "插入模板"
+    },
+    {
+      "name": "insert",
+      "value": "插入"
+    },
+    {
+      "name": "success_save",
+      "value": "保存成功"
     }
   ]
 }

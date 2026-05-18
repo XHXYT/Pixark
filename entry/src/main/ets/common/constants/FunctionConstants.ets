@@ -12,6 +12,8 @@ export class FunctionConstants {
   // 默认文件名模板常量
   static DEFAULT_SAVE_FORMAT = '{illust_id}_p{part}_{title}_{user_name}'
 
+  static DEFAULT_SHARE_FORMAT = '作品：{title}\n画师：{user_name}\n链接：https://www.pixiv.net/artworks/{illust_id}';
+
   // 图片质量档位菜单
   static IMAGE_QUALITY_MENU: MenuOption[] = [
     new MenuOption('medium', $r('app.string.medium')),
