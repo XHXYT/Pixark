@@ -595,6 +595,14 @@
     {
       "name": "success_save",
       "value": "保存成功"
+    },
+    {
+      "name": "browse_history",
+      "value": "浏览历史"
+    },
+    {
+      "name": "function",
+      "value": "功能"
     }
   ]
 }

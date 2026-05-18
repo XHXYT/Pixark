@@ -99,7 +99,7 @@ export class AppSettings {
       this.language = 'zh-CN';
       this.main_show = '0'
       this.color_mode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
-      // 补全：重置图片与下载相关配置
+
       this.max_download_count = '5';
       this.image_preview_quality = 'medium';
       this.image_detail_quality = 'large';

@@ -69,6 +69,11 @@
       "name": "share_format",
       "pageSourceFile": "src/main/ets/view/more/ShareFormat.ets",
       "buildFunction": "ShareFormatBuilder"
+    },
+    {
+      "name": "illust_history",
+      "pageSourceFile": "src/main/ets/view/more/IllustHistory.ets",
+      "buildFunction": "IllustHistoryBuilder"
     }
   ]
 }

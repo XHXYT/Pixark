@@ -7,6 +7,7 @@ import { PixivImageComponent } from "./PixivImage"
 import { appSettings } from "../common/entity/SettingsModel"
 import { ImageUtils } from '../common/utils/ImageUtils';
 import { FunctionConstants } from "../common/constants/FunctionConstants"
+import { IllustHistoryVM } from "../viewmodel/IllustHistoryViewModel"
 
 const logger = createLogger('WaterFlowView')
 
@@ -41,6 +42,8 @@ export struct WaterFlowView {
         .clip(true)
         .onClick(() => {
           this.onCardClick(illust)
+          // 添加历史记录
+          IllustHistoryVM.addHistory(illust.id.toString(), illust.title, ImageUtils.getImageUrlByQuality(illust.image_urls, appSettings.image_preview_quality))
         })
       }, (iilust: PixivIllust) => `${iilust.id}${iilust.title}`)
     }

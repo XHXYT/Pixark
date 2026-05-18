@@ -20,7 +20,7 @@ export struct More {
       // 功能
       new CustomItemInfo({
         id: 'function',
-        title: '功能',
+        title: $r('app.string.function'),
         type: ItemActionType.GROUP
       }),
       new CustomItemInfo({
@@ -38,7 +38,7 @@ export struct More {
         type: ItemActionType.ROUTER_BLANK,
         id: 'illust_history',
         onChange: () => {
-          toastUtil.showToast({ message: '历史记录功能开发中' })
+          this.pushTo('illust_history')
         }
       }),
       new CustomItemInfo({
@@ -88,11 +88,11 @@ export struct More {
       //   })
       // }),
       // 其他
-      new CustomItemInfo({
-        id: 'other',
-        title: '其他',
-        type: ItemActionType.GROUP
-      }),
+      // new CustomItemInfo({
+      //   id: 'other',
+      //   title: '其他',
+      //   type: ItemActionType.GROUP
+      // }),
 
       // 关于
       new CustomItemInfo({ id: 'about', title: '关于', type: ItemActionType.GROUP }),

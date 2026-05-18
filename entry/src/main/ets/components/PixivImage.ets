@@ -22,6 +22,7 @@ export struct PixivImageComponent {
   @Event progress:  (progress: number) => void
   @Event onImageLongPress: (url: string) => void
   @Event onImageClick?: (url: string) => void
+  @Event onLoadListener: (width: number, height: number) => void
 
   build() {
     Stack() {
@@ -39,6 +40,11 @@ export struct PixivImageComponent {
           progressListener: (progress: number) => {
             // console.log('下载进度：' + progress + '%')
             this.progress(progress)
+          },
+          onLoadListener: {
+            onLoadSuccess: (info) => {
+              this.onLoadListener(info.componentWidth, info.componentHeight)
+            }
           },
           border: this.imageBorder
         }
