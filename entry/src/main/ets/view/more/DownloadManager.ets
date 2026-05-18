@@ -208,7 +208,7 @@ struct DownloadManager {
     .width('100%')
     .layoutWeight(1)
     .padding({ left: 16, right: 16, top: 8 })
-    .contentEndOffset(PixState.bottomRectHeight)
+    .contentEndOffset(PixState.bottomRectHeight || 16)
     // 左滑手势
     .gesture(
       PanGesture(this.panOptionL)

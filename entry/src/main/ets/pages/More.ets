@@ -146,6 +146,21 @@ export struct More {
   }
 
   build() {
+    if (PixState.widthBp > 1) {
+      Navigation(this.pageStack) {
+        this.Content()
+      }
+      .size({ width: '100%', height: '100%' })
+      .navBarWidth(300)
+      .hideTitleBar(true)
+      .hideToolBar(true)
+    } else {
+      this.Content()
+    }
+  }
+  
+  @Builder
+  Content() {
     Column() {
       Column({ space: 20 }) {
         // 用户信息卡片
@@ -235,7 +250,7 @@ export struct More {
       }
       .alignItems(HorizontalAlign.Start)
       Blank()
-      if (moreVM.isLogin) {
+      if (moreVM.isLogin && PixState.widthBp < 2) {
         SymbolGlyph($r('sys.symbol.chevron_forward'))
           .fontSize(18)
           .fontColor([$r('sys.color.font_tertiary')])
@@ -282,7 +297,7 @@ export struct More {
 
   pushTo(name: string, params?: UserDetailParams) {
     if (PixState.widthBp > 1) {
-      this.pageStack.pushPathByName(name, params, true);
+      this.pageStack.replacePathByName(name, params, true);
     } else {
       // 全屏路由
       PixState.pageStack.pushPathByName(name, params, true);

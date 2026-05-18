@@ -203,7 +203,7 @@ export struct CustomListItem {
     .width("100%")
     .onClick(() => {
       if (!this.item.enabled) return
-
+      if (this.showMenu) return
       if (this.item.type == ItemActionType.MENU) {
         this.showMenu = true
         return

@@ -10,7 +10,7 @@ export function LoginBuilder() {
 @ComponentV2
 export struct Login {
 
-  private pageStack?: NavPathStack = undefined
+  private pageStack: NavPathStack = new NavPathStack()
 
   build() {
     NaviContainer({
@@ -44,7 +44,7 @@ export struct Login {
         .margin({ bottom: 20 })
         .onClick(() => {
           // 跳转到 Web 登录页
-          this.pageStack?.pushPathByName('web_login', null);
+          this.pageStack.pushPathByName('web_login', null);
         })
 
       // 注册账号 (跳转到注册页)
@@ -55,7 +55,7 @@ export struct Login {
           .fontSize(18)
           .margin({ bottom: 20 })
           .onClick(() => {
-            this.pageStack?.pushPathByName('register', null);
+            this.pageStack.pushPathByName('register', null);
           })
       }
 
@@ -68,7 +68,7 @@ export struct Login {
         .fontColor('#333333')
         .onClick(() => {
           // 跳转到 Token 登录页
-          this.pageStack?.pushPathByName('token_login', null);
+          this.pageStack.pushPathByName('token_login', null);
         })
     }
     .padding({ top: PixState.topRectHeight, bottom: PixState.bottomRectHeight })

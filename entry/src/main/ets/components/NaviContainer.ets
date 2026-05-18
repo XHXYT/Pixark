@@ -1,5 +1,6 @@
 import UIConstants from "../common/constants/UIConstants"
 import { PixState } from "../entryability/AppState"
+import { KeyCode } from "@kit.InputKit"
 
 
 @ComponentV2
@@ -18,6 +19,8 @@ export struct NaviContainer {
 
   @Param buttons: NavigationMenuItem[] = []
 
+  private pageStack: NavPathStack = new NavPathStack()
+    
   @Event onReady: (ctx: NavDestinationContext) => void
   @Event onBackPressed: () => boolean
   @Event onNaviDisAppear: () => void
@@ -28,7 +31,7 @@ export struct NaviContainer {
         Row().height(1).width('100%')
           .bindContextMenu(this.showMenu!!, this.menusBuilder,
             {
-              placement: Placement.LeftBottom,
+              placement: PixState.widthBp < 2 ? Placement.LeftBottom : Placement.BottomRight,
             })
       }
       Column() {
@@ -48,7 +51,17 @@ export struct NaviContainer {
     .onBackPressed(() => {
       return this.onBackPressed()
     })
+    .onKeyEvent((event: KeyEvent) => {
+      if (event.type === KeyType.Down) {
+        if (event.keyCode === KeyCode.KEYCODE_ESCAPE) {
+          if (!this.onBackPressed()) {
+            this.pageStack.pop()
+          }
+        }
+      }
+    })
     .onReady((ctx: NavDestinationContext) => {
+      this.pageStack = ctx.pathStack
       this.onReady(ctx)
     })
     .animation({ duration: UIConstants.AnimationSpeed_300, curve: Curve.Ease })

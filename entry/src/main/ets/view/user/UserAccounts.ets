@@ -76,6 +76,7 @@ struct UserAccounts {
     }
     .layoutWeight(1)
     .padding({ left: 16, right: 16 })
+    .contentEndOffset(PixState.bottomRectHeight || 28)
   }
 
   @Builder UserAccount(userInfo: AccountContext) {
