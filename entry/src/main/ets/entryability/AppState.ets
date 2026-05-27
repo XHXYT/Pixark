@@ -63,12 +63,14 @@ export class _PixState {
   isTest: boolean = false
 
   @Trace currentTab: number = 0
+  // 悬浮按钮位置
+  @Trace buttonPosition: number = 0
   // 全局路由
   @Trace pageStack: NavPathStack = new NavPathStack()
   @Trace tabsController: TabsController = new TabsController()
   @Trace transitionEffect: TransitionEffect = TransitionEffect.IDENTITY;
   /** @description 当前主题色(Resource) */
-  @Trace CurrentAppThemeColor: Resource = $r('sys.color.icon_emphasize')
+  @Trace currentThemeColor: Resource = $r('sys.color.icon_emphasize')
 
   @Computed
   get TabBarVertical() {

@@ -52,6 +52,14 @@
         "usedScene": {
           "when": "inuse"
         }
+      },
+      {
+        // 适人握持(动作感知)
+        "name": "ohos.permission.DETECT_GESTURE",
+        "reason": "$string:permission_reason_DETECT_GESTURE",
+        "usedScene": {
+          "when": "inuse"
+        }
       }
     ],
     "extensionAbilities": [

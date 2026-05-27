@@ -44,21 +44,31 @@ class Color {
 
   /**
    * 获取指定透明度的颜色值
+   * @param color 基础颜色
+   * @param alphaPercent 透明度百分比，取值范围 0-100（0为全透明，100为完全不透明）
    * @returns string
    */
-  public getColorWithAlphaString(color: ResourceColor, alpha: number): string {
+  public getColorWithAlphaString(color: ResourceColor, alphaPercent: number): string {
     const baseColor = this.getNormalColor(color);
-    const clampedAlpha = Math.max(0, Math.min(255, alpha));
+
+    // 将百分比限制在 0 - 100 之间
+    const clampedPercent = Math.max(0, Math.min(100, alphaPercent));
+    // 将百分比 (0-100) 转换为 255 制式 (0-255)，并四舍五入取整
+    const alpha255 = Math.round((clampedPercent / 100) * 255);
+
     // 截取后24位，去掉原本可能存在的透明度
     const rgb = baseColor & 0x00FFFFFF;
+
     // 拼接成一个新的 32 位颜色数值（Number类型）
-    const argbNumber = (clampedAlpha << 24) | rgb;
-    // 转换为十六进制字符串
-    // toString(16) 会转成类似 "ff1a2b3c" 的字符串
+    const argbNumber = (alpha255 << 24) | rgb;
+
+    // 转换为十六进制字符串，并补齐8位
     let hexString = argbNumber.toString(16).padStart(8, '0');
+
     // 加上 # 号前缀，符合标准的颜色字符串格式
     return `#${hexString}`;
   }
+
 
   /**
    * 获取一个标准的、未经修改的颜色值

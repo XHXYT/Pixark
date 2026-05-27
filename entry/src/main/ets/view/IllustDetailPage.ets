@@ -12,6 +12,8 @@ import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
 import { NaviContainer } from "../components/NaviContainer";
 import { appSettings } from "../common/entity/SettingsModel";
+import { hdsEffect } from "@kit.UIDesignKit";
+import { ColorUtils } from "../common/utils/ColorUtils";
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -57,7 +59,7 @@ struct IllustDetail {
 
   @Builder
   Content() {
-    Stack() {
+    Stack({ alignContent: 8 - PixState.buttonPosition }) {
       // 插画内容 + (信息内容)
       Row() {
         List({ scroller: this.scroller, space: 10 }) {
@@ -114,6 +116,8 @@ struct IllustDetail {
 
       }
       .justifyContent(FlexAlign.SpaceBetween)
+      // 收藏悬浮球
+      this.FloatingControlButton()
       // 插画查看器
       if (this.showLargeImage) {
         PixivImageViewer({
@@ -136,7 +140,6 @@ struct IllustDetail {
         })
       }
     }
-    .alignContent(Alignment.TopStart)
     /*      // 核心布局：使用 Stack 实现层叠效果
           // 底层是截图（做动画），上层是真实内容
           Stack({ alignContent: Alignment.TopStart }) {
@@ -184,6 +187,22 @@ struct IllustDetail {
           .borderRadius(this.iDV.longTakeAnimationProperties.radius)
           .clip(true) // 必须开启裁剪，否则内容会溢出圆角
           .backgroundColor(this.iDV.longTakeAnimationProperties.navDestinationBgColor)*/
+  }
+
+  /**
+   * 悬浮控制按钮构建器
+   * 用于启动/暂停代理
+   */
+  @Builder
+  FloatingControlButton() {
+    Row() {
+      SymbolGlyph(this.iDV.isBookmarked ? $r('sys.symbol.heart_fill') : $r('sys.symbol.heart'))
+        .fontSize(27).fontColor([this.iDV.isBookmarked ? PixState.currentThemeColor : Color.White])
+    }
+    .functionButtonStyle(PixState.buttonPosition === 0, this.iDV.isBookmarked)
+    .onClick(() => {
+      this.iDV.bookmarkOrCancel()
+    })
   }
 
   @Builder
@@ -252,7 +271,7 @@ struct IllustDetail {
       Flex({ wrap: FlexWrap.Wrap, space: { main: LengthMetrics.vp(8), cross: LengthMetrics.vp(8) } }) {
         ForEach(this.iDV.detailData!.tags, (tag: PixivTag) => {
           Text(`#${tag.name}`)
-            .fontColor($r('sys.color.icon_emphasize'))
+            .fontColor(PixState.currentThemeColor)
             .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .backgroundColor('#EDF5FF')
@@ -329,4 +348,22 @@ struct IllustDetail {
     .borderRadius(12)
   }
 
+}
+
+@Extend(Row)
+function functionButtonStyle(position: boolean, selected: boolean) {
+  .aspectRatio(1)
+  .borderRadius(30)
+  .size({ width: 60, height: 60 })
+  .justifyContent(FlexAlign.Center)
+  .alignItems(VerticalAlign.Center)
+  .offset({ x: position ? -PixState.PageMarginValue : PixState.PageMarginValue, y: -20 })
+  .backgroundColor(selected ? ColorUtils.getColorWithAlphaString(PixState.currentThemeColor, 30) : $r('sys.color.ohos_id_color_bottom_tab_icon_auxcolor_off02'))
+  .visualEffect(new hdsEffect.HdsEffectBuilder()
+    .pointLight({
+      sourceType: selected ?
+        hdsEffect.PointLightSourceType.BRIGHT : hdsEffect.PointLightSourceType.NONE, // 组件自身发光效果
+      illuminatedType: hdsEffect.PointLightIlluminatedType.DEFAULT_FEATHERING_BORDER // 组件受光效果
+    })
+    .buildEffect())
 }

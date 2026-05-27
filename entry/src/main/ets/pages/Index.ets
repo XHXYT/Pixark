@@ -1,4 +1,4 @@
-import { PixState } from '../entryability/AppState';
+import { PixState, _PixState } from '../entryability/AppState';
 import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition,
   TabTitleFontSize,
   TabBarWidth,
@@ -6,7 +6,7 @@ import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition
   TabBarHeight,
   TabBarAvoidHeight,
   Window_BAR_HEIGHT} from '../common/utils/breakpoint/BreakPoint';
-import { LengthMetrics } from '@kit.ArkUI';
+import { curves, LengthMetrics } from '@kit.ArkUI';
 import { animation } from '../common/utils/AnimationUtil';
 import { TabBuild } from '../common/entity/IndexEntity';
 import { Home } from './Home';
@@ -19,6 +19,8 @@ import UIConstants from '../common/constants/UIConstants';
 import { More } from './More';
 import { createLogger } from '../common/utils/Logger';
 import { appSettings } from '../common/entity/SettingsModel';
+import { motion } from '@kit.MultimodalAwarenessKit';
+import { HoldingHandleUtil } from '../common/utils/HoldingHandleUtil';
 
 
 const logger = createLogger('Index')
@@ -41,6 +43,15 @@ struct Index {
 
   aboutToAppear() {
     logger.debug('Page aboutToAppear');
+    // 启动适人握持
+    HoldingHandleUtil.start((status: motion.HoldingHandStatus) => {
+      this.handleHoldingStatusChange(status);
+    })
+  }
+
+  aboutToDisappear(): void {
+    // 停止适人握持
+    HoldingHandleUtil.stop()
   }
 
   build() {
@@ -178,13 +189,13 @@ struct Index {
     })
     {
       SymbolGlyph(PixState.currentTab === index ? currentTabIcon : tabIcon)
-        .fontColor([PixState.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary')])
+        .fontColor([PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY) // 分层颜色
         .fontSize(TabIconFontSize(PixState.widthBp, PixState.heightBp))
         .transition(animation.isTranslate())
         .translate({ y: PixState.currentTab == index ? -3 : 0 })
       Text(title)
-        .fontColor(PixState.currentTab === index ? PixState.CurrentAppThemeColor : $r('sys.color.font_primary'))
+        .fontColor(PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary'))
         .fontWeight(FontWeight.Medium)
         .fontSize(TabTitleFontSize(PixState.widthBp, PixState.heightBp))
         .transition(animation.isTranslate())
@@ -304,6 +315,31 @@ struct Index {
     }
     // 普通窗口，避让安全区域高度 (沉浸式 + 安全区)
     return TabBarAvoidHeight(PixState.widthBp, PixState.heightBp);
+  }
+
+  // 处理握持状态变化的业务逻辑
+  private handleHoldingStatusChange(status: motion.HoldingHandStatus) {
+    let targetIndex = 0; // 默认右手/未握持
+    switch (status) {
+      case motion.HoldingHandStatus.LEFT_HAND_HELD:
+        targetIndex = 2; // 左手 -> 左侧
+        break;
+      case motion.HoldingHandStatus.BOTH_HANDS_HELD:
+
+        break;
+      case motion.HoldingHandStatus.RIGHT_HAND_HELD:
+      case motion.HoldingHandStatus.NOT_HELD:
+      default:
+        targetIndex = 0; // 右手/未握持 -> 右侧
+        break;
+    }
+    // 执行动画和状态更新
+    _PixState.UIContext.animateTo({ duration: 350, curve: curves.springMotion() }, () => {
+      // 更新持久化配置
+      PixState.buttonPosition = targetIndex;
+    }
+    );
+    logger.debug(`握持逻辑触发: ${status}, 按钮位置:${targetIndex}`);
   }
 
   private isCustomTransitionEnabled(fromName: string, toName: string): boolean {

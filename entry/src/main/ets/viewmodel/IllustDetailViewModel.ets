@@ -13,6 +13,7 @@ import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
 
+
 const logger = createLogger('IllustDetailViewModel')
 
 
@@ -146,9 +147,10 @@ export class IllustDetailViewModel {
       } else {
         this.detailData = null; // 确保清空旧数据
       }
-      // 同步初始关注状态
+      // 同步初始关注&收藏状态
       if (this.detailData && this.detailData.user) {
         this.isFollow = this.detailData.user.is_followed;
+        this.isBookmarked = this.detailData.is_bookmarked
       }
       // 处理动画
       // 如果有 fromId，说明是从卡片点击进来的，做转场动画
@@ -183,12 +185,14 @@ export class IllustDetailViewModel {
     const targetBookmark = isBookmark ?? !this.detailData.is_bookmarked;
     // 防抖优化：如果目标状态和当前状态一致，说明无需操作，直接返回
     if (targetBookmark === this.detailData.is_bookmarked) return;
-
-    try {
+      try {
       if (targetBookmark) {
         // === 执行收藏 ===
         await pixiv.addBookmark(illust_id, appSettings.private_collecting ? 'private' : 'public');
         this.detailData.is_bookmarked = true;
+        // 本地状态赋值
+        this.isBookmarked = true
+        toastUtil.showToast({ message: $r('app.string.bookmarked', this.detailData.title) })
         // 收藏后关注画师
         if (appSettings.follow_after_collecting && !this.detailData.user.is_followed) {
           try {
@@ -201,12 +205,15 @@ export class IllustDetailViewModel {
         }
         // 收藏后自动下载
         if (appSettings.download_after_collecting) {
-          this.downloadAllImages(); // 调用上面写的批量下载方法
+          this.downloadAllImages(); // 调用批量下载方法
         }
       } else {
         // === 执行取消收藏 ===
         await pixiv.deleteBookmark(illust_id);
         this.detailData.is_bookmarked = false;
+        // 本地状态赋值
+        this.isBookmarked = false
+        toastUtil.showToast({ message: $r('app.string.not_bookmarked', this.detailData.title) })
       }
     } catch (e) {
       logger.error(`!!! 收藏操作失败: ${JSON.stringify(e)}`);
