@@ -60,6 +60,8 @@ struct Index {
       Navigation(PixState.pageStack) {
         this.MainContent()
       }
+      .height('100%')
+      .width('100%')
       .hideToolBar(true)
       .hideTitleBar(true)
       .mode(NavigationMode.Stack)
@@ -126,18 +128,10 @@ struct Index {
         };
         return customAnimation;
       })*/
-
     }
     // 未登录显示登录页
     else {
-      Navigation(PixState.pageStack) {
-        Login()
-      }
-      .height('100%')
-      .width('100%')
-      .hideToolBar(true)
-      .hideTitleBar(true)
-      .mode(NavigationMode.Stack)
+      Login({ mode: 'main' })
     }
   }
 

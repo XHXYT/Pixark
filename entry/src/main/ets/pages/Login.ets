@@ -10,22 +10,32 @@ export function LoginBuilder() {
 @ComponentV2
 export struct Login {
 
+  @Param mode: 'main' | 'router' = 'router'
   private pageStack: NavPathStack = new NavPathStack()
 
   build() {
-    NaviContainer({
-      hideTitleBar: !PixState.isAddingAccount,
-      content: () => {
+    if (this.mode === 'main') {
+      Navigation(this.pageStack) {
         this.Content()
-      },
-      onReady: (ctx) => {
-        if (ctx.pathStack) {
-          this.pageStack = ctx.pathStack
-        } else {
-          this.pageStack = PixState.pageStack
-        }
       }
-    })
+      .height('100%')
+      .width('100%')
+      .hideToolBar(true)
+      .hideTitleBar(true)
+      .mode(NavigationMode.Stack)
+    } else {
+      NaviContainer({
+        hideTitleBar: !PixState.isAddingAccount,
+        content: () => {
+          this.Content()
+        },
+        onReady: (ctx) => {
+          if (ctx.pathStack) {
+            this.pageStack = ctx.pathStack
+          }
+        }
+      })
+    }
   }
 
   @Builder
