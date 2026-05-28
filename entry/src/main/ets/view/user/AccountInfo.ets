@@ -133,7 +133,7 @@ export struct AccountInfo {
       // 导出 Token (仅当邮箱授权登录时显示，参考 PixEz 逻辑)
       new CustomItemInfo({
         title: '导出 Token',
-        type: ItemActionType.TEXT,
+        type: ItemActionType.ROUTER,
         id: 'export_token',
         value: activeAccount?.refreshToken ? '点击复制' : '未登录',
         enabled: isMailAuthorized, // 根据 PixEz 逻辑，仅邮箱登录可导出

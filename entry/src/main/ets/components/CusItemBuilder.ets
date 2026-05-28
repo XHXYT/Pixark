@@ -133,8 +133,9 @@ export struct CustomListItem {
             .fontSize(24)
         } else if (this.item.icon) {
           Image(this.item.icon)
-            .width(21)
-            .height(21)
+            .width(25)
+            .aspectRatio(1)
+            .borderRadius(100)
         }
 
         Column({ space: 2 }) {
@@ -256,15 +257,15 @@ export struct ListItemRightAction {
           .enabled(this.item.enabled)
           .hitTestBehavior(HitTestMode.None)
       } else if (this.item.type == ItemActionType.ROUTER) {
-        SymbolGlyph($r("sys.symbol.chevron_right")).menuSymbolGlyph(24)
-          .hitTestBehavior(HitTestMode.None)
-      } else if (this.item.type == ItemActionType.TEXT) {
         Row({ space: 8 }) {
           Text(this.item.value as ResourceStr)
             .fontSize(15)
           SymbolGlyph($r("sys.symbol.chevron_right")).menuSymbolGlyph(24)
             .hitTestBehavior(HitTestMode.None)
         }
+      } else if (this.item.type == ItemActionType.TEXT) {
+        Text(this.item.value as ResourceStr)
+          .fontSize(15)
       } else if (this.item.type == ItemActionType.RADIO) {
         Radio({ value: this.item.radioConfig?.value || '', group: this.item.radioConfig?.group || '' })
           .size({ width: 24, height: 24 })

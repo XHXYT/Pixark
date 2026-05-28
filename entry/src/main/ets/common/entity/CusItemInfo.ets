@@ -118,7 +118,7 @@ export enum ItemActionType {
   TOGGLE = 'Toggle', // 开关
   DIALOG = 'Dialog', // 弹窗
   COLOR = 'Color', // 颜色选择
-  ROUTER = 'Router', // 跳转
+  ROUTER = 'Router', // 跳转(包含文本)
   ROUTER_BLANK = 'Router_Blank', // 跳转(不含箭头)
   TEXT = 'Text', // 纯文本展示
   INPUT = 'Input', // 输入框

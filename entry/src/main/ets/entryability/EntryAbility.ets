@@ -19,6 +19,7 @@ import { favVM } from '../viewmodel/FavoriteViewModel';
 import { animation } from '../common/utils/AnimationUtil';
 import { SettingsUtils } from '../common/utils/SettingsUtils';
 import { ResourceUtils } from '../common/utils/ResourceUtil';
+import { JumpUtil } from '../common/utils/JumpUtils';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -116,6 +117,8 @@ export default class EntryAbility extends UIAbility {
     ColorUtils.init(this.context)
     // 初始化资源工具
     ResourceUtils.init(this.context)
+    // 初始化跳转工具
+    JumpUtil.init(this.context)
     // 初始化上下文
     _PixState.Context = this.context
     // 设置深浅色模式

@@ -74,6 +74,11 @@
       "name": "illust_history",
       "pageSourceFile": "src/main/ets/view/more/IllustHistory.ets",
       "buildFunction": "IllustHistoryBuilder"
+    },
+    {
+      "name": "about",
+      "pageSourceFile": "src/main/ets/view/more/AboutPage.ets",
+      "buildFunction": "AboutPageBuilder"
     }
   ]
 }

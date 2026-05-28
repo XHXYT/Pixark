@@ -615,6 +615,62 @@
     {
       "name": "permission_reason_DETECT_GESTURE",
       "value": "给悬浮物添加适人握持"
+    },
+    {
+      "name": "basic_info",
+      "value": "基本信息"
+    },
+    {
+      "name": "app_version",
+      "value": "应用版本"
+    },
+    {
+      "name": "project_intro",
+      "value": "项目简介"
+    },
+    {
+      "name": "project_home",
+      "value": "项目主页"
+    },
+    {
+      "name": "author_home",
+      "value": "作者主页"
+    },
+    {
+      "name": "project_repo",
+      "value": "项目仓库"
+    },
+    {
+      "name": "contributors",
+      "value": "贡献者（排名不分先后）"
+    },
+    {
+      "name": "thanks",
+      "value": "致谢"
+    },
+    {
+      "name": "legal",
+      "value": "法律声明"
+    },
+    {
+      "name": "open_source_license",
+      "value": "开源协议"
+    },
+    {
+      "name": "disclaimer",
+      "value": "免责声明"
+    },
+    {
+      "name": "project_maintenance",
+      "value": "项目维护"
+    },
+    {
+      "name": "icon_drawing",
+      "value": "图标绘制"
+    },
+    {
+      "name": "check_update",
+      "value": "检查更新"
     }
   ]
 }

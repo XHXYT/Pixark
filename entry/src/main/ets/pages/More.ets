@@ -96,34 +96,13 @@ export struct More {
 
       // 关于
       new CustomItemInfo({ id: 'about', title: '关于', type: ItemActionType.GROUP }),
-      // new CustomItemInfo({
-      //   symbol: $r('sys.symbol.arrow_2_circlepath'),
-      //   title: '检查更新',
-      //   type: ItemActionType.ROUTER,
-      //   id: 'check_update',
-      //   value: 'v1.0.0', // 右侧显示版本号
-      //   onChange: () => {
-      //     // TODO: 触发检查更新逻辑
-      //     toastUtil.showToast({ message: '正在检查更新...' })
-      //   }
-      // }),
-      // new CustomItemInfo({
-      //   symbol: $r('sys.symbol.doc_plaintext'),
-      //   title: '项目地址 / 开源协议',
-      //   type: ItemActionType.ROUTER,
-      //   id: 'about_app',
-      //   onChange: () => {
-      //     // TODO: 跳转关于页面或打开浏览器
-      //     toastUtil.showToast({ message: '关于页面开发中' })
-      //   }
-      // }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.info_circle'),
         title:$r('app.string.about'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'about',
         onChange: (value) => {
-          toastUtil.showToast({ message: '关于功能开发中' })
+          this.pushTo('about');
         }
       }),
       new CustomItemInfo({

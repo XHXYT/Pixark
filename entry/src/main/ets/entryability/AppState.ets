@@ -29,6 +29,8 @@ export class _PixState {
   // 是否登录过
   @Trace isLoggedIn: boolean = false
 
+  public static appVersion: string = '1.0.0'
+
   // 窗口对象
   public static UIContext: UIContext
   public static Context: common.UIAbilityContext

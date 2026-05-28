@@ -8,4 +8,8 @@ export class AppConstants {
   // 重定向链接
   static readonly REDIRECT_URI: string = 'https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback'
 
+  static readonly GITHUB_OWNER_URL = 'https://github.com/XHXYT'
+
+  static readonly GITHUB_REPO_URL = 'https://github.com/XHXYT/Pixark'
+
 }
