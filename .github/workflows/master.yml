@@ -5,12 +5,12 @@ on:
   push:
     tags:
       - "v*"   # 推 tag 时自动触发（如 v1.0.0）
-  workflow_dispatch:  # 新增：允许手动触发
+  workflow_dispatch:  # 手动触发
     inputs:
-      reason:
-        description: '手动触发原因（可选）'
+      tag:
+        description: '发布版本号（如 v1.0.1），留空则只构建不发布'
         required: false
-        default: '手动构建测试'
+        default: ''
 
 # ========== 构建作业 ==========
 jobs:
@@ -19,18 +19,18 @@ jobs:
     steps:
       # 1. 拉代码
       - name: Checkout code
-        uses: actions/checkout@v5   # 升级到 v5，支持 Node 24
+        uses: actions/checkout@v5
 
       # 2. 安装 Node.js 18
       - name: Setup Node.js
-        uses: actions/setup-node@v6   # 升级到 v6，支持 Node 24
+        uses: actions/setup-node@v6
         with:
           node-version: "18"
 
       # 3. 缓存鸿蒙命令行工具
       - name: Cache Command Line Tools
         id: cache-tools
-        uses: actions/cache@v5   # 升级到 v5，支持 Node 24
+        uses: actions/cache@v5
         with:
           path: ./command-line-tools
           key: ${{ runner.os }}-harmony-tools-6.1.0.816
@@ -54,7 +54,7 @@ jobs:
           echo "HOS_SDK_HOME=$TOOLS_DIR/sdk" >> $GITHUB_ENV
           chmod -R +x $TOOLS_DIR/bin
 
-      # 6. 安装依赖（加自动重试，避免 503 直接挂）
+      # 6. 安装依赖（加自动重试）
       - name: Install Dependencies
         run: |
           for i in 1 2 3; do
@@ -66,9 +66,9 @@ jobs:
         run: |
           hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon
 
-      # 8. 上传构建产物给 release job 使用
+      # 8. 上传构建产物
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v6   # 升级到 v6，支持 Node 24
+        uses: actions/upload-artifact@v6
         with:
           name: harmony-app-debug
           path: |
@@ -82,25 +82,45 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # 需要写权限来创建 Release
+      contents: write
+
+    # 只有存在 tag 时才执行发布
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '')
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5   # 升级到 v5，支持 Node 24
+        uses: actions/checkout@v5
 
-      # 获取版本号（去掉 tag 前面的 v）
-      - name: Get version
-        id: get_version
+      # 确定要发布的 tag
+      - name: Determine release tag
+        id: release_info
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # 推 tag 触发：用触发的那个 tag
+            TAG="${GITHUB_REF_NAME}"
           else
-            echo "VERSION=manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+            # 手动触发：用用户输入的 tag
+            TAG="${{ github.event.inputs.tag }}"
+            # 确保 tag 存在，不存在就创建
+            if ! git tag -l "$TAG" | grep -q "$TAG"; then
+              echo "Tag $TAG does not exist, creating it..."
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git tag "$TAG"
+              git push origin "$TAG"
+            fi
           fi
+          
+          # 去掉 tag 前面的 v 作为 Release 标题
+          VERSION="${TAG#v}"
+          
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Will create release: tag=$TAG, title=$VERSION"
 
       # 下载构建产物
       - name: Download build artifacts
-        uses: actions/download-artifact@v4   # v4 还在 Node 20，但暂时可用
+        uses: actions/download-artifact@v4
         with:
           name: harmony-app-debug
           path: build-artifacts
@@ -109,13 +129,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # Release 标题：tag 触发用版本号，手动触发用时间戳
-          name: ${{ steps.get_version.outputs.VERSION }}
-          # 从 CHANGELOG.md 读取发布说明
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.version }}
           body_path: CHANGELOG.md
           draft: false
           prerelease: false
-          # 直接上传解压后的原始文件
           files: |
             build-artifacts/**/*.hap
             build-artifacts/**/*.app
