@@ -1,35 +1,41 @@
 name: HarmonyOS App Build
 
-# === 触发条件：只推 tag 时才构建和发布 ===
+# ========== 触发条件：推 tag 或手动触发 ==========
 on:
   push:
     tags:
-      - "v*"   # 例如 v1.0.0
+      - "v*"   # 推 tag 时自动触发（如 v1.0.0）
+  workflow_dispatch:  # 新增：允许手动触发
+    inputs:
+      reason:
+        description: '手动触发原因（可选）'
+        required: false
+        default: '手动构建测试'
 
-# == 构建作业 ==
+# ========== 构建作业 ==========
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 拉代码
+      # 1. 拉代码
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5   # 升级到 v5，支持 Node 24
 
-      # 安装 Node.js 18
+      # 2. 安装 Node.js 18
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6   # 升级到 v6，支持 Node 24
         with:
           node-version: "18"
 
-      # 缓存鸿蒙命令行工具
+      # 3. 缓存鸿蒙命令行工具
       - name: Cache Command Line Tools
         id: cache-tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5   # 升级到 v5，支持 Node 24
         with:
           path: ./command-line-tools
           key: ${{ runner.os }}-harmony-tools-6.1.0.816
 
-      # 下载工具链（如果缓存未命中）
+      # 4. 下载工具链（如果缓存未命中）
       - name: Download Command Line Tools
         if: steps.cache-tools.outputs.cache-hit != 'true'
         run: |
@@ -38,7 +44,7 @@ jobs:
           unzip tools.zip
           rm tools.zip
 
-      # 配置构建环境
+      # 5. 配置构建环境
       - name: Setup Build Environment
         run: |
           TOOLS_DIR=$(pwd)/command-line-tools
@@ -48,18 +54,21 @@ jobs:
           echo "HOS_SDK_HOME=$TOOLS_DIR/sdk" >> $GITHUB_ENV
           chmod -R +x $TOOLS_DIR/bin
 
-      # 安装依赖
+      # 6. 安装依赖（加自动重试，避免 503 直接挂）
       - name: Install Dependencies
-        run: ohpm install
+        run: |
+          for i in 1 2 3; do
+            ohpm install && break || echo "ohpm install failed, retrying in 10 seconds... ($i/3)" && sleep 10
+          done
 
-      # 构建 HAP
+      # 7. 构建 HAP
       - name: Build HAP (Debug Mode)
         run: |
           hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon
 
-      # 上传构建产物给 release job 使用
+      # 8. 上传构建产物给 release job 使用
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6   # 升级到 v6，支持 Node 24
         with:
           name: harmony-app-debug
           path: |
@@ -68,7 +77,7 @@ jobs:
             **/build/**/outputs/**/*.hsp
             **/build/**/outputs/**/*.har
 
-  # == 发布作业 ==
+  # ========== 发布作业 ==========
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -77,16 +86,21 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5   # 升级到 v5，支持 Node 24
 
       # 获取版本号（去掉 tag 前面的 v）
       - name: Get version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          fi
 
       # 下载构建产物
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4   # v4 还在 Node 20，但暂时可用
         with:
           name: harmony-app-debug
           path: build-artifacts
@@ -95,7 +109,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # Release 标题不带 v
+          # Release 标题：tag 触发用版本号，手动触发用时间戳
           name: ${{ steps.get_version.outputs.VERSION }}
           # 从 CHANGELOG.md 读取发布说明
           body_path: CHANGELOG.md
