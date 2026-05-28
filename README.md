@@ -40,8 +40,8 @@ Pixark 旨在为鸿蒙用户提供原生流畅的插画浏览体验。它基于 
 ## 📸 应用截图
 > 主页、排行榜、详情页
 ## 📥 下载安装
-> （待发布）
-- [ **GitHub Releases** ] (Coming Soon)
+> https://github.com/XHXYT/Pixark/releases/latest
+- **[GitHub Releases](https://github.com/XHXYT/Pixark/releases/latest)** 
 ## 🤝 贡献指南
 欢迎提交 Issue 和 Pull Request！
 1. Fork 本仓库

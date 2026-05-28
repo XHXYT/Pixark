@@ -94,7 +94,7 @@ struct AboutPage {
       }),
       new CustomItemInfo({
         icon: $rawfile('liluolinder.jfif'),
-        title: 'liluolinder',
+        title: 'linderSeline',
         subtitle: $r('app.string.project_maintenance'),
         type: ItemActionType.ROUTER,
         id: 'contributor_liluolinder',

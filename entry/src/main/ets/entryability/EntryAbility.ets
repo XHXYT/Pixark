@@ -20,6 +20,8 @@ import { animation } from '../common/utils/AnimationUtil';
 import { SettingsUtils } from '../common/utils/SettingsUtils';
 import { ResourceUtils } from '../common/utils/ResourceUtil';
 import { JumpUtil } from '../common/utils/JumpUtils';
+import { bundleManager } from "@kit.AbilityKit";
+import { AppConstants } from '../common/constants/AppConstants';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -126,7 +128,9 @@ export default class EntryAbility extends UIAbility {
     // 初始化 ImageKnife 文件缓存
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
     // 全局添加 Pixiv 必需的 Referer
-    ImageKnife.getInstance().addHeader('Referer', 'https://www.pixiv.net/');
+    ImageKnife.getInstance().addHeader('Referer', AppConstants.REFERER_URL);
+    // 初始化AppVersion
+    this.initAppVersion()
   }
 
   /**
@@ -293,6 +297,12 @@ export default class EntryAbility extends UIAbility {
     } catch (e) {
       logger.error('BackgroundSync', `Error: ${e?.message || JSON.stringify(e)}`);
     }
+  }
+
+  private async initAppVersion() {
+    // 更新应用版本号
+    const packageInfo = await bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+    _PixState.appVersion = packageInfo.versionName
   }
 
   // --- 窗口与UI管理 ---
