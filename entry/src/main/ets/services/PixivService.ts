@@ -158,9 +158,10 @@ export class PixivService {
     return this.data.getIllustDetail(illust_id);
   }
 
-  async getRelatedIllusts(illust_id: number): Promise<PixivListResult> {
-    return this.data.getRelatedIllusts(illust_id);
+  async getRelatedIllusts(illust_id: number, nextUrl?: string): Promise<PixivListResult> {
+    return this.data.getRelatedIllusts(illust_id, nextUrl);
   }
+
 
   /**
    * 获取用户详细信息

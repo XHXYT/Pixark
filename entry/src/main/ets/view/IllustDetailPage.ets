@@ -2,44 +2,51 @@ import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { IllustDetailViewModel } from "../viewmodel/IllustDetailViewModel";
-import { SnapShotUtils } from "../common/utils/SnapShotUtils"; // 截图工具
+import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
 import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { toastUtil } from "../common/utils/ToastUtils";
-import { DetailPageParams } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
 import { NaviContainer } from "../components/NaviContainer";
 import { appSettings } from "../common/entity/SettingsModel";
 import { hdsEffect } from "@kit.UIDesignKit";
 import { ColorUtils } from "../common/utils/ColorUtils";
+import { LongTakeAnimationProperties } from "../common/utils/customtransition/LongTakeAnimationProperties";
+import { CustomTransition } from "../common/utils/customtransition/CustomNavigationUtils";
+import { CardUtil } from "../common/utils/CardUtil";
+import { createLogger } from "../common/utils/Logger";
+
+const logger = createLogger('IllustDetail')
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
   IllustDetail()
 }
 
-
+// 外层：负责 Swiper 容器与转场动画
 @ComponentV2
 struct IllustDetail {
 
-  @Local currentImageIndex: number = 0
+  @Local illustTitle: string = ''
   @Local showLargeImage: boolean = false
-  @Local scroller: Scroller = new Scroller();
-  @Local iDV: IllustDetailViewModel = new IllustDetailViewModel()
+  @Local currentSwiperIndex: number = 0
 
   private pageStack: NavPathStack = new NavPathStack()
+  private swiperProvider: IIllustSwiperProvider | undefined = undefined
+  private initialId: number = 0
+  private sharedId: string = ''
+  private longTakeAnimationProperties: LongTakeAnimationProperties = new LongTakeAnimationProperties();
 
   build() {
     NaviContainer({
-      title: this.iDV.detailData?.title || '',
-      content: () => {
-        this.Content()
-      },
+      title: this.illustTitle,
+      content: () => { this.Content() },
       onReady: (ctx) => {
         this.pageStack = ctx.pathStack
-        this.iDV.onReady(ctx)
+        this.handleTransitionReady(ctx)
       },
       onBackPressed: () => {
         if (this.showLargeImage) {
@@ -49,21 +56,120 @@ struct IllustDetail {
         return false
       },
       onNaviDisAppear: () => {
-        // 在页面消失时，兜底调用一次恢复，确保回到上一页插画可见
         homeViewModel.restoreIllustVisibility();
-        // 页面销毁时清理截图资源，防止内存泄漏
         SnapShotUtils.clear();
       }
     })
   }
 
-  @Builder
-  Content() {
+  // 处理转场动画初始化
+  private handleTransitionReady(ctx: NavDestinationContext) {
+    const params = ctx?.pathInfo?.param as DetailPageParams;
+    if (!params) return;
+
+    this.initialId = params.id;
+    this.swiperProvider = params.swiperProvider;
+
+    const fromId = params.fromId as string;
+    const pageId = ctx.navDestinationId;
+    if (!pageId || !fromId) {
+      this.longTakeAnimationProperties.setFinalStatus();
+      return;
+    }
+    this.sharedId = CardUtil.getPostPageImageId(fromId) || fromId;
+
+    this.longTakeAnimationProperties.init(fromId, () => {
+      homeViewModel.restoreIllustVisibility();
+    });
+
+    CustomTransition.getInstance().registerNavParam(pageId, 2000, (proxy: NavigationTransitionProxy) => {
+      this.longTakeAnimationProperties.doAnimation(proxy);
+    });
+  }
+
+  @Builder Content() {
+    if (this.swiperProvider && appSettings.swiper_browsing) {
+      // === Swiper 模式 ===
+      Swiper() {
+        Repeat<number>(this.swiperProvider.illustIds)
+          .virtualScroll({ totalCount: this.swiperProvider.illustIds.length, reusable: false }) // 禁用复用，触发加载
+          .key((id: number) => id.toString())
+          .each((ri: RepeatItem<number>) => {
+            IllustDetailContent({
+              illustId: ri.item,
+              sharedId: ri.item === this.initialId ? this.sharedId : '',
+              pageStack: this.pageStack,
+              showLargeImage: this.showLargeImage,
+              onImageLarge: (show) => { this.showLargeImage = show },
+              onTitle: (title) => { this.illustTitle = title }
+            })
+          })
+      }
+      .index(this.swiperProvider.illustIds.indexOf(this.initialId) || 0)
+      .indicator(false)
+      .loop(false)
+      .cachedCount(0, false)
+      .onChange((index: number) => {
+        const total = this.swiperProvider?.illustIds.length || 0;
+        // logger.debug(`[Swiper Log] >>> 滑动变化! 当前Index: ${index}, 列表总数:${total}, 当前ID: ${this.swiperProvider?.illustIds[index]}`);
+        this.currentSwiperIndex = index;
+        this.tryLoadMore(index);
+      })
+      .width('100%')
+      .height('100%')
+    } else {
+      // === 单页模式 ===
+      IllustDetailContent({
+        illustId: this.initialId,
+        sharedId: this.sharedId,
+        pageStack: this.pageStack,
+        showLargeImage: this.showLargeImage,
+        onImageLarge: (show) => { this.showLargeImage = show },
+        onTitle: (title) => { this.illustTitle = title }
+      })
+        .width('100%')
+        .height('100%')
+    }
+  }
+
+  // 触底预加载逻辑
+  private tryLoadMore(index: number) {
+    if (!this.swiperProvider || !this.swiperProvider.hasMore || this.swiperProvider.isLoading) return;
+    const total = this.swiperProvider.illustIds.length;
+    // logger.debug(`[Swiper Log] >>> 预加载检查: index=${index}, total=${total}, hasMore=${this.swiperProvider.hasMore}`);
+    // 滑到倒数第 2 张时，触发预加载
+    if (index >= total - 2) {
+      this.swiperProvider.loadMore();
+    }
+  }
+
+}
+
+// 内层：负责单张插画的数据与 UI
+@ComponentV2
+struct IllustDetailContent {
+
+  @Param illustId: number = 0
+  @Param sharedId: string = ''
+  @Param showLargeImage: boolean = false
+  @Param pageStack: NavPathStack = new NavPathStack()
+
+  @Local currentImageIndex: number = 0
+  @Local iDV: IllustDetailViewModel = new IllustDetailViewModel()
+
+  @Event onImageLarge: (show: boolean) => void
+  @Event onTitle: (title: string) => void
+
+  async aboutToAppear(): Promise<void> {
+    // 根据 ID 加载详情
+    this.iDV.loadIllustDetail(this.illustId);
+    this.iDV.loadRelated(this.illustId);
+  }
+
+  build() {
     Stack({ alignContent: 8 - PixState.buttonPosition }) {
-      // 插画内容 + (信息内容)
       Row() {
-        List({ scroller: this.scroller, space: 10 }) {
-          // 图片列表
+        List({ space: 10 }) {
           ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
             ListItem() {
               PixivImageComponent({
@@ -71,12 +177,11 @@ struct IllustDetail {
                 imageObjectFit: ImageFit.Auto,
                 imageBorder: { radius: 0 },
               })
-              // 给第一张图设置固定的 ID，用于计算动画终点位置
-                .id(index === 0 ? this.iDV.sharedId : illust.medium)
+                .id(index === 0 ? this.sharedId : illust.medium)
             }
             .onClick(() => {
               this.currentImageIndex = index
-              this.showLargeImage = true
+              this.onImageLarge(true)
             })
           })
 
@@ -87,15 +192,10 @@ struct IllustDetail {
         .height('100%')
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring)
-        .contentEndOffset(PixState.bottomRectHeight == 0 ?
-          PixState.PageMarginValue : PixState.bottomRectHeight)
-        .padding(({
-          left: PixState.PageMarginValue,
-          right: PixState.PageMarginValue
-        }))
+        .contentEndOffset(PixState.bottomRectHeight == 0 ? PixState.PageMarginValue : PixState.bottomRectHeight)
+        .padding(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue }))
         .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
 
-        // (信息内容)
         if (PixState.widthBp >= 2 && this.iDV.detailData) {
           List({ space: 10 }) {
             this.IntroContent()
@@ -103,95 +203,37 @@ struct IllustDetail {
           .height('100%')
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
-          .contentEndOffset(PixState.bottomRectHeight == 0 ?
-            PixState.PageMarginValue : PixState.bottomRectHeight)
+          .contentEndOffset(PixState.bottomRectHeight == 0 ? PixState.PageMarginValue : PixState.bottomRectHeight)
           .contentStartOffset(60 + PixState.topRectHeight)
-          .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
-          .padding(({
-            left: PixState.PageMarginValue,
-            right: PixState.PageMarginValue
-          }))
-          .width(PixState.widthBp < 2 ? '100%' : PixState.windowWidth / 2)
+          .width(PixState.windowWidth / 2)
+          .padding(({ left: PixState.PageMarginValue, right: PixState.PageMarginValue }))
         }
-
       }
       .justifyContent(FlexAlign.SpaceBetween)
-      // 收藏悬浮球
+
       this.FloatingControlButton()
-      // 插画查看器
+
       if (this.showLargeImage) {
         PixivImageViewer({
-          imageUrls: this.iDV.imageList, // 图片列表
-          startIndex: this.currentImageIndex, // 从哪张开始
+          imageUrls: this.iDV.imageList,
+          startIndex: this.currentImageIndex,
           onClose: () => {
-            this.showLargeImage = false;
+            this.onImageLarge(false)
           },
           onDownload: (index) => {
-            // 调用下载逻辑
             this.iDV.downloadCurrentImage(index);
-            // 下载时自动收藏
             if (appSettings.collecting_when_download) {
               this.iDV.bookmarkOrCancel(true)
             }
           },
-          onShare: (url, index) => {
-            // TODO 调用系统分享
-          }
+          onShare: (url, index) => {}
         })
       }
     }
-    /*      // 核心布局：使用 Stack 实现层叠效果
-          // 底层是截图（做动画），上层是真实内容
-          Stack({ alignContent: Alignment.TopStart }) {
-            // >>>> 层级 1：截图层 (动画过渡层) <<<<
-            // 只有当有截图数据时才渲染此层
-            // if (SnapShotUtils.pixelMap) {
-            //   Image(SnapShotUtils.pixelMap)
-            //     .size(this.iDV.longTakeAnimationProperties.snapShotSize)
-            //     .objectFit(ImageFit.Cover)
-            //     // 截图的透明度变化：从 1 -> 0
-            //     .opacity(this.iDV.longTakeAnimationProperties.snapShotOpacity)
-            //     // 必须同步加载，防止动画第一帧闪烁
-            //     .syncLoad(true)
-            //     // 截图的位置偏移
-            //     .position({
-            //       x: this.iDV.longTakeAnimationProperties.snapShotPositionX,
-            //       y: this.iDV.longTakeAnimationProperties.snapShotPositionY
-            //     })
-            // }
-            // >>>> 层级 2：最终展示层 <<<<
-            Column() {
-
-            }
-            .width('100%')
-            .height('100%')
-            // 绑定真实内容的不透明度：从 0 -> 1
-            .opacity(this.iDV.longTakeAnimationProperties.postPageOpacity)
-          }
-          .width('100%')
-          .height('100%')
-          // 绑定容器的整体动画属性
-          .scale({
-            x: this.iDV.longTakeAnimationProperties.scaleValue,
-            y: this.iDV.longTakeAnimationProperties.scaleValue
-          })
-          .translate({
-            x: this.iDV.longTakeAnimationProperties.translateX,
-            y: this.iDV.longTakeAnimationProperties.translateY
-          })
-          .position({
-            x: this.iDV.longTakeAnimationProperties.positionXValue,
-            y: this.iDV.longTakeAnimationProperties.positionYValue
-          })
-          // 圆角变化：从小卡片的圆角 -> 全屏无圆角
-          .borderRadius(this.iDV.longTakeAnimationProperties.radius)
-          .clip(true) // 必须开启裁剪，否则内容会溢出圆角
-          .backgroundColor(this.iDV.longTakeAnimationProperties.navDestinationBgColor)*/
   }
 
   /**
-   * 悬浮控制按钮构建器
-   * 用于启动/暂停代理
+   * 悬浮收藏按钮
    */
   @Builder
   FloatingControlButton() {
@@ -231,12 +273,21 @@ struct IllustDetail {
         .fontWeight(FontWeight.Bold)
         .fontColor($r('sys.color.font_primary'))
         .width('100%')
+        .onVisibleAreaChange([0.0, 1.0], (isExpanding: boolean, currentRatio: number) => {
+          console.debug(`Test Text isExpanding: ${isExpanding}, currentRatio: ${currentRatio}`)
+          if (isExpanding && currentRatio >= 1.0) {
+            this.onTitle(this.iDV.detailData!.title)
+          }
+          if (!isExpanding && currentRatio <= 0.0) {
+            console.debug('Test Text is completely invisible.')
+          }
+        })
       // 统计数据行：观看人数 + 喜欢数 + 时间
       Row({ space: 16 }) {
-        Text(`${this.iDV.detailData!.total_view} 浏览`)
+        Text($r('app.string.browse', this.iDV.detailData!.total_view))
           .fontSize(12)
           .fontColor($r('sys.color.font_tertiary'))
-        Text(`${this.iDV.detailData!.total_bookmarks} 收藏`)
+        Text($r('app.string.num_collection', this.iDV.detailData!.total_bookmarks))
           .fontSize(12)
           .fontColor($r('sys.color.font_tertiary'))
         // 格式化时间
@@ -313,11 +364,12 @@ struct IllustDetail {
   RelatedSection() {
     Column({ space: 12 }) {
       // 标题
-      Text('相关推荐')
+      Text($r('app.string.related_recommendations'))
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
         .width('100%')
         .padding({ left: 4 })
+
       // 网格布局
       Grid() {
         ForEach(this.iDV.relatedIllusts, (item: PixivIllust) => {
@@ -328,13 +380,14 @@ struct IllustDetail {
             })
           }
           .onClick(() => {
-            // TODO 只有跳转到第2个路由栈页时，返回无过渡动画
-            // 构造详情页参数
+            // 点击推荐插画
+            const index = this.iDV.relatedIllusts.findIndex(i => i.id === item.id);
             const params: DetailPageParams = {
               id: item.id,
-              illust: item
+              illust: item,
+              swiperProvider: this.iDV,
+              swiperIndex: index >= 0 ? index : 0
             }
-            // 跳转到详情页
             this.pageStack.pushPathByName('illust_detail', params, true);
           })
         })
@@ -343,6 +396,36 @@ struct IllustDetail {
       .columnsGap(3)
       .rowsGap(3)
       .width('100%')
+
+      // 底部的加载更多按钮 / 状态提示
+      if (this.iDV.hasMore) {
+        Row() {
+          if (this.iDV.isLoading) {
+            LoadingProgress().width(20).height(20)
+            Text() {
+              Span($r('app.string.loading_recommendations'))
+              Span('...')
+            }.fontSize(14).margin({ left: 8 })
+          } else {
+            Text($r('app.string.load_more_recommendations')).fontSize(14).fontColor(PixState.currentThemeColor)
+          }
+        }
+        .width('100%')
+        .height(48)
+        .justifyContent(FlexAlign.Center)
+        .onClick(() => {
+          if (!this.iDV.isLoading) {
+            this.iDV.loadMore();
+          }
+        })
+      } else if (this.iDV.relatedIllusts.length > 0) {
+        Text($r('app.string.no_further_recommendations'))
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(13)
+          .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          .margin({ top: 8, bottom: 8 })
+      }
     }
     .width('100%')
     .borderRadius(12)

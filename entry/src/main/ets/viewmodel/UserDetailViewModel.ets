@@ -4,11 +4,12 @@ import { PixivIllust, PixivUser, UserDetailResponse } from '../services/PixivTyp
 import { createLogger } from '../common/utils/Logger';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { pixiv } from '../services/PixivService';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
 
 const logger = createLogger('UserDetailViewModel')
 
 @ObservedV2
-export class UserDetailViewModel {
+export class UserDetailViewModel implements IIllustSwiperProvider {
 
   // 预加载的用户数据（用于瞬间显示）
   @Trace preUserData: PixivUser | null = null;
@@ -16,6 +17,8 @@ export class UserDetailViewModel {
   @Trace userData: UserDetailResponse | null = null;
   @Trace isFollow: boolean = false;
   @Trace isDetailLoading: boolean = false;
+  // 统一的加载更多防抖状态
+  @Trace isLoadingMore: boolean = false;
 
   // 分段控制器索引 (0: 作品, 1: 收藏, 2: 详情)
   @Trace tabIndex: number = 0;
@@ -40,6 +43,26 @@ export class UserDetailViewModel {
       scrollForward: NestedScrollMode.PARENT_FIRST,
       scrollBackward: NestedScrollMode.SELF_FIRST,
     };
+  }
+
+  // 动态获取当前展示的插画 ID 列表 (根据当前 Tab 决定)
+  get illustIds(): number[] {
+    return this.currentIllustList.map(i => i.id);
+  }
+
+  // 动态判断当前列表是否还有更多数据
+  get hasMore(): boolean {
+    if (this.tabIndex === 0) return !!this.nextIllustUrl;     // 作品
+    if (this.tabIndex === 1) return !!this.nextBookmarkUrl;   // 收藏
+    return false; // 详情 Tab
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingMore;
+  }
+
+  async loadMore(): Promise<void> {
+    await this.loadMoreCurrentData();
   }
 
   async onReady(ctx: NavDestinationContext, params: UserDetailParams) {
@@ -211,21 +234,39 @@ export class UserDetailViewModel {
     return [];
   }
 
+  // 统一的插画点击处理逻辑
+  handleIllustClick(illust: PixivIllust) {
+    // 自动计算当前插画在当前列表中的索引
+    const index = this.currentIllustList.findIndex(i => i.id === illust.id);
+    // 构造携带 Swiper 信息的参数
+    const params: DetailPageParams = {
+      id: illust.id,
+      illust: illust,
+      swiperProvider: this,       // 传入自身
+      swiperIndex: index >= 0 ? index : 0
+    };
+    // 执行跳转
+    PixState.pageStack.pushPathByName('illust_detail', params, true);
+  }
+
   async loadMoreCurrentData() {
+    if (this.isLoadingMore) return; // 防抖
+
     const userId = this.userData?.user.id;
     if (!userId) {
       logger.warn(`[loadMoreCurrentData] No userId found.`);
       return;
     }
 
-    if (this.tabIndex === 0 && this.nextIllustUrl) {
-      logger.debug(`[loadMoreCurrentData] Triggering Illust LoadMore.`);
-      await this.loadUserIllusts(userId, this.nextIllustUrl);
-    } else if (this.tabIndex === 1 && this.nextBookmarkUrl) {
-      logger.debug(`[loadMoreCurrentData] Triggering Bookmark LoadMore.`);
-      await this.loadUserBookmarks(userId, this.nextBookmarkUrl);
-    } else {
-      logger.debug(`[loadMoreCurrentData] No more data to load. Tab: ${this.tabIndex}`);
+    this.isLoadingMore = true;
+    try {
+      if (this.tabIndex === 0 && this.nextIllustUrl) {
+        await this.loadUserIllusts(userId, this.nextIllustUrl);
+      } else if (this.tabIndex === 1 && this.nextBookmarkUrl) {
+        await this.loadUserBookmarks(userId, this.nextBookmarkUrl);
+      }
+    } finally {
+      this.isLoadingMore = false;
     }
   }
 

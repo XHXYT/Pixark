@@ -130,6 +130,16 @@ struct UserSettings {
         }
       }),
       new CustomItemInfo({
+        symbol: $r('sys.symbol.square_and_square'),
+        title: $r('app.string.swiper_browsing'),
+        type: ItemActionType.TOGGLE,
+        id: 'swiper_browsing',
+        value: appSettings.swiper_browsing,
+        onChange: (value) => {
+          appSettings.swiper_browsing = value as boolean
+        }
+      }),
+      new CustomItemInfo({
         symbol: $r('sys.symbol.ai_edit'),
         title: $r('app.string.display_ai_tag'),
         type: ItemActionType.TOGGLE,

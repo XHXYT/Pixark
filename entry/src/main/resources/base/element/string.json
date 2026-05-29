@@ -671,6 +671,34 @@
     {
       "name": "check_update",
       "value": "检查更新"
+    },
+    {
+      "name": "related_recommendations",
+      "value": "相关推荐"
+    },
+    {
+      "name": "no_further_recommendations",
+      "value": "没有更多推荐了"
+    },
+    {
+      "name": "load_more_recommendations",
+      "value": "加载更多推荐"
+    },
+    {
+      "name": "loading_recommendations",
+      "value": "正在加载推荐"
+    },
+    {
+      "name": "swiper_browsing",
+      "value": "横向切换浏览"
+    },
+    {
+      "name": "browse",
+      "value": "%d 浏览"
+    },
+    {
+      "name": "num_collection",
+      "value": "%d 收藏"
     }
   ]
 }

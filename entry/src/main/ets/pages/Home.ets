@@ -193,22 +193,24 @@ export struct Home {
   private async onCardClick(illust: PixivIllust) {
     const sourceCardId = CardUtil.getFlowItemIdByIndex(illust.id)
     try {
-      // 获取截图
       this.getUIContext().getComponentSnapshot().get(sourceCardId, (err: BusinessError, pixelMap: image.PixelMap) => {
         if (err) {
           logger.error('截图失败，使用普通跳转', JSON.stringify(err));
           return;
         }
-        // 截图成功
         SnapShotUtils.pixelMap = pixelMap;
-        // 通知 ViewModel 隐藏卡片
         homeViewModel.hideCard(illust.id);
+
+        // 查找当前插画在列表中的索引
+        const index = homeViewModel.recommendedIllusts.findIndex(i => i.id === illust.id);
+
         const params: DetailPageParams = {
           id: illust.id,
           fromId: sourceCardId,
-          illust: illust
+          illust: illust,
+          swiperProvider: homeViewModel, // 传入共享的 ViewModel
+          swiperIndex: index >= 0 ? index : 0 // 传入起始索引
         }
-        // 跳转详情页，带上 fromId
         PixState.pageStack.pushPathByName('illust_detail', params, true);
       });
     } catch (e) {

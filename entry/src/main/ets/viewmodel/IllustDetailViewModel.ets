@@ -4,7 +4,7 @@ import { createLogger } from '../common/utils/Logger';
 import { LongTakeAnimationProperties } from '../common/utils/customtransition/LongTakeAnimationProperties';
 import { CustomTransition } from '../common/utils/customtransition/CustomNavigationUtils';
 import { homeViewModel } from './HomeViewModel';
-import { DetailPageParams } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
 import { CardUtil } from '../common/utils/CardUtil';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { downloaderVM } from './DownloadsViewModel';
@@ -12,19 +12,23 @@ import { common } from '@kit.AbilityKit';
 import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
+import { IllustHistoryVM } from './IllustHistoryViewModel';
 
 
 const logger = createLogger('IllustDetailViewModel')
 
 
 @ObservedV2
-export class IllustDetailViewModel {
+export class IllustDetailViewModel implements IIllustSwiperProvider {
 
   @Trace detailData: PixivIllust | null = null;
   private nextRelatedUrl: string | null = null
   // 相关图片推荐
   @Trace relatedIllusts: PixivIllust[] = []
 
+  // 推荐加载状态
+  @Trace isLoadingMoreRelated: boolean = false;
+  // 插画详情加载状态
   @Trace isDetailLoading: boolean = false;
   // 收藏状态
   @Trace isBookmarked: boolean = false
@@ -50,6 +54,25 @@ export class IllustDetailViewModel {
     return [];
   }
 
+  // IIllustSwiperProvider 接口
+  get illustIds(): number[] {
+    return this.relatedIllusts.map(i => i.id);
+  }
+
+  get hasMore(): boolean {
+    return !!this.nextRelatedUrl;
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingMoreRelated;
+  }
+
+  async loadMore(): Promise<void> {
+    if (this.nextRelatedUrl) {
+      await this.loadRelated(undefined, this.nextRelatedUrl);
+    }
+  }
+
   async loadIllustDetail(id: number) {
     try {
       logger.debug(`>>> 开始加载插画详情, ID: ${id}`);
@@ -58,19 +81,54 @@ export class IllustDetailViewModel {
       if (this.detailData && this.detailData.user) {
         this.isFollow = this.detailData.user.is_followed;
       }
+      // 数据加载成功后，自动记录历史
+      if (this.detailData) {
+        IllustHistoryVM.addHistory(
+          this.detailData.id.toString(),
+          this.detailData.title,
+          // 使用详情接口返回的更高质量的图作为历史记录封面
+          ImageUtils.getImageUrlByQuality(this.detailData.image_urls, appSettings.image_preview_quality)
+        );
+      }
       logger.debug(`>>> 详情加载完毕, 图片: ${JSON.stringify(this.imageList.map(image => image.medium))}`);
     } catch (e) {
       logger.error(`!!! 加载详情失败: ${JSON.stringify(e)}`);
     }
   }
 
-  async loadRelated(id: number) {
+  /**
+   * 加载相关推荐 (合并首次加载和翻页)
+   * @param id 插画ID (首次加载时传入)
+   * @param nextUrl 翻页URL (加载更多时传入)
+   */
+  async loadRelated(id?: number, nextUrl?: string) {
+    // 防抖
+    if (this.isLoadingMoreRelated) return;
+    // 必须至少传一个
+    if (!id && !nextUrl) return;
+
+    this.isLoadingMoreRelated = true;
     try {
-      const data = await pixiv.getRelatedIllusts(id);
-      this.relatedIllusts = data.illusts;
-      this.nextRelatedUrl = data.next_url
+      // 统一调用改造后的 Service 方法
+      const data = await pixiv.getRelatedIllusts(id || 0, nextUrl);
+      const newIllusts = data.illusts || [];
+
+      if (nextUrl) {
+        // 翻页：去重合并
+        const existingIds = new Set(this.relatedIllusts.map(i => i.id));
+        const uniqueNew = newIllusts.filter(i => !existingIds.has(i.id));
+        this.relatedIllusts = [...this.relatedIllusts, ...uniqueNew];
+      } else {
+        // 首次加载：直接赋值
+        this.relatedIllusts = newIllusts;
+      }
+
+      // 保存下一页的 URL
+      this.nextRelatedUrl = data.next_url;
     } catch (e) {
-      console.error(e);
+      logger.error(`加载推荐失败: ${JSON.stringify(e)}`);
+    } finally {
+      this.isLoadingMoreRelated = false;
     }
   }
 

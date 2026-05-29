@@ -1,4 +1,4 @@
-import { DetailPageParams } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, UserPreview } from "../services/PixivTypes";
@@ -8,7 +8,7 @@ import { pixiv } from "../services/PixivService";
 const logger = createLogger('FavoriteViewModel');
 
 @ObservedV2
-class FavoriteViewModel {
+class FavoriteViewModel implements IIllustSwiperProvider {
 
   // --- 顶部主 Tab 状态 ---
   // 0: 动态, 1: 收藏, 2: 关注
@@ -19,6 +19,8 @@ class FavoriteViewModel {
   @Trace filterIndex: number = 0;
 
   // --- 数据状态 ---
+  // 统一的加载更多防抖状态
+  @Trace isLoadingMore: boolean = false;
   // 是否正在刷新加载所有数据
   @Trace isRefreshing: boolean = false
   // 首次加载状态，用于骨架屏/加载动画
@@ -101,6 +103,29 @@ class FavoriteViewModel {
     this.loadCurrentTabData();
   }
 
+  // 动态获取当前展示的插画 ID 列表
+  get illustIds(): number[] {
+    return this.currentIllustList.map(i => i.id);
+  }
+
+  // 动态判断当前列表是否还有更多数据
+  get hasMore(): boolean {
+    if (this.mainTabIndex === 0) { // 动态
+      if (this.filterIndex === 0) return !!(this.nextTrendUrlPublic || this.nextTrendUrlPrivate);
+      if (this.filterIndex === 1) return !!this.nextTrendUrlPublic;
+      if (this.filterIndex === 2) return !!this.nextTrendUrlPrivate;
+    } else if (this.mainTabIndex === 1) { // 收藏
+      if (this.filterIndex === 0) return !!(this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate);
+      if (this.filterIndex === 1) return !!this.nextCollectionUrlPublic;
+      if (this.filterIndex === 2) return !!this.nextCollectionUrlPrivate;
+    }
+    // 关注列表不是插画，返回 false
+    return false;
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingMore;
+  }
 
   // 加载动态 (支持全部/公开/隐藏)
   async loadTrendData(isLoadMore: boolean = false) {
@@ -257,47 +282,52 @@ class FavoriteViewModel {
     }
   }
 
+  // 统一的点击处理逻辑
   handleIllustClick(illust: PixivIllust) {
+    // 判断是否处于真正的插画列表上下文中
+    const isIllustContext = this.mainTabIndex === 0 || this.mainTabIndex === 1;
+    // 计算索引：只有在插画上下文中才去查索引，否则默认 0
+    const index = isIllustContext ? this.currentIllustList.findIndex(i => i.id === illust.id) : 0;
+
     const params: DetailPageParams = {
       id: illust.id,
-      illust: illust
+      // 只有在插画上下文才传 Provider，关注页传 undefined！
+      swiperProvider: isIllustContext ? this : undefined,
+      swiperIndex: index >= 0 ? index : 0,
+      // 数据兜底, 如果 illust 对象没有 user 信息，说明是残缺数据，强制置空，让详情页自己拉
+      illust: illust.user ? illust : undefined
     };
+    // 执行跳转
     PixState.pageStack.pushPathByName('illust_detail', params, true);
   }
 
   // --- 加载更多 ---
-  async loadMore() {
-    if (this.mainTabIndex === 0) {
-      // 判断是否有下一页（任意一方有下一页就继续加载）
-      if (this.filterIndex === 0) {
-        if (this.nextTrendUrlPublic || this.nextTrendUrlPrivate) {
+  async loadMore(): Promise<void> {
+    if (this.isLoadingMore) return; // 防抖
+    if (!this.hasMore) return;
+
+    this.isLoadingMore = true;
+    try {
+      if (this.mainTabIndex === 0) {
+        if (this.filterIndex === 0 && (this.nextTrendUrlPublic || this.nextTrendUrlPrivate)) {
+          await this.loadTrendData(true);
+        } else if (this.filterIndex === 1 && this.nextTrendUrlPublic) {
+          await this.loadTrendData(true);
+        } else if (this.filterIndex === 2 && this.nextTrendUrlPrivate) {
           await this.loadTrendData(true);
         }
-      } else if (this.filterIndex === 1 && this.nextTrendUrlPublic) {
-        await this.loadTrendData(true);
-      } else if (this.filterIndex === 2 && this.nextTrendUrlPrivate) {
-        await this.loadTrendData(true);
-      }
-    } else if (this.mainTabIndex === 1) {
-      if (this.filterIndex === 0) {
-        if (this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate) {
+      } else if (this.mainTabIndex === 1) {
+        if (this.filterIndex === 0 && (this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate)) {
+          await this.loadCollectionData(true);
+        } else if (this.filterIndex === 1 && this.nextCollectionUrlPublic) {
+          await this.loadCollectionData(true);
+        } else if (this.filterIndex === 2 && this.nextCollectionUrlPrivate) {
           await this.loadCollectionData(true);
         }
-      } else if (this.filterIndex === 1 && this.nextCollectionUrlPublic) {
-        await this.loadCollectionData(true);
-      } else if (this.filterIndex === 2 && this.nextCollectionUrlPrivate) {
-        await this.loadCollectionData(true);
       }
-    } else if (this.mainTabIndex === 2) {
-      if (this.filterIndex === 0) {
-        if (this.nextFollowUrlPublic || this.nextFollowUrlPrivate) {
-          await this.loadFollowData(true);
-        }
-      } else if (this.filterIndex === 1 && this.nextFollowUrlPublic) {
-        await this.loadFollowData(true);
-      } else if (this.filterIndex === 2 && this.nextFollowUrlPrivate) {
-        await this.loadFollowData(true);
-      }
+      // 关注页不处理 Swiper 联动
+    } finally {
+      this.isLoadingMore = false;
     }
   }
 

@@ -71,14 +71,10 @@ struct UserDetail {
               nestedScroll: this.uDV.nestedScrollOptions,
               illustList: this.uDV.currentIllustList,
               onCardClick: (illust) => {
-                const params: DetailPageParams = {
-                  id: illust.id,
-                  illust: illust
-                }
-                PixState.pageStack.pushPathByName('illust_detail', params, true);
+                this.uDV.handleIllustClick(illust)
               },
               onReachEnd: () => {
-                this.uDV.loadMoreCurrentData();
+                this.uDV.loadMoreCurrentData()
               }
             })
           } else if (this.uDV.tabIndex === 2) {

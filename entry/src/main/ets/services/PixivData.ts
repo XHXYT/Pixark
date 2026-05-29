@@ -284,25 +284,31 @@ export class PixivData {
   }
 
   /**
-   * 获取相关推荐作品
-   * @param illust_id 当前插画 ID
+   * 获取相关推荐作品 (支持分页)
+   * @param illust_id 当前插画 ID (仅在首次加载时需要)
+   * @param nextUrl 分页 URL (可选，如果传了 nextUrl，则忽略 illust_id)
    * @returns 返回相关推荐作品列表
    */
-  async getRelatedIllusts(illust_id: number): Promise<PixivListResult> {
+  async getRelatedIllusts(illust_id: number, nextUrl?: string): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
+
+    // 优先处理分页 URL
+    if (nextUrl) {
+      return this.loadNextPage(nextUrl);
+    }
+
+    // 首次加载
     logger.info(`Fetching related illusts for ID: ${illust_id}`);
-    // 使用 v2 接口获取相关推荐，功能比 v1 更全
     const response = await this.auth.axiosInstance.get('/v2/illust/related', {
       params: {
         illust_id: illust_id,
-        filter: 'for_android',
-        // seed: illust_id // 可选，有时为了结果稳定性可以加上
+        filter: 'for_android'
       },
     });
 
     return {
       illusts: response.data.illusts || [],
-      next_url: response.data.next_url || null,
+      next_url: response.data.next_url || null
     };
   }
 

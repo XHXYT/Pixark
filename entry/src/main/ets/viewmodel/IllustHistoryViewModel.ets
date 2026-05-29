@@ -1,4 +1,5 @@
 import { Context } from '@kit.AbilityKit';
+import { IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
 import IllustHistoryInfo from '../common/entity/IllustHistoryInfo';
 import { IllustHistoryTable } from '../common/utils/database/impl/IllustHistoryDao';
 import { createLogger } from '../common/utils/Logger';
@@ -9,7 +10,7 @@ const logger = createLogger('IllustHistoryVM');
 
 
 @ObservedV2
-export class IllustHistoryViewModel {
+export class IllustHistoryViewModel implements IIllustSwiperProvider {
 
   @Trace isEditMode: boolean = false;
   @Trace selectedIds: Set<number> = new Set();
@@ -18,6 +19,23 @@ export class IllustHistoryViewModel {
   private allList: IllustHistoryInfo[] = [];
   private db: IllustHistoryTable = new IllustHistoryTable(_PixState.Context);
   private keyword: string = '';
+
+  get illustIds(): number[] {
+    // 将 string 类型的 pid 转为 number 数组
+    return this.displayList.map(i => Number(i.pid));
+  }
+
+  get hasMore(): boolean {
+    return false; // 历史记录是本地全量加载，无需网络分页
+  }
+
+  get isLoading(): boolean {
+    return false;
+  }
+
+  async loadMore(): Promise<void> {
+    // 历史记录不需要加载更多，空实现即可
+  }
 
   /** 拉取历史记录 */
   async fetchData() {

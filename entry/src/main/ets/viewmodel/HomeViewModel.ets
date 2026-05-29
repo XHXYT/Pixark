@@ -6,11 +6,12 @@ import { toastUtil } from '../common/utils/ToastUtils';
 import { shuffleArray } from '../common/utils/FisherYates';
 import { MockData } from '../services/MockData';
 import { pixiv } from '../services/PixivService';
+import { IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
 
 const logger = createLogger('HomeViewModel')
 
 @ObservedV2
-class HomeViewModel {
+class HomeViewModel implements IIllustSwiperProvider {
 
   @Trace spotlightList: SpotlightArticle[] = []; // 亮点列表
   @Trace recommendedUsers: PixivUser[] = [];      // 推荐作者列表
@@ -38,6 +39,23 @@ class HomeViewModel {
       scrollForward: NestedScrollMode.PARENT_FIRST,
       scrollBackward: NestedScrollMode.SELF_FIRST,
     };
+  }
+
+  // IIllustSwiperProvider 接口
+  get illustIds(): number[] {
+    return this.recommendedIllusts.map(i => i.id);
+  }
+
+  get hasMore(): boolean {
+    return !!this.nextRecommendedUrl;
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingMore;
+  }
+
+  async loadMore(): Promise<void> {
+    await this.loadMoreRecommended();
   }
 
   pushTo(page: 'spot' | 'author' | 'illust', data: SpotlightArticle | PixivUser | PixivIllust) {

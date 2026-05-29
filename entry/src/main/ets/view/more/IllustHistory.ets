@@ -179,7 +179,13 @@ struct IllustHistory {
   private async openIllust(pid: string) {
     const illustID = Number(pid);
     if (isNaN(illustID) || illustID === 0) return;
-    const params: DetailPageParams = { id: illustID, fromId: pid }
+    const index = this.dVM.displayList.findIndex(i => i.pid === pid);
+    const params: DetailPageParams = {
+      id: illustID,
+      fromId: pid,
+      swiperProvider: this.dVM, // 传入当前的 ViewModel，激活 Swiper 浏览
+      swiperIndex: index >= 0 ? index : 0
+    }
     this.pageStack.pushPathByName('illust_detail', params, true);
   }
 }

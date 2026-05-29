@@ -1,4 +1,4 @@
-import { DetailPageParams } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
 import SearchHistoryInfo from '../common/entity/SearchHistoryInfo';
 import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';
@@ -12,7 +12,7 @@ import { pixiv } from '../services/PixivService';
 const logger = createLogger('SearchViewModel')
 
 @ObservedV2
-class SearchViewModel {
+class SearchViewModel implements IIllustSwiperProvider {
 
   // 搜索历史
   @Trace searchHistory: SearchHistoryInfo[] = []
@@ -27,6 +27,8 @@ class SearchViewModel {
 
   @Trace showSuggestions: boolean = false
   @Trace searchHistoryEdit: boolean = false
+  // 统一的加载更多防抖状态
+  @Trace isLoadingMore: boolean = false;
 
   private IllustNextUrl: string = '';
   private userNextUrl: string = '';
@@ -47,6 +49,28 @@ class SearchViewModel {
       scrollForward: NestedScrollMode.PARENT_FIRST,
       scrollBackward: NestedScrollMode.SELF_FIRST,
     };
+  }
+
+  //  实现 IIllustSwiperProvider 接口
+  // 动态获取当前插画的 ID 列表 (仅在插画搜索模式下生效)
+  get illustIds(): number[] {
+    return this.searchType === 'illust' ? this.resultIllusts.map(i => i.id) : [];
+  }
+
+  // 动态判断是否还有更多数据
+  get hasMore(): boolean {
+    if (this.searchType === 'illust') {
+      return !!this.IllustNextUrl;
+    }
+    return false; // 画师模式不支持插画 Swiper 联动
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingMore;
+  }
+
+  async loadMore(): Promise<void> {
+    await this.loadMoreSearchResult();
   }
 
   // 加载 搜索历史 & 推荐标签
@@ -119,11 +143,18 @@ class SearchViewModel {
 
   // 加载更多
   async loadMoreSearchResult() {
+    if (this.isLoadingMore) return; // 防抖
+
     const nextUrl = this.searchType === 'illust' ? this.IllustNextUrl : this.userNextUrl;
-    if (!nextUrl && this.resultIllusts.length > 0 && this.resultUsers.length > 0) {
-      toastUtil.showToast({ message: $r('app.string.search_not_tips') });
+    if (!nextUrl) {
+      if ((this.searchType === 'illust' && this.resultIllusts.length > 0) ||
+        (this.searchType === 'user' && this.resultUsers.length > 0)) {
+        toastUtil.showToast({ message: $r('app.string.search_not_tips') });
+      }
       return;
     }
+
+    this.isLoadingMore = true;
     try {
       if (this.searchType === 'illust') {
         const data = await pixiv.searchIllust('', nextUrl);
@@ -136,6 +167,8 @@ class SearchViewModel {
       }
     } catch (e) {
       logger.error(`[加载更多失败] 错误详情: ${JSON.stringify(e)}`);
+    } finally {
+      this.isLoadingMore = false;
     }
   }
 
@@ -173,10 +206,19 @@ class SearchViewModel {
   }
 
   handleIllustClick(illust: PixivIllust) {
+    // 判断是否处于真正的插画列表上下文中
+    const isIllustContext = this.searchType === 'illust';
+    // 计算索引
+    const index = isIllustContext ? this.resultIllusts.findIndex(i => i.id === illust.id) : 0;
+
     const params: DetailPageParams = {
       id: illust.id,
-      illust: illust
-    }
+      // 只有在插画上下文才传 Provider，关注页传 undefined！
+      swiperProvider: isIllustContext ? this : undefined,
+      swiperIndex: index >= 0 ? index : 0,
+      // 数据兜底, 如果 illust 对象没有 user 信息，说明是残缺数据，强制置空，让详情页自己拉
+      illust: illust.user ? illust : undefined
+    };
     // 跳转详情页
     PixState.pageStack.pushPathByName('illust_detail', params, true);
   }
