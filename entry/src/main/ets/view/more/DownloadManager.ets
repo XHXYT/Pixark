@@ -7,6 +7,8 @@ import DownloadRecordInfo from "../../common/entity/DownloadRecordInfo";
 import { DetailPageParams } from "../../common/entity/IllustDetailEntity";
 import { toastUtil } from "../../common/utils/ToastUtils";
 import { NaviContainer } from "../../components/NaviContainer";
+import { PixivImageComponent } from "../../components/PixivImage";
+import { appSettings } from "../../common/entity/SettingsModel";
 
 const logger = createLogger('DownloadManager');
 
@@ -177,9 +179,9 @@ struct DownloadManager {
               }
             }
           }
-          .padding(16)
           .borderRadius(16)
           .backgroundColor($r('sys.color.button_background_color_transparent'))
+          .padding({ left: 16, right: 16, top: appSettings.show_thumbnail ? 4 : 16, bottom: appSettings.show_thumbnail ? 4 : 16 })
         }
         .onClick(() => {
           if (!this.dVM.isEditMode) {
@@ -269,26 +271,38 @@ struct DownloadManager {
   }
 
   // 标题
-  @Builder
-  TitleBuilder(item: DownloadRecordInfo) {
-    Column() {
-      Text(item.title || $r('app.string.unknown_works'))
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-      // 副标题：作者名 · 下载时间
-      Text() {
-        Span(item.artistName || $r('app.string.unknown_artist'))
-        Span(' · ')
-        Span(this.formatTime(item.create_time))
+  @Builder TitleBuilder(item: DownloadRecordInfo) {
+    Row({ space: 12 }) {
+      // 条件显示缩略图
+      if (appSettings.show_thumbnail && item.thumbnail) {
+        PixivImageComponent({
+          imageUrl: item.thumbnail,
+          imageObjectFit: ImageFit.Auto,
+          needClick: false,
+          imageBorder: { radius: 8 },
+          imageWidth: 39.5,
+          imageHeight: 79
+        })
       }
-      .fontSize(13)
-      .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      .margin({ top: 4 })
+      // 原有标题信息
+      Column() {
+        Text(item.title || $r('app.string.unknown_works'))
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text() {
+          Span(item.artistName || $r('app.string.unknown_artist'))
+          Span(' · ')
+          Span(this.formatTime(item.create_time))
+        }
+        .fontSize(13)
+        .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        .margin({ top: 4 })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
     }
-    .alignItems(HorizontalAlign.Start)
     .layoutWeight(1)
   }
 
@@ -330,6 +344,15 @@ struct DownloadManager {
 
   private buttons(): NavigationMenuItem[] {
     const btns: NavigationMenuItem[] = [
+      {
+        value: '',
+        symbolIcon: new SymbolGlyphModifier(
+          appSettings.show_thumbnail ? $r('sys.symbol.ohos_photo') : $r('sys.symbol.picture_slash')
+        ),
+        action: () => {
+          this.dVM.toggleThumbnail();
+        }
+      },
       {
         value: '',
         symbolIcon: new SymbolGlyphModifier($r('sys.symbol.square_and_pencil')),

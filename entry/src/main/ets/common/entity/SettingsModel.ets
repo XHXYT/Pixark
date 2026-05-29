@@ -23,6 +23,7 @@ export class AppSettings {
   @Trace download_after_collecting: boolean = false
   @Trace collecting_when_download: boolean = false
   @Trace swiper_browsing: boolean = true
+  @Trace show_thumbnail: boolean = false
 
   constructor() {}
 
@@ -55,6 +56,7 @@ export class AppSettings {
       this.download_after_collecting = (json["download_after_collecting"] as boolean) ?? this.download_after_collecting;
       this.collecting_when_download = (json["collecting_when_download"] as boolean) ?? this.collecting_when_download;
       this.swiper_browsing = (json["swiper_browsing"] as boolean) ?? this.swiper_browsing;
+      this.show_thumbnail = (json["show_thumbnail"] as boolean) ?? this.show_thumbnail;
 
       console.info("[AppSettings] 配置加载成功");
     } catch (e) {
@@ -66,7 +68,7 @@ export class AppSettings {
    * 保存逻辑
    * 避免序列化出类内部不可控的元数据
    */
-  @Monitor('swiper_browsing')
+  @Monitor('swiper_browsing', 'show_thumbnail')
   public async save(): Promise<void> {
     try {
       const data: Record<string, Object> = {
@@ -85,7 +87,8 @@ export class AppSettings {
         "follow_after_collecting": this.follow_after_collecting,
         "download_after_collecting": this.download_after_collecting,
         "collecting_when_download": this.collecting_when_download,
-        "swiper_browsing": this.swiper_browsing
+        "swiper_browsing": this.swiper_browsing,
+        "show_thumbnail": this.show_thumbnail
       };
       const jsonStr: string = JSON.stringify(data);
       await preferenceUtil.put(AppConstants.KEY_APP_SETTINGS, jsonStr);
@@ -119,6 +122,7 @@ export class AppSettings {
       this.download_after_collecting = false;
       this.collecting_when_download = false;
       this.swiper_browsing = true;
+      this.show_thumbnail = false;
 
       this.save()
       console.info("[AppSettings] 配置已恢复默认");

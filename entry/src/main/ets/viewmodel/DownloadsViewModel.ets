@@ -63,6 +63,11 @@ export class DownloadsViewModel {
     }
   }
 
+  /** 切换缩略图显示 */
+  toggleThumbnail() {
+    appSettings.show_thumbnail = !appSettings.show_thumbnail;
+  }
+
   /** 判断是否选中 */
   isSelected(task_id: string): boolean {
     return this.selectedIds.has(task_id); // O(1) 复杂度
