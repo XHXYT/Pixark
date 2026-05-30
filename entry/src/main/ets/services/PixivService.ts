@@ -131,8 +131,8 @@ export class PixivService {
     return this.data.getTrendingTags()
   }
 
-  async getRanking(mode: string = 'day', date?: string): Promise<PixivListResult> {
-    return this.data.getRanking(mode, date);
+  async getRanking(mode: string = 'day', date?: string, nextUrl?: string): Promise<PixivListResult> {
+    return this.data.getRanking(mode, date, nextUrl);
   }
 
   /**

@@ -9,6 +9,21 @@ export class FunctionConstants {
   // 常见 AI 标签黑名单
   static AI_TAG: string[] = ['AI生成', 'AI-assisted', 'AI-generated', 'NovelAI', 'R-18AI', 'AI作品']
 
+  // 排行榜所有可选项目定义
+  static RANK_MODE_OPTIONS: Record<string, string> = {
+    'day': '日榜',
+    'week': '周榜',
+    'month': '月榜',
+    'day_male': '男性向',
+    'day_female': '女性向',
+    'week_original': '原创',
+    'week_rookie': '新人',
+    'day_r18': 'XVIII 日榜',
+    'week_r18': 'XVIII 周榜',
+    'day_male_r18': 'XVIII 男性向',
+    'day_female_r18': 'XVIII 女性向',
+  };
+
   // 默认文件名模板常量
   static DEFAULT_SAVE_FORMAT = '{illust_id}_p{part}_{title}_{user_name}'
 

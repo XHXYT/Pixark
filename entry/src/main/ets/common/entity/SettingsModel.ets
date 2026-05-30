@@ -14,6 +14,7 @@ export class AppSettings {
   @Trace image_preview_quality: string = 'medium'
   @Trace image_detail_quality: string = 'large'
   @Trace image_view_quality: string = 'original'
+  @Trace rank_modes: string[] = []  // 排行榜已选项目 (存储 mode 的 key 数组，如 ['day', 'week', 'day_male'])
   @Trace file_name: string = FunctionConstants.DEFAULT_SAVE_FORMAT
   @Trace share_text: string = FunctionConstants.DEFAULT_SHARE_FORMAT
   @Trace show_ai_sign: boolean = true
@@ -47,6 +48,8 @@ export class AppSettings {
       this.image_detail_quality = (json["image_detail_quality"] as string) ?? this.image_detail_quality;
       this.image_view_quality = (json["image_view_quality"] as string) ?? this.image_view_quality;
 
+      this.rank_modes = (json["rank_modes"] as string[]) ?? this.rank_modes;
+
       this.file_name = (json["file_name"] as string) ?? this.file_name;
       this.share_text = (json["share_text"] as string) ?? this.share_text;
       this.show_ai_sign = (json["show_ai_sign"] as boolean) ?? this.show_ai_sign;
@@ -68,7 +71,7 @@ export class AppSettings {
    * 保存逻辑
    * 避免序列化出类内部不可控的元数据
    */
-  @Monitor('swiper_browsing', 'show_thumbnail')
+  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes')
   public async save(): Promise<void> {
     try {
       const data: Record<string, Object> = {
@@ -79,6 +82,7 @@ export class AppSettings {
         "image_preview_quality": this.image_preview_quality,
         "image_detail_quality": this.image_detail_quality,
         "image_view_quality": this.image_view_quality,
+        "rank_modes": this.rank_modes,
         "file_name": this.file_name,
         "share_text": this.share_text,
         "show_ai_sign": this.show_ai_sign,
@@ -112,6 +116,8 @@ export class AppSettings {
       this.image_preview_quality = 'medium';
       this.image_detail_quality = 'large';
       this.image_view_quality = 'original';
+
+      this.rank_modes = []
 
       this.file_name = FunctionConstants.DEFAULT_SAVE_FORMAT;
       this.share_text = FunctionConstants.DEFAULT_SHARE_FORMAT;

@@ -143,16 +143,23 @@ export class PixivData {
    * 获取排行榜
    * @param mode 排行榜模式 (day: 日榜, week: 周榜, month: 月榜, day_r18: R18日榜 等)
    * @param date 指定日期 (格式: 2020-01-01)，不传则默认为最新
+   * @param nextUrl 分页 URL (可选，如果传了 nextUrl，则忽略 mode 和 date，直接加载下一页)
    * @returns 返回排行榜插画列表
    */
-  async getRanking(mode: string = 'day', date?: string): Promise<PixivListResult> {
+  async getRanking(mode: string = 'day', date?: string, nextUrl?: string): Promise<PixivListResult> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
 
+    // 优先处理分页 URL
+    if (nextUrl) {
+      return this.loadNextPage(nextUrl);
+    }
+    // 常规加载
     const params: Record<string, string> = {
       mode: mode,
       filter: 'for_android',
     };
     if (date) params.date = date;
+
     const response = await this.auth.axiosInstance.get('/v1/illust/ranking', { params });
     return {
       illusts: response.data.illusts || [],

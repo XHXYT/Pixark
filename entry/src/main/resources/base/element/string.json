@@ -699,6 +699,22 @@
     {
       "name": "num_collection",
       "value": "%d 收藏"
+    },
+    {
+      "name": "custom_rank_items",
+      "value": "自定义排行榜项目"
+    },
+    {
+      "name": "custom_rank_items_tips",
+      "value": "点击切换选中状态，长按拖拽调整顺序"
+    },
+    {
+      "name": "click_config",
+      "value": "点击配置"
+    },
+    {
+      "name": "no_custom_rank",
+      "value": "尚未配置排行榜项目"
     }
   ]
 }

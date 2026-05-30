@@ -1,7 +1,6 @@
 import { curves, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { UserListView } from '../components/UsersListView';
 import { WaterFlowView } from '../components/WaterFlowView';
-import { DetailPageParams } from '../common/entity/IllustDetailEntity';
 import { SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../common/utils/ToastUtils';
