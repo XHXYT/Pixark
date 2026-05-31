@@ -10,7 +10,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "Pixark"
+      "value": "PixArk"
     },
     {
       "name": "permission_reason_INTERNET",
@@ -715,6 +715,59 @@
     {
       "name": "no_custom_rank",
       "value": "尚未配置排行榜项目"
+    },
+    {
+      "name": "export",
+      "value": "导出"
+    },
+    {
+      "name": "import",
+      "value": "导入"
+    },
+    {
+      "name": "search_records",
+      "value": "搜索记录"
+    },
+    {
+      "name": "download_records",
+      "value": "下载记录"
+    },
+    {
+      "name": "storage_management",
+      "value": "存储管理"
+    },
+    {
+      "name": "clear_image_cache",
+      "value": "清理图片缓存"
+    },
+    {
+      "name": "import_confirm",
+      "value": "导入确认"
+    },
+    {
+      "name": "import_override_prefix",
+      "value": "导入将会覆盖当前的"
+    },
+    {
+      "name": "import_override_suffix",
+      "value": "，是否继续？"
+    },
+
+    {
+      "name": "browse_records",
+      "value": "浏览记录"
+    },
+    {
+      "name": "clear_download_cache",
+      "value": "清理下载缓存"
+    },
+    {
+      "name": "confirm_clear_download_cache",
+      "value": "确定要清空下载缓存吗？"
+    },
+    {
+      "name": "confirm_clear_image_cache",
+      "value": "确定要清空图片缓存吗？"
     }
   ]
 }

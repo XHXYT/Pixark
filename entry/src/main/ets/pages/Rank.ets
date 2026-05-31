@@ -67,6 +67,7 @@ export struct Rank {
       // 日期按钮
       Button({ type: ButtonType.Circle }) {
         SymbolGlyph($r('sys.symbol.calendar'))
+          .fontColor([$r('sys.color.font_primary')])
           .fontSize(24)
       }
       .width(40).height(40)
@@ -100,6 +101,7 @@ export struct Rank {
       // 编辑/配置 Tab 按钮
       Button({ type: ButtonType.Circle }) {
         SymbolGlyph($r('sys.symbol.square_and_pencil'))
+          .fontColor([$r('sys.color.font_primary')])
           .fontSize(24)
       }
       .width(40).height(40)

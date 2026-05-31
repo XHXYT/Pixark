@@ -6,6 +6,8 @@ import { ButtonOptions } from "@ohos.arkui.advanced.Dialog"
 import { Colors, Theme } from "@ohos.arkui.theme"
 import { toastUtil } from "../common/utils/ToastUtils";
 import { ResourceUtils } from "../common/utils/ResourceUtil";
+import { PixState } from "../entryability/AppState";
+import { appSettings } from "../common/entity/SettingsModel";
 
 
 @ComponentV2
@@ -27,6 +29,7 @@ export struct CustomListItem {
           return {
             value: btn,
             buttonStyle: ButtonStyleMode.TEXTUAL,
+            fontColor: this.item.isDanger && index == Number(this.item.dialogConfig?.buttons?.length) - 1 ? Color.Red : PixState.currentThemeColor,
             action: () => {
               if (this.item.dialogConfig?.onClick) {
                 this.item.dialogConfig.onClick(btn, index, this.dialogController)
@@ -46,7 +49,9 @@ export struct CustomListItem {
         warning: "",
         alert: "",
         confirm: "",
-        fontPrimary: "",
+        fontPrimary: $r('sys.color.font_primary'),
+        backgroundPrimary: $r('sys.color.background_primary'),
+        backgroundSecondary: $r('sys.color.background_secondary'),
         fontSecondary: "",
         fontTertiary: "",
         fontFourth: "",
@@ -65,8 +70,6 @@ export struct CustomListItem {
         iconOnSecondary: "",
         iconOnTertiary: "",
         iconOnFourth: "",
-        backgroundPrimary: $r('sys.color.background_primary'),
-        backgroundSecondary: "",
         backgroundTertiary: "",
         backgroundFourth: "",
         backgroundEmphasize: "",
@@ -99,6 +102,7 @@ export struct CustomListItem {
       this.dialogController = new CustomDialogController({
         builder: CustomContentDialog({
           primaryTitle: this.item.title,
+          secondaryTitle: this.item.subtitle,
           contentBuilder: (): void => {
             if (this.dialogContent) {
               this.dialogContent(this.item)
@@ -106,12 +110,12 @@ export struct CustomListItem {
           },
           buttons: dialogButtons,
           contentAreaPadding: contentPadding,
-          theme: dialogTheme
+          themeColorMode: appSettings.color_mode + 1,
+          // theme: dialogTheme
         }),
         autoCancel: true,
         alignment: DialogAlignment.Center,
         cornerRadius: 32,
-        backgroundBlurStyle: BlurStyle.NONE,
         onWillAppear: () => {
           if (this.item.dialogConfig?.onWillAppear != null) {
             this.item.dialogConfig?.onWillAppear()
@@ -160,7 +164,7 @@ export struct CustomListItem {
             Text(this.item.title)
               .fontColor(this.item.enabled ? this.item.isDanger ? Color.Red : $r('sys.color.font_primary') : ColorUtils.getUnableColor($r('sys.color.font_primary')))
               .fontSize(16)
-            if (this.item.subtitle) {
+            if (this.item.subtitle && this.item.type != ItemActionType.DIALOG) {
               Text(this.item.subtitle)
                 .fontColor(this.item.enabled ? this.item.isDanger ? Color.Red : $r("sys.color.font_secondary") : ColorUtils.getUnableColor($r("sys.color.font_secondary")))
                 .fontSize(12)

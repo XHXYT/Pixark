@@ -79,6 +79,11 @@
       "name": "about",
       "pageSourceFile": "src/main/ets/view/more/AboutPage.ets",
       "buildFunction": "AboutPageBuilder"
+    },
+    {
+      "name": "app_data",
+      "pageSourceFile": "src/main/ets/view/more/AppData.ets",
+      "buildFunction": "AppDataBuilder"
     }
   ]
 }

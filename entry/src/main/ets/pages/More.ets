@@ -23,6 +23,7 @@ export struct More {
         title: $r('app.string.function'),
         type: ItemActionType.GROUP
       }),
+      // 账户信息
       new CustomItemInfo({
         symbol: $r('sys.symbol.person_crop_circle_fill'),
         title: $r('app.string.account_info'),
@@ -32,6 +33,7 @@ export struct More {
           this.pushTo('account_info')
         }
       }),
+      // 历史记录
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_counterclockwise_clock'),
         title: $r('app.string.history'),
@@ -41,6 +43,7 @@ export struct More {
           this.pushTo('illust_history')
         }
       }),
+      // 偏好设置
       new CustomItemInfo({
         symbol: $r('sys.symbol.gearshape_fill'),
         title: $r('app.string.preference'),
@@ -50,6 +53,7 @@ export struct More {
           this.pushTo('user_settings')
         }
       }),
+      // 下载管理
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_down_circle'),
         title: $r('app.string.download_manage'),
@@ -59,34 +63,16 @@ export struct More {
           this.pushTo('download_manager');
         }
       }),
+      // 应用数据
       new CustomItemInfo({
         symbol: $r('sys.symbol.folder_circle'),
         title: $r('app.string.app_data'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'app_data',
         onChange: () => {
-          toastUtil.showToast({ message: '应用数据功能开发中' })
+          this.pushTo('app_data');
         }
       }),
-      // new CustomItemInfo({
-      //   symbol: $r('sys.symbol.trash'),
-      //   title: '清理缓存',
-      //   type: ItemActionType.DIALOG, // 使用 DIALOG 类型，点击弹出确认框
-      //   id: 'clear_cache',
-      //   value: '12.5 MB',
-      //   dialogConfig: new DialogConfig({
-      //     width: undefined,
-      //     onWillAppear: undefined,
-      //     buttons: ['取消', '清理'],
-      //     onClick: (btn, index, dialog) => {
-      //       if (index === 1) {
-      //         // TODO: 执行清理缓存逻辑
-      //         toastUtil.showToast({ message: '缓存已清理' })
-      //       }
-      //       dialog?.close()
-      //     }
-      //   })
-      // }),
       // 其他
       // new CustomItemInfo({
       //   id: 'other',

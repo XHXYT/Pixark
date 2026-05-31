@@ -46,10 +46,6 @@ export default class IllustHistoryInfo {
   @Column({ name: 'accessTime', type: 'INTEGER', notNull: true })
   accessTime: number = 0
 
-  @Trace width: Length = 0
-
-  @Trace height: Length = 0
-
   /**
    * 构造函数
    * @param pid 插画 ID（必填）
