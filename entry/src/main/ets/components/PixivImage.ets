@@ -18,6 +18,7 @@ export struct PixivImageComponent {
   @Param imageHeight: Length | undefined = undefined
   @Param imageAspectRatio: number | undefined = undefined
   @Param imageBorder:  BorderOptions | undefined = undefined
+  @Param placeholderSrc: ResourceStr = $rawfile('loading_placeholder.jpg')
 
   @Event progress:  (progress: number) => void
   @Event onImageLongPress: (url: string) => void
@@ -30,7 +31,7 @@ export struct PixivImageComponent {
         imageKnifeOption: {
           loadSrc: this.imageUrl,
           // 加载中显示的占位图
-          placeholderSrc: $rawfile('loading_placeholder.jpg'),
+          placeholderSrc: this.placeholderSrc,
           // 加载失败显示的错误图
           errorSrc: $rawfile('loading_failed.jpg'),
           // 图片缩放模式

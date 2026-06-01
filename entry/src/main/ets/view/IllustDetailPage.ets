@@ -6,7 +6,6 @@ import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
 import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
-import { toastUtil } from "../common/utils/ToastUtils";
 import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
@@ -18,8 +17,10 @@ import { LongTakeAnimationProperties } from "../common/utils/customtransition/Lo
 import { CustomTransition } from "../common/utils/customtransition/CustomNavigationUtils";
 import { CardUtil } from "../common/utils/CardUtil";
 import { createLogger } from "../common/utils/Logger";
+import { CommentPanel } from "./CommentPanel";
 
 const logger = createLogger('IllustDetail')
+
 
 @Builder
 export function IllustDetailBuilder(name: string, param: Object) {
@@ -155,6 +156,7 @@ struct IllustDetailContent {
   @Param pageStack: NavPathStack = new NavPathStack()
 
   @Local currentImageIndex: number = 0
+  @Local showCommentPanel: boolean = false
   @Local iDV: IllustDetailViewModel = new IllustDetailViewModel()
 
   @Event onImageLarge: (show: boolean) => void
@@ -210,7 +212,13 @@ struct IllustDetailContent {
         }
       }
       .justifyContent(FlexAlign.SpaceBetween)
-
+      .bindSheet(this.showCommentPanel!!, this.CommentPanel(), {
+        height: '70%',
+        dragBar: true,
+        onWillAppear: () => {},
+        onWillDisappear: () => {
+        }
+      })
       this.FloatingControlButton()
 
       if (this.showLargeImage) {
@@ -354,8 +362,14 @@ struct IllustDetailContent {
     .width('100%')
     .borderRadius(12)
     .onClick(() => {
-      // TODO: 跳转到评论页或弹出评论层
-      toastUtil.showToast({ message: '开发中-弹出评论区半模态窗口' })
+      this.showCommentPanel = true
+    })
+  }
+
+  @Builder
+  CommentPanel() {
+    CommentPanel({
+      illustId: this.illustId
     })
   }
 

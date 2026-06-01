@@ -103,6 +103,44 @@ export interface PixivTag {
   translated_name?: string | null;
 }
 
+/** 评论中的用户信息（精简版） */
+export interface PixivCommentUser {
+  id: number;
+  name: string;
+  account: string;
+  profile_image_urls: {
+    medium: string;
+  };
+}
+
+/** 单条评论结构 */
+export interface PixivComment {
+  id: number;
+  comment: string;               // 评论文本内容（如果是贴图评论，可能为空或特定字符）
+  date: string;                  // 发表时间，如 "2025-10-27T12:34:56+09:00"
+  user: PixivCommentUser;        // 发表评论的用户
+
+  // 如果是贴图(表情)评论，会有这个字段；纯文本评论则为 null
+  stamp: {
+    stamp_id: number;
+    stamp_url: string;
+  } | null;
+
+  // 如果这条评论是回复别人的，会有父评论信息；否则为 null
+  parent_comment: {
+    id: number;
+    comment: string;
+    user: PixivCommentUser;
+  } | null;
+
+  // 部分接口版本会返回是否有回复（子评论），方便做"查看更多回复"
+  has_replies?: boolean;
+  // 本地扩展字段，API不会返回，用于UI展示
+  replies?: PixivComment[];        // 存放加载回来的子评论
+  repliesNextUrl?: string | null;  // 子评论的翻页 URL
+  isLoadingReplies?: boolean;      // 子评论加载状态
+}
+
 /**
  * 账号上下文：存储单个账号的所有凭证和状态
  */
@@ -358,5 +396,11 @@ export interface SpotlightResponse {
   spotlight_articles: SpotlightArticle[];
   /** 下一页的请求 URL（通常首页亮点数量较少，该字段可能为空） */
   next_url: string;
+}
+
+/** 获取评论列表的响应结构 */
+export interface PixivCommentsResponse {
+  comments: PixivComment[];
+  next_url: string | null;       // 翻页 URL，为 null 表示没有下一页
 }
 

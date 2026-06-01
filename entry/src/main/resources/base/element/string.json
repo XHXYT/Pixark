@@ -768,6 +768,46 @@
     {
       "name": "confirm_clear_image_cache",
       "value": "确定要清空图片缓存吗？"
+    },
+    {
+      "name": "load_more",
+      "value": "加载更多"
+    },
+    {
+      "name": "already_over",
+      "value": "已经到底啦"
+    },
+    {
+      "name": "no_comments",
+      "value": "暂无评论，快来抢沙发"
+    },
+    {
+      "name": "comment_area",
+      "value": "评论区"
+    },
+    {
+      "name": "reply",
+      "value": "回复"
+    },
+    {
+      "name": "replying",
+      "value": "回复 @%s"
+    },
+    {
+      "name": "say_something",
+      "value": "说点什么..."
+    },
+    {
+      "name": "click_load_more",
+      "value": "点击加载更多"
+    },
+    {
+      "name": "click_load_more_reply",
+      "value": "点击加载更多回复"
+    },
+    {
+      "name": "view_reply",
+      "value": "查看回复"
     }
   ]
 }

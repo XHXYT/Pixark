@@ -6,151 +6,106 @@ const logger = createLogger('PixivInteraction')
 
 /**
  * 用户交互服务类
- * 处理用户的主动行为：关注、取消关注、收藏、取消收藏等写操作
+ * 处理用户的主动行为：关注、取消关注、收藏、取消收藏、评论等写操作
  */
 export class PixivInteraction {
   constructor(private auth: PixivAuth) {}
+
+  /**
+   * 通用 POST 表单请求封装
+   * 解决了之前每个 POST 都写一遍 headers 和 encodeQuery 的问题
+   */
+  private async postForm(url: string, params: Record<string, any>): Promise<void> {
+    if (!this.auth.isLogin()) throw new Error('请先登录');
+    await this.auth.axiosInstance.post(url, UrlUtils.encodeQuery(params), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+  }
 
   // ==============================
   // 关注模块
   // ==============================
 
-  /**
-   * 关注用户
-   * @param userId 目标用户 ID
-   * @param restrict 关注类型：'public' (公开) 或 'private' (私密)
-   */
-  async followUser(
-    userId: number,
-    restrict: 'public' | 'private' = 'public'
-  ): Promise<void> {
-    if (!this.auth.isLogin()) {
-      throw new Error('请先登录');
-    }
+  async followUser(userId: number, restrict: 'public' | 'private' = 'public'): Promise<void> {
     logger.info(`Following user: ${userId}`);
-    try {
-      await this.auth.axiosInstance.post(
-        '/v1/user/follow/add',
-        UrlUtils.encodeQuery({
-          user_id: userId,
-          restrict: restrict,
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-    } catch (error: any) {
-      logger.error(`Follow failed: ` + JSON.stringify(error));
-      throw error;
-    }
+    await this.postForm('/v1/user/follow/add', { user_id: userId, restrict });
   }
 
-  /**
-   * 取消关注用户
-   * @param userId 目标用户 ID
-   * @param restrict 类型必须与当初关注时一致
-   */
-  async unfollowUser(
-    userId: number,
-    restrict: 'public' | 'private' = 'public'
-  ): Promise<void> {
-    if (!this.auth.isLogin()) {
-      throw new Error('请先登录');
-    }
+  async unfollowUser(userId: number, restrict: 'public' | 'private' = 'public'): Promise<void> {
     logger.info(`Unfollowing user: ${userId}`);
-    try {
-      await this.auth.axiosInstance.post(
-        '/v1/user/follow/delete',
-        UrlUtils.encodeQuery({
-          user_id: userId,
-          restrict: restrict,
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-    } catch (error: any) {
-      logger.error(`Unfollow failed: ` + JSON.stringify(error));
-      throw error;
-    }
+    await this.postForm('/v1/user/follow/delete', { user_id: userId, restrict });
   }
 
   // ==============================
-  // 收藏模块
+  // 插画收藏模块
   // ==============================
 
-  /**
-   * 收藏插画
-   * @param illust_id 作品 ID
-   * @param restrict 收藏类型：'public' (公开收藏) 或 'private' (私密收藏)
-   * @param tags 可选：自定义标签数组，最多 10 个
-   */
-  async addBookmark(
-    illust_id: number,
-    restrict: 'public' | 'private' = 'public',
-    tags: string[] = []
-  ): Promise<void> {
-    if (!this.auth.isLogin()) {
-      throw new Error('请先登录');
-    }
-    logger.info(`[PixivInteraction] Adding bookmark: ${illust_id}`);
-    const params: Record<string, string | number> = {
-      illust_id: illust_id,
-      restrict: restrict,
-    };
-    // 如果有标签，将数组转换为用空格分隔的字符串
-    // Pixiv API 接收格式如: tags=R18 原创标签1 标签2
-    if (tags.length > 0) {
-      params['tags'] = tags.join(' ');
-    }
-    try {
-      await this.auth.axiosInstance.post(
-        '/v2/illust/bookmark/add',
-        UrlUtils.encodeQuery(params),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-      logger.info(`Bookmark added: ${illust_id}`);
-    } catch (error: any) {
-      logger.error(`Add bookmark failed: ` + JSON.stringify(error));
-      throw error;
-    }
+  async addBookmark(illust_id: number, restrict: 'public' | 'private' = 'public', tags: string[] = []): Promise<void> {
+    logger.info(`Adding bookmark: ${illust_id}`);
+    const params: Record<string, any> = { illust_id, restrict };
+    if (tags.length > 0) params.tags = tags.join(' ');
+    await this.postForm('/v2/illust/bookmark/add', params);
   }
 
-
-  /**
-   * 取消收藏插画
-   * @param illust_id 作品 ID
-   */
   async deleteBookmark(illust_id: number): Promise<void> {
-    if (!this.auth.isLogin()) {
-      throw new Error('请先登录');
-    }
     logger.info(`Deleting bookmark: ${illust_id}`);
-    try {
-      await this.auth.axiosInstance.post(
-        '/v1/illust/bookmark/delete',
-        UrlUtils.encodeQuery({
-          illust_id: illust_id,
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-      logger.info(`Bookmark deleted: ${illust_id}`);
-    } catch (error: any) {
-      logger.error(`Delete bookmark failed: ` + JSON.stringify(error));
-      throw error;
-    }
+    await this.postForm('/v1/illust/bookmark/delete', { illust_id });
+  }
+
+  // ==============================
+  // 小说收藏模块
+  // ==============================
+
+  async addNovelBookmark(novel_id: number, restrict: 'public' | 'private' = 'public'): Promise<void> {
+    logger.info(`Adding novel bookmark: ${novel_id}`);
+    await this.postForm('/v2/novel/bookmark/add', { novel_id, restrict });
+  }
+
+  async deleteNovelBookmark(novel_id: number): Promise<void> {
+    logger.info(`Deleting novel bookmark: ${novel_id}`);
+    await this.postForm('/v1/novel/bookmark/delete', { novel_id });
+  }
+
+  // ==============================
+  // 插画评论模块
+  // ==============================
+
+  async addIllustComment(illust_id: number, comment: string, parent_comment_id?: number): Promise<void> {
+    logger.info(`Adding comment to illust: ${illust_id}`);
+    await this.postForm('/v1/illust/comment/add', { illust_id, comment, parent_comment_id });
+  }
+
+  async deleteIllustComment(comment_id: number): Promise<void> {
+    logger.info(`Deleting illust comment: ${comment_id}`);
+    await this.postForm('/v1/illust/comment/delete', { comment_id });
+  }
+
+  // ==============================
+  // 小说评论模块
+  // ==============================
+
+  async addNovelComment(novel_id: number, comment: string, parent_comment_id?: number): Promise<void> {
+    logger.info(`Adding comment to novel: ${novel_id}`);
+    await this.postForm('/v1/novel/comment/add', { novel_id, comment, parent_comment_id });
+  }
+
+  async deleteNovelComment(comment_id: number): Promise<void> {
+    logger.info(`Deleting novel comment: ${comment_id}`);
+    await this.postForm('/v1/novel/comment/delete', { comment_id });
+  }
+
+  // ==============================
+  // 用户设置模块
+  // ==============================
+
+  async postUserAIShowSettings(show: boolean): Promise<void> {
+    logger.info(`Setting AI show: ${show}`);
+    await this.postForm('/v1/user/ai-show-settings/edit', { show_ai: show });
+  }
+
+  async postUserRestrictedModeSettings(isRestrictedModeEnabled: boolean): Promise<void> {
+    logger.info(`Setting restricted mode: ${isRestrictedModeEnabled}`);
+    await this.postForm('/v1/user/restricted-mode-settings', { is_restricted_mode_enabled: isRestrictedModeEnabled });
   }
 
 }
