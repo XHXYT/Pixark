@@ -133,7 +133,7 @@ export interface PixivComment {
     user: PixivCommentUser;
   } | null;
 
-  // 部分接口版本会返回是否有回复（子评论），方便做"查看更多回复"
+  // 部分接口版本会返回是否有回复（子评论）
   has_replies?: boolean;
   // 本地扩展字段，API不会返回，用于UI展示
   replies?: PixivComment[];        // 存放加载回来的子评论

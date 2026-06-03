@@ -269,7 +269,7 @@ struct UserSettings {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Off)
-      .contentEndOffset(PixState.bottomRectHeight || 28)
+      .contentEndOffset(PixState.bottomRectHeight + (PixState.widthBp == 2 ? 56 : 0) || 28)
     }
     .width('100%')
     .height('100%')

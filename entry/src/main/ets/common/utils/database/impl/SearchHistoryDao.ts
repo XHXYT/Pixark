@@ -38,31 +38,54 @@ export class SearchHistoryTable extends AutoTable<SearchHistoryInfo> {
   }
 
   /**
-   * 查询所有搜索历史，按时间倒序
+   * 查询所有搜索历史，按时间倒序（保留原样，不改动）
    */
   async queryAll(): Promise<SearchHistoryInfo[]> {
     return this.query(this.getPredicates().orderByDesc('accessTime'))
   }
 
   /**
-   * 保存或更新搜索关键词
+   * 根据模式查询搜索历史
+   * @param mode 当前模式 'illust' 或 'novel'，不传则查全部
    */
-  async saveOrUpdate(keyword: string): Promise<number> {
-    logger.debug('saveOrUpdate', 'saveOrUpdate keyword = ' + keyword)
-    // 查询是否已存在
-    let results = await this.query(this.getPredicates().equalTo('keyword', keyword))
+  async queryByMode(mode?: 'illust' | 'novel'): Promise<SearchHistoryInfo[]> {
+    let predicates = this.getPredicates().orderByDesc('accessTime');
+    if (mode) {
+      predicates = predicates.equalTo('search_type', mode);
+    }
+    return this.query(predicates)
+  }
+
+  /**
+   * 保存或更新搜索关键词，需带上类型
+   */
+  async saveOrUpdate(keyword: string, type: string = 'illust'): Promise<number> {
+    logger.debug('saveOrUpdate', `keyword = ${keyword}, type =${type}`)
+
+    // 查询时，必须同时匹配 keyword 和 type
+    let results = await this.query(
+      this.getPredicates().equalTo('keyword', keyword).and().equalTo('search_type', type)
+    )
+
     let result;
     if (!results || results.length == 0) {
-      // 不存在则插入新记录
-      result = await this.insert(new SearchHistoryInfo(keyword))
+      // 插入时，传入类型
+      result = await this.insert(new SearchHistoryInfo(keyword, type))
     } else {
-      // 存在则更新访问时间
       let info = results[0]
       info.accessTime = new Date().getTime()
       result = await this.update(info)
     }
-    logger.debug('saveOrUpdate', 'saveOrUpdate result = ' + result)
     return result
+  }
+
+  // 清空历史也支持按类型清空
+  async clearAll(type?: string): Promise<void> {
+    if (type) {
+      await this.deleteItem(this.getPredicates().equalTo('search_type', type))
+    } else {
+      await this.clearTable()
+    }
   }
 
   /**
@@ -80,17 +103,20 @@ export class SearchHistoryTable extends AutoTable<SearchHistoryInfo> {
   }
 
   /**
-   * 清空所有搜索历史
-   */
-  async clearAll(): Promise<void> {
-    await this.clearTable()
-  }
-
-  /**
    * 查询最近N条(默认为10)搜索历史
    */
   async queryRecent(limit: number = 10): Promise<SearchHistoryInfo[]> {
     return this.query(this.getPredicates().orderByDesc('accessTime').limitAs(limit))
+  }
+
+  /**
+   * 临时修复方法：给 search_type 为 NULL 或 空字符串的历史记录补上默认值
+   */
+  async fixNullSearchType(): Promise<void> {
+    let db = await this.futureDb;
+    const sql = `UPDATE ${this.tableName} SET search_type = 'illust' WHERE search_type IS NULL OR search_type = ''`;
+    await db.executeSql(sql);
+    logger.info('修复 NULL search_type 完成');
   }
 
 }

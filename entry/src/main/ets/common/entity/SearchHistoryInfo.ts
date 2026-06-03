@@ -35,8 +35,17 @@ export default class SearchHistoryInfo {
   })
   accessTime: number;
 
-  constructor(keyword: string, accessTime: number = new Date().getTime()) {
+  @Column({
+    name: 'search_type',
+    type: 'TEXT',
+    notNull: true,
+    defaultValue: 'illust'
+  })
+  searchType: string = 'illust';
+
+  constructor(keyword: string, searchType: string = 'illust', accessTime: number = new Date().getTime()) {
     this.keyword = keyword;
     this.accessTime = accessTime;
+    this.searchType = searchType;
   }
 }

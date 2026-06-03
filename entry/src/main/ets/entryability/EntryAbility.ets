@@ -23,6 +23,7 @@ import { JumpUtil } from '../common/utils/JumpUtils';
 import { bundleManager } from "@kit.AbilityKit";
 import { AppConstants } from '../common/constants/AppConstants';
 import { rankVM } from '../viewmodel/RankViewModel';
+import { searchVM } from '../viewmodel/SearchViewModel';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -109,6 +110,8 @@ export default class EntryAbility extends UIAbility {
    * 初始化应用基础环境 (偏好设置、数据库、颜色、图片缓存等)
    */
   private async initAppEnvironment() {
+    // 初始化上下文
+    _PixState.Context = this.context
     // 初始化首选项
     await preferenceUtil.init(this.context, 'pixark_preference');
     // 初始化KV数据库
@@ -122,8 +125,6 @@ export default class EntryAbility extends UIAbility {
     ResourceUtils.init(this.context)
     // 初始化跳转工具
     JumpUtil.init(this.context)
-    // 初始化上下文
-    _PixState.Context = this.context
     // 设置深浅色模式
     SettingsUtils.setColorMode()
     // 初始化 ImageKnife 文件缓存
@@ -251,6 +252,7 @@ export default class EntryAbility extends UIAbility {
     homeViewModel.resetAndLoad();
     favVM.resetAndLoad();
     rankVM.fetchRanking()
+    searchVM.loadData()
     // 以后有新的 ViewModel 往这里加
   }
 

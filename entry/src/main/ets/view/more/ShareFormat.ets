@@ -193,12 +193,13 @@ struct ShareFormat {
         .margin({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
       }
       .width('100%')
+      .justifyContent(FlexAlign.Start)
     }
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .contentEndOffset(PixState.bottomRectHeight)
+    .contentEndOffset(PixState.bottomRectHeight + (PixState.widthBp == 2 ? 56 : 0))
   }
 
 }

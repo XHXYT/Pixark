@@ -1,7 +1,5 @@
+import { ValueType } from "@kit.ArkData";
 
-export enum ValueType {
-    TEXT, INTEGER, LONG, BOOLEAN
-}
 
 export default interface ColumnInfo {
     // 实体属性名

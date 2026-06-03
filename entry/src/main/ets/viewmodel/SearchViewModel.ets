@@ -2,7 +2,6 @@ import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/Illust
 import SearchHistoryInfo from '../common/entity/SearchHistoryInfo';
 import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';
-import { MockData } from '../services/MockData';
 import { PixivIllust, PixivNovel, PixivTrendingTag, UserPreview } from '../services/PixivTypes';
 import { SearchHistoryTable } from '../common/utils/database/impl/SearchHistoryDao';
 import { createLogger } from '../common/utils/Logger';
@@ -11,6 +10,7 @@ import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
 
 const logger = createLogger('SearchViewModel')
+
 
 @ObservedV2
 class SearchViewModel implements IIllustSwiperProvider {
@@ -43,7 +43,7 @@ class SearchViewModel implements IIllustSwiperProvider {
   private lastSearchedUserKeyword: string = '';
 
   private debounceTimerId: number = -1;
-  private searchHistoryDB = new SearchHistoryTable(_PixState.Context)
+  private searchHistoryDB: SearchHistoryTable | null = null;
 
   // 嵌套滚动配置
   get nestedScrollOptions(): NestedScrollOptions {
@@ -61,17 +61,59 @@ class SearchViewModel implements IIllustSwiperProvider {
   get isLoading(): boolean { return this.isLoadingMore; }
   async loadMore(): Promise<void> { await this.loadMoreSearchResult(); }
 
+  /**
+   * 重置搜索状态
+   * 通常在全局模式切换后，或重新进入搜索主页时调用
+   */
+  private resetSearchState() {
+    // 强制将 searchType 对齐到当前全局模式
+    this.searchType = appSettings.novel_mode ? 'novel' : 'illust';
+    // 清空所有搜索结果和翻页 URL
+    this.resultIllusts = [];
+    this.resultNovels = [];
+    this.resultUsers = [];
+    this.IllustNextUrl = '';
+    this.novelNextUrl = '';
+    this.userNextUrl = '';
+    // 清空缓存的关键词，确保下次搜索会真去请求
+    this.lastSearchedIllustKeyword = '';
+    this.lastSearchedNovelKeyword = '';
+    this.lastSearchedUserKeyword = '';
+    // 清空当前关键词
+    this.keyword = '';
+  }
+
+  // 获取数据库实例，实现懒加载
+  private getDB(): SearchHistoryTable {
+    if (!this.searchHistoryDB) {
+      // 确保 Context 存在
+      if (!_PixState.Context) {
+        logger.error('Context 未初始化！');
+        // 抛出错误或返回一个空壳对象防止崩溃，这里建议抛错以便发现
+        throw new Error("Database Context is not ready!");
+      }
+      this.searchHistoryDB = new SearchHistoryTable(_PixState.Context);
+    }
+    return this.searchHistoryDB;
+  }
+
   // 加载 搜索历史 & 推荐标签
   async loadData() {
+    // 每次加载搜索主页数据时，先重置一下状态，避免模式切换后的残留
+    this.resetSearchState();
     try {
-      const values = await this.searchHistoryDB.queryAll()
+      // await this.getDB().fixNullSearchType();
+      const mode = appSettings.novel_mode ? 'novel' : 'illust';
+      const values = await this.getDB().queryByMode(mode)
       this.searchHistory = values
-    } catch (e) { logger.error('加载搜索历史失败: ', e); }
-
+    } catch (e) {
+      logger.error('[DB_INIT] 加载搜索历史失败: ', e);
+    }
     try {
-      // 根据模式请求不同的热门标签接口
       this.trendingTags = appSettings.novel_mode ? await pixiv.getNovelTrendTags() : await pixiv.getTrendingTags();
-    } catch (e) { logger.error('加载热门标签失败:', e); }
+    } catch (e) {
+      logger.error('加载热门标签失败:', e);
+    }
   }
 
   async doSearch(force: boolean = false) {
@@ -155,9 +197,9 @@ class SearchViewModel implements IIllustSwiperProvider {
   async handleSearchInput(input: string, type: 'illust' | 'user' | 'novel' = 'illust', force = false) {
     const text = input.trim();
     // 存数据库
-    this.searchHistoryDB.saveOrUpdate(text).then(async (result) => {
-      // toastUtil.showToast({ message: `搜索记录 ${text} 保存成功, id: ${result} `})
-      const values = await this.searchHistoryDB.queryAll()
+    const currentMode = appSettings.novel_mode ? 'novel' : 'illust';
+    this.getDB().saveOrUpdate(text, currentMode).then(async () => {
+      const values = await this.getDB().queryByMode(currentMode)
       this.searchHistory = values
     })
     if (!text) return;
@@ -242,7 +284,9 @@ class SearchViewModel implements IIllustSwiperProvider {
       ]
     }, async (err, data) => {
       if (data?.index === 1) {
-        await this.searchHistoryDB.clearAll()
+        // 只清空当前模式的历史
+        const currentMode = appSettings.novel_mode ? 'novel' : 'illust';
+        await this.getDB().clearAll(currentMode)
         this.searchHistory = []
         this.searchHistoryEdit = false
       }
@@ -250,7 +294,7 @@ class SearchViewModel implements IIllustSwiperProvider {
   }
 
   async deleteSearch(id: number) {
-    await this.searchHistoryDB.deleteByID(id)
+    await this.getDB().deleteByID(id)
     this.searchHistory = this.searchHistory.filter((item) => item.id != id)
     if (this.searchHistory.length == 0) {
       this.searchHistoryEdit = false

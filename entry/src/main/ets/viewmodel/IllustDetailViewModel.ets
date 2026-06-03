@@ -12,7 +12,7 @@ import { common } from '@kit.AbilityKit';
 import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
-import { IllustHistoryVM } from './IllustHistoryViewModel';
+import { historyVM } from './HistoryViewModel';
 
 
 const logger = createLogger('IllustDetailViewModel')
@@ -83,7 +83,7 @@ export class IllustDetailViewModel implements IIllustSwiperProvider {
       }
       // 数据加载成功后，自动记录历史
       if (this.detailData) {
-        IllustHistoryVM.addHistory(
+        historyVM.addIllustHistory(
           this.detailData.id.toString(),
           this.detailData.title,
           // 使用详情接口返回的更高质量的图作为历史记录封面

@@ -83,7 +83,7 @@ export struct NovelListView {
             .layoutWeight(1) // 占据剩余空间，超长时省略号截断
 
           if (novel.text_length) {
-            Text(`${novel.text_length}字`)
+            Text($r('app.string.num_words', novel.text_length))
               .fontSize(11)
               .fontColor($r('sys.color.font_tertiary'))
               .flexShrink(0)

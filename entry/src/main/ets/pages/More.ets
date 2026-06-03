@@ -76,7 +76,7 @@ export struct More {
       new CustomItemInfo({ id: 'function', title: $r('app.string.function'), type: ItemActionType.GROUP }),
       // 小说
       new CustomItemInfo({
-        symbol: $r('sys.symbol.list_book'),
+        symbol: !appSettings.novel_mode ? $r('sys.symbol.list_book') : $r('sys.symbol.bookmark_picture'),
         title: appSettings.novel_mode ? $r('app.string.illust') : $r('app.string.novel'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'novel_mode',
@@ -130,37 +130,39 @@ export struct More {
   
   @Builder
   Content() {
-    Column() {
-      Column({ space: 20 }) {
-        // 用户信息卡片
-        this.UserProfileHeader()
-        // 功能列表
-        List({ space: 12 }) {
-          ForEach(makeItemGroups(this.itemList), (group: ItemGroupData) => {
-            ListItemGroup({
-              // 如果分组项有 title 则渲染头部，否则不渲染
-              header: group.group?.title ? this.GroupHeader(group.group.title) : undefined
-            }) {
-              ForEach(group.items, (item: CustomItemInfo) => {
-                ListItem() {
-                  CustomListItem({
-                    item: item,
-                    itemPadding: { left: 6, bottom: 8, top: 8 }
-                  })
-                }
-              })
-            }
-          })
-        }
-        .width('100%')
-        .backgroundColor(Color.Transparent)
+    Column({ space: 20 }) {
+      // 用户信息卡片
+      this.UserProfileHeader()
+      // 功能列表
+      List({ space: 12 }) {
+        ForEach(makeItemGroups(this.itemList), (group: ItemGroupData) => {
+          ListItemGroup({
+            // 如果分组项有 title 则渲染头部，否则不渲染
+            header: group.group?.title ? this.GroupHeader(group.group.title) : undefined
+          }) {
+            ForEach(group.items, (item: CustomItemInfo) => {
+              ListItem() {
+                CustomListItem({
+                  item: item,
+                  itemPadding: { left: 6, bottom: 8, top: 8 }
+                })
+              }
+            })
+          }
+        })
       }
-      .width('100%')
-      .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue, bottom: 40 })
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+      .backgroundColor(Color.Transparent)
     }
     .width('100%')
-    .height('100%')
     .backgroundColor($r('sys.color.background_primary'))
+    .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue, bottom: 40 })
+    .onAppear(() => {
+      if (PixState.widthBp >= 2) {
+        this.pushTo('user_settings')
+      }
+    })
   }
 
   @Builder

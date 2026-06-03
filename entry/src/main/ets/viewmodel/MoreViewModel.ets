@@ -48,10 +48,10 @@ export class MoreViewModel {
   switchMode() {
     appSettings.novel_mode = !appSettings.novel_mode
     EventHub.sendEvent(EventKey.FetchData)
-    if (appSettings.novel_mode) {
+    if (!appSettings.novel_mode) {
       toastUtil.showToast({ message: ResourceUtils.getString($r('app.string.enter')) + ResourceUtils.getString($r('app.string.novel_mode')) })
     } else {
-      toastUtil.showToast({ message: ResourceUtils.getString($r('app.string.exit')) + ResourceUtils.getString($r('app.string.novel_mode')) })
+      toastUtil.showToast({ message: ResourceUtils.getString($r('app.string.enter')) + ResourceUtils.getString($r('app.string.illust_mode')) })
     }
   }
 

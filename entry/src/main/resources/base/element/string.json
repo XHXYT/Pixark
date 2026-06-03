@@ -840,6 +840,38 @@
     {
       "name": "recommend_novel",
       "value": "推荐小说"
+    },
+    {
+      "name": "search_novel_placeholder",
+      "value": "搜索标题、作者或标签"
+    },
+    {
+      "name": "search_illust_placeholder",
+      "value": "搜索标题或PID"
+    },
+    {
+      "name": "select_all",
+      "value": "全选"
+    },
+    {
+      "name": "selected_num",
+      "value": "已选择 %d 项"
+    },
+    {
+      "name": "delete",
+      "value": "删除"
+    },
+    {
+      "name": "num_words",
+      "value": "%d字"
+    },
+    {
+      "name": "clear_browse_history",
+      "value": "清空浏览记录"
+    },
+    {
+      "name": "illust_mode",
+      "value": "插画模式"
     }
   ]
 }
