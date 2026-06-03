@@ -4,7 +4,9 @@ import { LengthMetrics, SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.Ar
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserListView } from "../components/UsersListView";
 import { TabBuild } from "../common/entity/IndexEntity";
-import { PixivIllust } from "../services/PixivTypes";
+import { PixivIllust, PixivNovel } from "../services/PixivTypes";
+import { NovelListView } from "../components/NovelListView";
+import { appSettings } from "../common/entity/SettingsModel";
 
 
 @ComponentV2
@@ -28,7 +30,6 @@ export struct Favorite {
         this.FavoriteSkeleton()
       } else {
         this.FavoriteContent()
-        // this.FavoriteSkeleton()
       }
     }
     .width('100%')
@@ -132,68 +133,68 @@ export struct Favorite {
     return tabList
   }
 
-  @Builder
-  tabContentBuilder(name: string) {
+  @Builder tabContentBuilder(name: string) {
     Column({ space: 10 }) {
       // 筛选器区域
       Row() {
         TabSegmentButtonV2({
           items: this.filterTabItems,
           selectedIndex: favVM.filterIndex,
-          onItemClicked: (tab) => {
-            favVM.handleFilterChange(tab);
-          }
+          onItemClicked: (tab) => { favVM.handleFilterChange(tab); }
         })
       }
       .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
       .width('100%')
+
       Refresh({ refreshing: favVM.isRefreshing }) {
         if (name == 'trend') {
           // 动态列表
-          WaterFlowView({
-            contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
-            illustList: favVM.currentIllustList,
-            onCardClick: (illust) => {
-              favVM.handleIllustClick(illust);
-            },
-            onReachEnd: () => {
-              favVM.loadMore();
-            }
-          })
+          if (appSettings.novel_mode) {
+            NovelListView({
+              novelList: favVM.currentNovels,
+              onItemClick: (novel: PixivNovel) => { /* TODO: 跳转小说详情 */ },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          } else {
+            WaterFlowView({
+              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
+              illustList: favVM.currentIllustList,
+              onCardClick: (illust) => { favVM.handleIllustClick(illust); },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          }
         } else if (name == 'collection') {
           // 收藏列表
-          WaterFlowView({
-            contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight)  + this.parseBarHeightValue(PixState.TabBarHeight),
-            illustList: favVM.currentIllustList,
-            onCardClick: (illust) => {
-              favVM.handleIllustClick(illust);
-            },
-            onReachEnd: () => {
-              favVM.loadMore();
-            }
-          })
+          if (appSettings.novel_mode) {
+            NovelListView({
+              novelList: favVM.currentNovels,
+              onItemClick: (novel: PixivNovel) => { /* TODO: 跳转小说详情 */ },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          } else {
+            WaterFlowView({
+              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
+              illustList: favVM.currentIllustList,
+              onCardClick: (illust) => { favVM.handleIllustClick(illust); },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          }
         } else {
           // 关注用户列表
           UserListView({
             contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
             userPres: favVM.followList,
             isFollow: true,
-            onButtonClick: (result: boolean, err?: string) => {
-            },
-            onImageClick: (illust: PixivIllust) => {
-              favVM.handleIllustClick(illust)
-            },
-            onReachEnd: () => {
-              favVM.loadMore();
-            }
+            onButtonClick: (result: boolean, err?: string) => { },
+            onImageClick: (illust: PixivIllust) => { favVM.handleIllustClick(illust) },
+            onReachEnd: () => { favVM.loadMore(); }
           })
         }
       }
-      .onRefreshing(async () => {
-        // 下拉刷新当前页数据
-        await favVM.loadCurrentTabData()
-      })
+      .layoutWeight(1)
+      .onRefreshing(async () => { await favVM.loadCurrentTabData() })
     }
+    .width('100%').height('100%')
     .justifyContent(FlexAlign.Start)
   }
 

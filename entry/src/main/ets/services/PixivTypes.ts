@@ -141,6 +141,31 @@ export interface PixivComment {
   isLoadingReplies?: boolean;      // 子评论加载状态
 }
 
+/** 小说数据结构 */
+export interface PixivNovel {
+  id: number;
+  title: string;
+  caption: string;
+  restrict: number;
+  x_restrict: number;
+  is_original: boolean;
+  image_urls: {
+    square_medium: string;
+    medium: string;
+    large: string;
+  };
+  create_date: string;
+  tags: PixivTag[];
+  page_count: number;
+  text_length: number; // 小说字数
+  user: PixivUser;
+  series: {
+    id: number;
+    title: string;
+  } | null;
+
+}
+
 /**
  * 账号上下文：存储单个账号的所有凭证和状态
  */
@@ -368,7 +393,8 @@ export interface PixivTrendingTagsResponse {
  * 定义了搜索或排行榜等接口返回的列表数据结构
  */
 export interface PixivListResult {
-  illusts: PixivIllust[];     // 插画作品列表
+  illusts?: PixivIllust[];     // 插画作品列表
+  novels?: PixivNovel[];      // 小说作品列表
   next_url: string | null;    // 下一页的 URL，如果为 null 表示没有下一页
 }
 

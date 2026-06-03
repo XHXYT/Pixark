@@ -2,6 +2,10 @@ import { PixState } from '../entryability/AppState';
 import { PixivUser } from '../services/PixivTypes';
 import { createLogger } from '../common/utils/Logger';
 import { pixiv } from '../services/PixivService';
+import { appSettings } from '../common/entity/SettingsModel';
+import { EventHub, EventKey } from '../common/utils/EventHub';
+import { toastUtil } from '../common/utils/ToastUtils';
+import { ResourceUtils } from '../common/utils/ResourceUtil';
 
 
 const logger = createLogger('MoreViewModel');
@@ -41,6 +45,16 @@ export class MoreViewModel {
     return (this.currentUser?.id || 0).toString();
   }
 
+  switchMode() {
+    appSettings.novel_mode = !appSettings.novel_mode
+    EventHub.sendEvent(EventKey.FetchData)
+    if (appSettings.novel_mode) {
+      toastUtil.showToast({ message: ResourceUtils.getString($r('app.string.enter')) + ResourceUtils.getString($r('app.string.novel_mode')) })
+    } else {
+      toastUtil.showToast({ message: ResourceUtils.getString($r('app.string.exit')) + ResourceUtils.getString($r('app.string.novel_mode')) })
+    }
+  }
+
   // 处理登出逻辑
   async handleLogout() {
     try {
@@ -49,11 +63,11 @@ export class MoreViewModel {
       // 执行登出清理
       // await pixiv.logout()
       // 跳转回登录页
-
     } catch (e) {
       logger.error('Logout failed: ' + e.message);
     }
   }
+
 }
 
 export const moreVM = new MoreViewModel();

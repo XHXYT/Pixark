@@ -808,6 +808,38 @@
     {
       "name": "view_reply",
       "value": "查看回复"
+    },
+    {
+      "name": "novel",
+      "value": "小说"
+    },
+    {
+      "name": "data",
+      "value": "数据"
+    },
+    {
+      "name": "message",
+      "value": "信息"
+    },
+    {
+      "name": "exit",
+      "value": "退出"
+    },
+    {
+      "name": "enter",
+      "value": "进入"
+    },
+    {
+      "name": "novel_mode",
+      "value": "小说模式"
+    },
+    {
+      "name": "series",
+      "value": "系列"
+    },
+    {
+      "name": "recommend_novel",
+      "value": "推荐小说"
     }
   ]
 }

@@ -10,7 +10,7 @@ export class FunctionConstants {
   static AI_TAG: string[] = ['AI生成', 'AI-assisted', 'AI-generated', 'NovelAI', 'R-18AI', 'AI作品']
 
   // 排行榜所有可选项目定义
-  static RANK_MODE_OPTIONS: Record<string, string> = {
+  static ILLUST_RANK_MODES: Record<string, string> = {
     'day': '日榜',
     'week': '周榜',
     'month': '月榜',
@@ -22,6 +22,19 @@ export class FunctionConstants {
     'week_r18': 'XVIII 周榜',
     'day_male_r18': 'XVIII 男性向',
     'day_female_r18': 'XVIII 女性向',
+  };
+
+  static NOVEL_RANK_MODES: Record<string, string> = {
+    'day': '日榜',
+    'week': '周榜',
+    'day_male': '男性向日榜',
+    'day_female': '女性向日榜',
+    'week_rookie': '新人周榜',
+    'day_r18': 'XVIII 日榜',
+    'day_male_r18': 'XVIII 男性向日榜',
+    'day_female_r18': 'XVIII 女性向日榜',
+    'week_r18': 'XVIII 周榜',
+    'week_r18g': 'XVIII G 周榜',
   };
 
   // 默认文件名模板常量

@@ -1,11 +1,12 @@
 import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
-import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { PixState } from "../entryability/AppState";
-import { PixivIllust, UserPreview } from "../services/PixivTypes";
+import { PixivIllust, PixivNovel, UserPreview } from "../services/PixivTypes";
 import { createLogger } from "../common/utils/Logger";
 import { pixiv } from "../services/PixivService";
+import { appSettings } from "../common/entity/SettingsModel";
 
 const logger = createLogger('FavoriteViewModel');
+
 
 @ObservedV2
 class FavoriteViewModel implements IIllustSwiperProvider {
@@ -19,33 +20,39 @@ class FavoriteViewModel implements IIllustSwiperProvider {
   @Trace filterIndex: number = 0;
 
   // --- 数据状态 ---
-  // 统一的加载更多防抖状态
   @Trace isLoadingMore: boolean = false;
-  // 是否正在刷新加载所有数据
   @Trace isRefreshing: boolean = false
-  // 首次加载状态，用于骨架屏/加载动画
   @Trace isInitialLoading: boolean = true;
-  // 动态数据
+
+  // 插画数据
   @Trace trendList: PixivIllust[] = [];
   private nextTrendUrlPublic: string = '';
   private nextTrendUrlPrivate: string = '';
-
-  // 收藏数据
   @Trace collectionList: PixivIllust[] = [];
   private nextCollectionUrlPublic: string = '';
   private nextCollectionUrlPrivate: string = '';
+
+  // 小说数据
+  @Trace trendNovels: PixivNovel[] = [];
+  private nextTrendNovelUrlPublic: string = '';
+  private nextTrendNovelUrlPrivate: string = '';
+  @Trace collectionNovels: PixivNovel[] = [];
+  private nextCollectionNovelUrlPublic: string = '';
+  private nextCollectionNovelUrlPrivate: string = '';
 
   // 关注数据
   @Trace followList: UserPreview[] = [];
   private nextFollowUrlPublic: string = '';
   private nextFollowUrlPrivate: string = '';
 
-  // 记录是否已加载过
+  // 加载记录
   private hasLoadedTrend: boolean = false;
   private hasLoadedCollection: boolean = false;
   private hasLoadedFollow: boolean = false;
+  // 小说加载记录
+  private hasLoadedTrendNovels: boolean = false;
+  private hasLoadedCollectionNovels: boolean = false;
 
-  // 记录上一次筛选器的索引，用于判断是否需要刷新
   private lastFilterIndex: number = -1;
 
   // --- 生命周期 ---
@@ -62,11 +69,11 @@ class FavoriteViewModel implements IIllustSwiperProvider {
     logger.debug('>>> 开始加载喜欢数据...');
     try {
       if (this.mainTabIndex === 0) {
-        await this.loadTrendData();
+        appSettings.novel_mode ? await this.loadTrendNovelData() : await this.loadTrendData();
       } else if (this.mainTabIndex === 1) {
-        await this.loadCollectionData();
+        appSettings.novel_mode ? await this.loadCollectionNovelData() : await this.loadCollectionData();
       } else if (this.mainTabIndex === 2) {
-        await this.loadFollowData();
+        await this.loadFollowData(); // 关注页不分小说/插画
       }
     } catch (e) {
       logger.error(`[loadCurrentTabData] Failed: ${e.message}`);
@@ -80,26 +87,20 @@ class FavoriteViewModel implements IIllustSwiperProvider {
 
   // 强制重置并重新加载 (用于切换账号)
   public resetAndLoad() {
-    logger.debug('[resetAndLoad] Resetting all data for account switch.');
-    // 清空所有旧数据
-    this.trendList = [];
-    this.collectionList = [];
-    this.followList = [];
-    // 清空所有分页 URL
-    this.nextTrendUrlPublic = '';
-    this.nextTrendUrlPrivate = '';
-    this.nextCollectionUrlPublic = '';
-    this.nextCollectionUrlPrivate = '';
-    this.nextFollowUrlPublic = '';
-    this.nextFollowUrlPrivate = '';
-    // 重置加载状态
-    this.hasLoadedTrend = false;
-    this.hasLoadedCollection = false;
-    this.hasLoadedFollow = false;
+    this.trendList = []; this.collectionList = []; this.followList = [];
+    this.trendNovels = []; this.collectionNovels = []; // 重置小说
+
+    this.nextTrendUrlPublic = ''; this.nextTrendUrlPrivate = '';
+    this.nextCollectionUrlPublic = ''; this.nextCollectionUrlPrivate = '';
+    this.nextTrendNovelUrlPublic = ''; this.nextTrendNovelUrlPrivate = '';
+    this.nextCollectionNovelUrlPublic = ''; this.nextCollectionNovelUrlPrivate = '';
+    this.nextFollowUrlPublic = ''; this.nextFollowUrlPrivate = '';
+
+    this.hasLoadedTrend = false; this.hasLoadedCollection = false; this.hasLoadedFollow = false;
+    this.hasLoadedTrendNovels = false; this.hasLoadedCollectionNovels = false;
     this.lastFilterIndex = -1;
-    // 恢复首次加载动画状态
+
     this.isInitialLoading = true;
-    // 重新加载当前 Tab
     this.loadCurrentTabData();
   }
 
@@ -110,16 +111,27 @@ class FavoriteViewModel implements IIllustSwiperProvider {
 
   // 动态判断当前列表是否还有更多数据
   get hasMore(): boolean {
-    if (this.mainTabIndex === 0) { // 动态
-      if (this.filterIndex === 0) return !!(this.nextTrendUrlPublic || this.nextTrendUrlPrivate);
-      if (this.filterIndex === 1) return !!this.nextTrendUrlPublic;
-      if (this.filterIndex === 2) return !!this.nextTrendUrlPrivate;
-    } else if (this.mainTabIndex === 1) { // 收藏
-      if (this.filterIndex === 0) return !!(this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate);
-      if (this.filterIndex === 1) return !!this.nextCollectionUrlPublic;
-      if (this.filterIndex === 2) return !!this.nextCollectionUrlPrivate;
+    if (appSettings.novel_mode) {
+      if (this.mainTabIndex === 0) {
+        if (this.filterIndex === 0) return !!(this.nextTrendNovelUrlPublic || this.nextTrendNovelUrlPrivate);
+        if (this.filterIndex === 1) return !!this.nextTrendNovelUrlPublic;
+        if (this.filterIndex === 2) return !!this.nextTrendNovelUrlPrivate;
+      } else if (this.mainTabIndex === 1) {
+        if (this.filterIndex === 0) return !!(this.nextCollectionNovelUrlPublic || this.nextCollectionNovelUrlPrivate);
+        if (this.filterIndex === 1) return !!this.nextCollectionNovelUrlPublic;
+        if (this.filterIndex === 2) return !!this.nextCollectionNovelUrlPrivate;
+      }
+    } else {
+      if (this.mainTabIndex === 0) {
+        if (this.filterIndex === 0) return !!(this.nextTrendUrlPublic || this.nextTrendUrlPrivate);
+        if (this.filterIndex === 1) return !!this.nextTrendUrlPublic;
+        if (this.filterIndex === 2) return !!this.nextTrendUrlPrivate;
+      } else if (this.mainTabIndex === 1) {
+        if (this.filterIndex === 0) return !!(this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate);
+        if (this.filterIndex === 1) return !!this.nextCollectionUrlPublic;
+        if (this.filterIndex === 2) return !!this.nextCollectionUrlPrivate;
+      }
     }
-    // 关注列表不是插画，返回 false
     return false;
   }
 
@@ -256,6 +268,62 @@ class FavoriteViewModel implements IIllustSwiperProvider {
     }
   }
 
+  // 小说请求逻辑
+  async loadTrendNovelData(isLoadMore: boolean = false) {
+    if (!isLoadMore && this.hasLoadedTrendNovels && this.lastFilterIndex === this.filterIndex) return;
+    try {
+      let newData: PixivNovel[] = [];
+      if (this.filterIndex === 0) {
+        const results = await Promise.all([
+          pixiv.getNovelFollow('public', isLoadMore ? this.nextTrendNovelUrlPublic : undefined),
+          pixiv.getNovelFollow('private', isLoadMore ? this.nextTrendNovelUrlPrivate : undefined)
+        ]);
+        this.nextTrendNovelUrlPublic = results[0].next_url || '';
+        this.nextTrendNovelUrlPrivate = results[1].next_url || '';
+        newData = [...(results[0].novels || []), ...(results[1].novels || [])];
+      } else if (this.filterIndex === 1) {
+        const res = await pixiv.getNovelFollow('public', isLoadMore ? this.nextTrendNovelUrlPublic : undefined);
+        this.nextTrendNovelUrlPublic = res.next_url || '';
+        newData = res.novels || [];
+      } else if (this.filterIndex === 2) {
+        const res = await pixiv.getNovelFollow('private', isLoadMore ? this.nextTrendNovelUrlPrivate : undefined);
+        this.nextTrendNovelUrlPrivate = res.next_url || '';
+        newData = res.novels || [];
+      }
+      this.trendNovels.push(...newData);
+      this.hasLoadedTrendNovels = true;
+      this.lastFilterIndex = this.filterIndex;
+    } catch (e) { logger.error(`[loadTrendNovelData] Failed: ${e.message}`); }
+  }
+
+  async loadCollectionNovelData(isLoadMore: boolean = false) {
+    if (!isLoadMore && this.hasLoadedCollectionNovels && this.lastFilterIndex === this.filterIndex) return;
+    try {
+      const userId = PixState.currentUser?.id || 0;
+      let newData: PixivNovel[] = [];
+      if (this.filterIndex === 0) {
+        const results = await Promise.all([
+          pixiv.getUserBookmarkNovel(userId, 'public', isLoadMore ? this.nextCollectionNovelUrlPublic : undefined),
+          pixiv.getUserBookmarkNovel(userId, 'private', isLoadMore ? this.nextCollectionNovelUrlPrivate : undefined)
+        ]);
+        this.nextCollectionNovelUrlPublic = results[0].next_url || '';
+        this.nextCollectionNovelUrlPrivate = results[1].next_url || '';
+        newData = [...(results[0].novels || []), ...(results[1].novels || [])];
+      } else if (this.filterIndex === 1) {
+        const res = await pixiv.getUserBookmarkNovel(userId, 'public', isLoadMore ? this.nextCollectionNovelUrlPublic : undefined);
+        this.nextCollectionNovelUrlPublic = res.next_url || '';
+        newData = res.novels || [];
+      } else if (this.filterIndex === 2) {
+        const res = await pixiv.getUserBookmarkNovel(userId, 'private', isLoadMore ? this.nextCollectionNovelUrlPrivate : undefined);
+        this.nextCollectionNovelUrlPrivate = res.next_url || '';
+        newData = res.novels || [];
+      }
+      this.collectionNovels = isLoadMore ? [...this.collectionNovels, ...newData] : newData;
+      this.hasLoadedCollectionNovels = true;
+      this.lastFilterIndex = this.filterIndex;
+    } catch (e) { logger.error(`[loadCollectionNovelData] Failed: ${e.message}`); }
+  }
+
   // --- 交互逻辑 ---
   handleMainTabChange(index: number) {
     if (this.mainTabIndex === index) return;
@@ -266,19 +334,23 @@ class FavoriteViewModel implements IIllustSwiperProvider {
   handleFilterChange(index: number) {
     if (this.filterIndex === index) return;
     this.filterIndex = index;
-    // 切换筛选器时，重置数据并重新加载
-    if (this.mainTabIndex === 0) {
-      this.trendList = [];
-      this.hasLoadedTrend = false;
-      this.loadTrendData();
-    } else if (this.mainTabIndex === 1) {
-      this.collectionList = [];
-      this.hasLoadedCollection = false;
-      this.loadCollectionData();
-    } else if (this.mainTabIndex === 2) {
-      this.followList = [];
-      this.hasLoadedFollow = false;
-      this.loadFollowData();
+
+    if (appSettings.novel_mode) {
+      if (this.mainTabIndex === 0) {
+        this.trendNovels = []; this.hasLoadedTrendNovels = false; this.loadTrendNovelData();
+      } else if (this.mainTabIndex === 1) {
+        this.collectionNovels = []; this.hasLoadedCollectionNovels = false; this.loadCollectionNovelData();
+      } else {
+        this.followList = []; this.hasLoadedFollow = false; this.loadFollowData();
+      }
+    } else {
+      if (this.mainTabIndex === 0) {
+        this.trendList = []; this.hasLoadedTrend = false; this.loadTrendData();
+      } else if (this.mainTabIndex === 1) {
+        this.collectionList = []; this.hasLoadedCollection = false; this.loadCollectionData();
+      } else {
+        this.followList = []; this.hasLoadedFollow = false; this.loadFollowData();
+      }
     }
   }
 
@@ -303,29 +375,16 @@ class FavoriteViewModel implements IIllustSwiperProvider {
 
   // --- 加载更多 ---
   async loadMore(): Promise<void> {
-    if (this.isLoadingMore) return; // 防抖
-    if (!this.hasMore) return;
-
+    if (this.isLoadingMore || !this.hasMore) return;
     this.isLoadingMore = true;
     try {
-      if (this.mainTabIndex === 0) {
-        if (this.filterIndex === 0 && (this.nextTrendUrlPublic || this.nextTrendUrlPrivate)) {
-          await this.loadTrendData(true);
-        } else if (this.filterIndex === 1 && this.nextTrendUrlPublic) {
-          await this.loadTrendData(true);
-        } else if (this.filterIndex === 2 && this.nextTrendUrlPrivate) {
-          await this.loadTrendData(true);
-        }
-      } else if (this.mainTabIndex === 1) {
-        if (this.filterIndex === 0 && (this.nextCollectionUrlPublic || this.nextCollectionUrlPrivate)) {
-          await this.loadCollectionData(true);
-        } else if (this.filterIndex === 1 && this.nextCollectionUrlPublic) {
-          await this.loadCollectionData(true);
-        } else if (this.filterIndex === 2 && this.nextCollectionUrlPrivate) {
-          await this.loadCollectionData(true);
-        }
+      if (appSettings.novel_mode) {
+        if (this.mainTabIndex === 0) await this.loadTrendNovelData(true);
+        else if (this.mainTabIndex === 1) await this.loadCollectionNovelData(true);
+      } else {
+        if (this.mainTabIndex === 0) await this.loadTrendData(true);
+        else if (this.mainTabIndex === 1) await this.loadCollectionData(true);
       }
-      // 关注页不处理 Swiper 联动
     } finally {
       this.isLoadingMore = false;
     }
@@ -334,6 +393,13 @@ class FavoriteViewModel implements IIllustSwiperProvider {
   get currentIllustList(): PixivIllust[] {
     if (this.mainTabIndex === 0) return this.trendList;
     if (this.mainTabIndex === 1) return this.collectionList;
+    return [];
+  }
+
+  // 获取当前小说列表
+  get currentNovels(): PixivNovel[] {
+    if (this.mainTabIndex === 0) return this.trendNovels;
+    if (this.mainTabIndex === 1) return this.collectionNovels;
     return [];
   }
 

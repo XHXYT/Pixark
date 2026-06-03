@@ -4,6 +4,8 @@ import { appSettings } from "../common/entity/SettingsModel"
 import { WaterFlowView } from "../components/WaterFlowView"
 import { FunctionConstants } from "../common/constants/FunctionConstants"
 import { RankTab } from "../common/entity/RankModel"
+import { NovelListView } from "../components/NovelListView"
+import { PixivNovel } from "../services/PixivTypes"
 
 
 @ComponentV2
@@ -136,15 +138,19 @@ export struct Rank {
 
   // 排行榜列表
   @Builder RankList() {
-    WaterFlowView({
-      illustList: rankVM.rankList,
-      onCardClick: (illust) => {
-        rankVM.handleIllustClick(illust);
-      },
-      onReachEnd: () => {
-        rankVM.loadMore();
-      }
-    })
+    if (appSettings.novel_mode) {
+      NovelListView({
+        novelList: rankVM.rankNovels,
+        onItemClick: (novel: PixivNovel) => { rankVM.handleNovelClick(novel); },
+        onReachEnd: () => { rankVM.loadMore(); }
+      })
+    } else {
+      WaterFlowView({
+        illustList: rankVM.rankList,
+        onCardClick: (illust) => { rankVM.handleIllustClick(illust); },
+        onReachEnd: () => { rankVM.loadMore(); }
+      })
+    }
   }
 
   // 编辑面板：勾选 + 拖拽排序
@@ -162,7 +168,7 @@ export struct Rank {
       Grid() {
         ForEach(rankVM.editingModes, (key: string, index?: number) => {
           GridItem() {
-            Text(FunctionConstants.RANK_MODE_OPTIONS[key])
+            Text(FunctionConstants.ILLUST_RANK_MODES[key])
               .fontSize(14)
               .padding({ left: 12, right: 12, top: 8, bottom: 8 })
               .borderRadius(20)
@@ -198,7 +204,7 @@ export struct Rank {
 
   // 拖拽时跟随手指的半透明幽灵组件
   @Builder DragItemBuilder(key: string) {
-    Text(FunctionConstants.RANK_MODE_OPTIONS[key])
+    Text(FunctionConstants.ILLUST_RANK_MODES[key])
       .fontSize(14)
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
       .borderRadius(20)

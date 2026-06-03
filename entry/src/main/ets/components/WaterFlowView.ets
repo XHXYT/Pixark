@@ -7,7 +7,6 @@ import { PixivImageComponent } from "./PixivImage"
 import { appSettings } from "../common/entity/SettingsModel"
 import { ImageUtils } from '../common/utils/ImageUtils';
 import { FunctionConstants } from "../common/constants/FunctionConstants"
-import { IllustHistoryVM } from "../viewmodel/IllustHistoryViewModel"
 
 const logger = createLogger('WaterFlowView')
 

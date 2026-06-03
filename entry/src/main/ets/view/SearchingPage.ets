@@ -6,7 +6,9 @@ import { PixState } from '../entryability/AppState';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { searchVM } from '../viewmodel/SearchViewModel';
 import { NaviContainer } from '../components/NaviContainer';
-import { PixivIllust } from '../services/PixivTypes';
+import { PixivIllust, PixivNovel } from '../services/PixivTypes';
+import { appSettings } from '../common/entity/SettingsModel';
+import { NovelListView } from '../components/NovelListView';
 
 
 @Builder
@@ -18,15 +20,18 @@ export function SearchingPageBuilder() {
 @ComponentV2
 export default struct SearchingPage {
 
-  @Local searchTypeItems: SegmentButtonV2Items = new SegmentButtonV2Items([
-    { text: $r('app.string.illust') },
-    { text: $r('app.string.user_author') },
-  ]);
+
   @Local searchTypeSelectedIndex: number = 0;
 
   private pageInfos: NavPathStack = new NavPathStack();
   private panOptionL: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left })
   private panOptionR: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Right })
+
+  private get searchTypeItems(): SegmentButtonV2Items {
+    return appSettings.novel_mode
+      ? new SegmentButtonV2Items([{ text: $r('app.string.novel') }, { text: $r('app.string.user_author') }])
+      : new SegmentButtonV2Items([{ text: $r('app.string.illust') }, { text:$r('app.string.user_author') }]);
+  }
 
   build() {
     NaviContainer({
@@ -117,7 +122,15 @@ export default struct SearchingPage {
                 })
               }
               .onClick(() => {
-                const type = item.type == 'illust_jump' ? 'illust' : 'user'
+                let type: 'illust' | 'novel' | 'user' = 'illust'; // 默认插画
+                if (item.type === 'novel_jump') {
+                  type = 'novel';
+                } else if (item.type === 'user_jump') {
+                  type = 'user';
+                } else if (item.type === 'keyword_search') {
+                  // 如果是普通关键词搜索，根据当前全局模式决定搜什么
+                  type = appSettings.novel_mode ? 'novel' : 'illust';
+                }
                 searchVM.handleSearchInput(item.value, type, true);
               })
             }, (item: SuggestionItem) => `${item.type}_${item.value}`)
@@ -139,7 +152,7 @@ export default struct SearchingPage {
             selectedIndex: this.searchTypeSelectedIndex!!,
             onItemClicked: (tab) => {
               if (tab == 0) {
-                searchVM.searchType = 'illust'
+                searchVM.searchType = appSettings.novel_mode ? 'novel' : 'illust'
               } else {
                 searchVM.searchType = 'user'
               }
@@ -157,41 +170,58 @@ export default struct SearchingPage {
           left: PixState.PageMarginValue,
           right: PixState.PageMarginValue
         }))
-        // 筛选栏(仅插画)
 
         if (this.searchTypeSelectedIndex == 0) {
-          // 插画
-          WaterFlowView({
-            illustList: searchVM.resultIllusts,
-            onCardClick: (illust) => {
-              searchVM.handleIllustClick(illust)
-            },
-            onReachEnd: () => {
-              // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-              if (!PixState.isTest) {
+          if (searchVM.searchType === 'novel') {
+            // 小说
+            NovelListView({
+              contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
+              novelList: searchVM.resultNovels,
+              onItemClick: (novel: PixivNovel) => {
+                searchVM.handleNovelClick(novel)
+              },
+              onReachEnd: () => {
                 searchVM.loadMoreSearchResult()
               }
-            }
-          })
-            .transition(TransitionEffect.asymmetric(
-              TransitionEffect.OPACITY
-                .combine(TransitionEffect.translate({ y: 100 })),
-              TransitionEffect.OPACITY.animation({ duration: 0 })
-            ))
+            })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.OPACITY
+                  .combine(TransitionEffect.translate({ y: 100 })),
+                TransitionEffect.OPACITY.animation({ duration: 0 })
+              ))
+          } else {
+            // 插画
+            WaterFlowView({
+              contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
+              illustList: searchVM.resultIllusts,
+              onCardClick: (illust) => {
+                searchVM.handleIllustClick(illust)
+              },
+              onReachEnd: () => {
+                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
+                if (!PixState.isTest) {
+                  searchVM.loadMoreSearchResult()
+                }
+              }
+            })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.OPACITY
+                  .combine(TransitionEffect.translate({ y: 100 })),
+                TransitionEffect.OPACITY.animation({ duration: 0 })
+              ))
+          }
         } else {
           // 画师
           UserListView({
             userPres: searchVM.resultUsers,
+            contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
             onButtonClick: (result: boolean, err?: string) => {
             },
             onImageClick: (illust: PixivIllust) => {
               searchVM.handleIllustClick(illust)
             },
             onReachEnd: () => {
-              // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-              if (!PixState.isTest) {
-                searchVM.loadMoreSearchResult()
-              }
+              searchVM.loadMoreSearchResult()
             }
           })
             .transition(TransitionEffect.asymmetric(
@@ -232,7 +262,7 @@ export default struct SearchingPage {
               playMode: PlayMode.Normal,
             }, () => {
               this.searchTypeSelectedIndex = 0
-              searchVM.searchType = 'illust'
+              searchVM.searchType = appSettings.novel_mode ? 'novel' : 'illust'
               searchVM.doSearch(false)
             })
           }

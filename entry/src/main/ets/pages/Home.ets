@@ -1,8 +1,7 @@
 import { BannerView } from "../components/BannerView";
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
-import { PixivIllust, PixivUser } from "../services/PixivTypes";
-import { ListItemMarginValue} from "../common/utils/breakpoint/BreakPoint";
+import { PixivIllust, PixivNovel, PixivUser } from "../services/PixivTypes";
 import { createLogger } from "../common/utils/Logger";
 import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
@@ -12,8 +11,11 @@ import { CardUtil } from "../common/utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { LengthMetrics } from "@kit.ArkUI";
+import { appSettings } from "../common/entity/SettingsModel";
+import { NovelListView } from "../components/NovelListView";
 
 const logger = createLogger('Home')
+
 
 @ComponentV2
 export struct Home {
@@ -26,7 +28,6 @@ export struct Home {
       this.HomeSkeleton()
     } else {
       this.HomeContent()
-      // this.HomeSkeleton()
     }
   }
 
@@ -45,11 +46,11 @@ export struct Home {
   HomeContent() {
     Refresh({ refreshing: homeViewModel.isRefreshing }) {
       List({ scroller: homeViewModel.listScroller }) {
-        // 顶部亮点 (全部分类)
+        // 顶部亮点
         ListItem() {
           BannerView({ bannerList: homeViewModel.spotlightList, swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0 })
         }
-        // 推荐作者 (横向滚动 List)
+        // 推荐作者
         ListItem() {
           Column() {
             this.Title($r('app.string.recommend_author'))
@@ -80,19 +81,35 @@ export struct Home {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
         }
-        // 推荐插画
+        // 推荐插画 / 小说
         ListItem() {
           Column() {
-            this.Title($r('app.string.recommend_illust'))
-            WaterFlowView({
-              contentEndOffset: 52,
-              illustList: homeViewModel.recommendedIllusts,
-              nestedScroll: homeViewModel.nestedScrollOptions,
-              onCardClick: (illust) => { this.onCardClick(illust) },
-              onReachEnd: () => {
-                if (!PixState.isTest) { homeViewModel.loadMoreRecommended(); }
-              }
-            })
+            this.Title(appSettings.novel_mode ? $r('app.string.recommend_novel') :$r('app.string.recommend_illust'))
+            // 根据模式切换组件
+            if (appSettings.novel_mode) {
+              NovelListView({
+                nestedScroll: homeViewModel.nestedScrollOptions,
+                novelList: homeViewModel.recommendedNovels,
+                onItemClick: (novel: PixivNovel) => {
+                  // TODO: 跳转小说详情
+                },
+                onReachEnd: () => {
+                  homeViewModel.loadMoreRecommended();
+                }
+              })
+            } else {
+              WaterFlowView({
+                contentEndOffset: 52,
+                illustList: homeViewModel.recommendedIllusts,
+                nestedScroll: homeViewModel.nestedScrollOptions,
+                onCardClick: (illust) => { this.onCardClick(illust) },
+                onReachEnd: () => {
+                  if (!PixState.isTest) {
+                    homeViewModel.loadMoreRecommended();
+                  }
+                }
+              })
+            }
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Start)
@@ -102,9 +119,7 @@ export struct Home {
       .edgeEffect(EdgeEffect.Spring)
       .margin({ right: PixState.rightAvoidWidth, left: PixState.leftAvoidWidth })
     }
-    .onRefreshing(async () => {
-      await homeViewModel.loadHomeData()
-    })
+    .onRefreshing(async () => { await homeViewModel.loadHomeData() })
   }
 
   // 首页骨架屏
@@ -200,10 +215,8 @@ export struct Home {
         }
         SnapShotUtils.pixelMap = pixelMap;
         homeViewModel.hideCard(illust.id);
-
         // 查找当前插画在列表中的索引
         const index = homeViewModel.recommendedIllusts.findIndex(i => i.id === illust.id);
-
         const params: DetailPageParams = {
           id: illust.id,
           fromId: sourceCardId,

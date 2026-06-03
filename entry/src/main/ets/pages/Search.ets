@@ -7,6 +7,7 @@ import { searchVM } from "../viewmodel/SearchViewModel";
 import { curves } from "@kit.ArkUI";
 import { DetailPageParams } from "../common/entity/IllustDetailEntity";
 import SearchHistoryInfo from "../common/entity/SearchHistoryInfo";
+import { appSettings } from "../common/entity/SettingsModel";
 
 
 @ComponentV2
@@ -119,6 +120,8 @@ export struct SearchContent {
                               } else {
                                 // 设置搜索关键词
                                 searchVM.keyword = item.keyword;
+                                // 根据当前模式决定搜索类型
+                                searchVM.searchType = appSettings.novel_mode ? 'novel' : 'illust';
                                 // 执行搜索
                                 searchVM.doSearch(true);
                                 // 使用动画跳转到搜索结果页面
@@ -174,13 +177,8 @@ export struct SearchContent {
                     LongPressGesture()
                       .onAction((event: GestureEvent) => {
                         if (event) {
-                          // 长按进入插画详情页
-                          const params: DetailPageParams = {
-                            id: item.illust.id,
-                            illust: item.illust
-                          }
-                          // 跳转至插画详情页
-                          PixState.pageStack.pushPathByName('illust_detail', params, true);
+                          // 长按进入详情页
+                          searchVM.handleLongPressGesture(item)
                         }
                       }))
                   .gesture(
@@ -189,6 +187,8 @@ export struct SearchContent {
                         if (event) {
                           // 设置搜索关键词为标签名（优先使用翻译名）
                           searchVM.keyword = item.translated_name || item.tag;
+                          // 点击标签时，切到当前模式对应的搜索类型
+                          searchVM.searchType = appSettings.novel_mode ? 'novel' : 'illust';
                           // 执行搜索
                           searchVM.doSearch(true);
                           // 使用动画跳转到搜索结果页面

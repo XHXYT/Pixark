@@ -15,6 +15,7 @@ export class AppSettings {
   @Trace image_detail_quality: string = 'large'
   @Trace image_view_quality: string = 'original'
   @Trace rank_modes: string[] = []  // 排行榜已选项目 (存储 mode 的 key 数组，如 ['day', 'week', 'day_male'])
+  @Trace novel_rank_modes: string[] = []
   @Trace file_name: string = FunctionConstants.DEFAULT_SAVE_FORMAT
   @Trace share_text: string = FunctionConstants.DEFAULT_SHARE_FORMAT
   @Trace show_ai_sign: boolean = true
@@ -25,6 +26,7 @@ export class AppSettings {
   @Trace collecting_when_download: boolean = false
   @Trace swiper_browsing: boolean = true
   @Trace show_thumbnail: boolean = false
+  @Trace novel_mode: boolean = false
 
   constructor() {}
 
@@ -60,7 +62,7 @@ export class AppSettings {
       this.collecting_when_download = (json["collecting_when_download"] as boolean) ?? this.collecting_when_download;
       this.swiper_browsing = (json["swiper_browsing"] as boolean) ?? this.swiper_browsing;
       this.show_thumbnail = (json["show_thumbnail"] as boolean) ?? this.show_thumbnail;
-
+      this.novel_mode = (json["novel_mode"] as boolean) ?? this.novel_mode;
       console.info("[AppSettings] 配置加载成功");
     } catch (e) {
       console.error("[AppSettings] JSON 解析失败，使用默认配置", e);
@@ -71,7 +73,7 @@ export class AppSettings {
    * 保存逻辑
    * 避免序列化出类内部不可控的元数据
    */
-  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes')
+  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode')
   public async save(): Promise<void> {
     try {
       const data: Record<string, Object> = {
@@ -92,7 +94,8 @@ export class AppSettings {
         "download_after_collecting": this.download_after_collecting,
         "collecting_when_download": this.collecting_when_download,
         "swiper_browsing": this.swiper_browsing,
-        "show_thumbnail": this.show_thumbnail
+        "show_thumbnail": this.show_thumbnail,
+        "novel_mode": this.novel_mode
       };
       const jsonStr: string = JSON.stringify(data);
       await preferenceUtil.put(AppConstants.KEY_APP_SETTINGS, jsonStr);
@@ -129,6 +132,7 @@ export class AppSettings {
       this.collecting_when_download = false;
       this.swiper_browsing = true;
       this.show_thumbnail = false;
+      this.novel_mode = false
 
       this.save()
       console.info("[AppSettings] 配置已恢复默认");

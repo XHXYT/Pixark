@@ -67,6 +67,7 @@ export class _PixState {
   @Trace currentTab: number = 0
   // 悬浮按钮位置
   @Trace buttonPosition: number = 0
+
   // 全局路由
   @Trace pageStack: NavPathStack = new NavPathStack()
   @Trace tabsController: TabsController = new TabsController()

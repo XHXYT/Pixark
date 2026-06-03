@@ -22,6 +22,7 @@ import { ResourceUtils } from '../common/utils/ResourceUtil';
 import { JumpUtil } from '../common/utils/JumpUtils';
 import { bundleManager } from "@kit.AbilityKit";
 import { AppConstants } from '../common/constants/AppConstants';
+import { rankVM } from '../viewmodel/RankViewModel';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -249,6 +250,7 @@ export default class EntryAbility extends UIAbility {
     // 通知所有 ViewModel 重置并重新加载
     homeViewModel.resetAndLoad();
     favVM.resetAndLoad();
+    rankVM.fetchRanking()
     // 以后有新的 ViewModel 往这里加
   }
 

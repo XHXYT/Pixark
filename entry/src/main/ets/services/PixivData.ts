@@ -111,24 +111,24 @@ export class PixivData {
     if (options?.minBookmark) params.bookmark_num = options.minBookmark;
 
     const data = await this.fetchApi<any>('/v1/search/novel', params, nextUrl);
-    return { illusts: data.novels || [], next_url: data.next_url || null }; // 映射novels到illusts方便UI使用
+    return { novels: data.novels || [], next_url: data.next_url || null };
   }
 
   async getNovelRanking(mode: string, date?: string, nextUrl?: string): Promise<PixivListResult> {
     const params = { mode, date, filter: 'for_android' };
     const data = await this.fetchApi<any>('/v1/novel/ranking', params, nextUrl);
-    return { illusts: data.novels || [], next_url: data.next_url || null };
+    return { novels: data.novels || [], next_url: data.next_url || null };
   }
 
   async getNovelRecommended(nextUrl?: string): Promise<PixivListResult> {
     const params = { include_privacy_policy: true, filter: 'for_android', include_ranking_novels: true };
     const data = await this.fetchApi<any>('/v1/novel/recommended', params, nextUrl);
-    return { illusts: data.novels || [], next_url: data.next_url || null };
+    return { novels: data.novels || [], next_url: data.next_url || null };
   }
 
   async getNovelFollow(restrict: string, nextUrl?: string): Promise<PixivListResult> {
     const data = await this.fetchApi<any>('/v1/novel/follow', { restrict }, nextUrl);
-    return { illusts: data.novels || [], next_url: data.next_url || null };
+    return { novels: data.novels || [], next_url: data.next_url || null };
   }
 
   async getNovelDetail(novel_id: number): Promise<any> {
@@ -144,7 +144,7 @@ export class PixivData {
   async getUserNovels(userId: number, nextUrl?: string): Promise<PixivListResult> {
     const params = { user_id: userId, filter: 'for_android' };
     const data = await this.fetchApi<any>('/v1/user/novels', params, nextUrl);
-    return { illusts: data.novels || [], next_url: data.next_url || null };
+    return { novels: data.novels || [], next_url: data.next_url || null };
   }
 
   async getNovelTrendTags(): Promise<PixivTrendingTag[]> {

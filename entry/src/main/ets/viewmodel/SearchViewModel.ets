@@ -3,11 +3,12 @@ import SearchHistoryInfo from '../common/entity/SearchHistoryInfo';
 import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';
 import { MockData } from '../services/MockData';
-import { PixivIllust, PixivTrendingTag, UserPreview } from '../services/PixivTypes';
+import { PixivIllust, PixivNovel, PixivTrendingTag, UserPreview } from '../services/PixivTypes';
 import { SearchHistoryTable } from '../common/utils/database/impl/SearchHistoryDao';
 import { createLogger } from '../common/utils/Logger';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { pixiv } from '../services/PixivService';
+import { appSettings } from '../common/entity/SettingsModel';
 
 const logger = createLogger('SearchViewModel')
 
@@ -22,25 +23,26 @@ class SearchViewModel implements IIllustSwiperProvider {
   @Trace suggestions: SuggestionItem[] = [];
   // 搜索结果(插画)
   @Trace resultIllusts: PixivIllust[] = []
-  // 搜索结果(画师)
+  // 小说搜索结果
+  @Trace resultNovels: PixivNovel[] = []
   @Trace resultUsers: UserPreview[] = []
 
   @Trace showSuggestions: boolean = false
   @Trace searchHistoryEdit: boolean = false
-  // 统一的加载更多防抖状态
   @Trace isLoadingMore: boolean = false;
 
   private IllustNextUrl: string = '';
+  private novelNextUrl: string = '';
   private userNextUrl: string = '';
+
   @Trace keyword: string = '';
+  @Trace searchType: 'illust' | 'novel' | 'user' = 'illust';
 
-  @Trace searchType: 'illust' | 'user' = 'illust';
-
-  // 缓存记录：上一次针对该类型搜索的关键词
   private lastSearchedIllustKeyword: string = '';
+  private lastSearchedNovelKeyword: string = '';
   private lastSearchedUserKeyword: string = '';
-  private debounceTimerId: number = -1;
 
+  private debounceTimerId: number = -1;
   private searchHistoryDB = new SearchHistoryTable(_PixState.Context)
 
   // 嵌套滚动配置
@@ -50,104 +52,73 @@ class SearchViewModel implements IIllustSwiperProvider {
       scrollBackward: NestedScrollMode.SELF_FIRST,
     };
   }
-
-  //  实现 IIllustSwiperProvider 接口
-  // 动态获取当前插画的 ID 列表 (仅在插画搜索模式下生效)
-  get illustIds(): number[] {
-    return this.searchType === 'illust' ? this.resultIllusts.map(i => i.id) : [];
-  }
-
-  // 动态判断是否还有更多数据
+  get illustIds(): number[] { return this.searchType === 'illust' ? this.resultIllusts.map(i => i.id) : []; }
   get hasMore(): boolean {
-    if (this.searchType === 'illust') {
-      return !!this.IllustNextUrl;
-    }
-    return false; // 画师模式不支持插画 Swiper 联动
+    if (this.searchType === 'illust') return !!this.IllustNextUrl;
+    if (this.searchType === 'novel') return !!this.novelNextUrl;
+    return false;  // 画师模式不支持插画 Swiper 联动
   }
-
-  get isLoading(): boolean {
-    return this.isLoadingMore;
-  }
-
-  async loadMore(): Promise<void> {
-    await this.loadMoreSearchResult();
-  }
+  get isLoading(): boolean { return this.isLoadingMore; }
+  async loadMore(): Promise<void> { await this.loadMoreSearchResult(); }
 
   // 加载 搜索历史 & 推荐标签
   async loadData() {
     try {
       const values = await this.searchHistoryDB.queryAll()
       this.searchHistory = values
-    } catch (e) {
-      logger.error('加载搜索历史失败: ', e);
-    }
+    } catch (e) { logger.error('加载搜索历史失败: ', e); }
+
     try {
-      if (PixState.isTest) {
-        // 调试数据
-        this.trendingTags = await MockData.getTrendingTags();
-      } else {
-        this.trendingTags = await pixiv.getTrendingTags();
-      }
-    } catch (e) {
-      logger.error('加载热门标签失败:', e);
-    }
+      // 根据模式请求不同的热门标签接口
+      this.trendingTags = appSettings.novel_mode ? await pixiv.getNovelTrendTags() : await pixiv.getTrendingTags();
+    } catch (e) { logger.error('加载热门标签失败:', e); }
   }
 
   async doSearch(force: boolean = false) {
-    if (!this.keyword) {
-      return;
-    }
+    if (!this.keyword) return;
     this.showSuggestions = false
-    // 判断是否需要发起请求
-    // 如果不是强制刷新(force=false)，且当前关键词和缓存一致，则跳过请求（直接利用历史数据）
+
     let shouldRequest = true;
     if (!force) {
-      if (this.searchType === 'illust') {
-        if (this.keyword === this.lastSearchedIllustKeyword) {
-          logger.debug(`[doSearch] 缓存命中，跳过插画搜索: ${this.keyword}`);
-          shouldRequest = false;
-        }
-      } else {
-        if (this.keyword === this.lastSearchedUserKeyword) {
-          logger.debug(`[doSearch] 缓存命中，跳过画师搜索: ${this.keyword}`);
-          shouldRequest = false;
-        }
-      }
+      if (this.searchType === 'illust' && this.keyword === this.lastSearchedIllustKeyword) shouldRequest = false;
+      else if (this.searchType === 'novel' && this.keyword === this.lastSearchedNovelKeyword) shouldRequest = false;
+      else if (this.searchType === 'user' && this.keyword === this.lastSearchedUserKeyword) shouldRequest = false;
     }
-    if (!shouldRequest) {
-      return;
-    }
-    logger.debug(`[开始搜索] 类型: ${this.searchType}, 关键词: "${this.keyword}"`);
+    if (!shouldRequest) return;
+
     try {
       if (this.searchType === 'illust') {
-        const data = await pixiv.searchIllust(this.keyword, undefined, {
-          sort: 'popular_desc',
-          minBookmark: 1000,
-          searchTarget: 'exact_match_for_tags'
-        });
-        this.resultIllusts = data.illusts;
+        const data = await pixiv.searchIllust(this.keyword, undefined, { sort: 'popular_desc', minBookmark: 1000, searchTarget: 'exact_match_for_tags' });
+        this.resultIllusts = data.illusts as PixivIllust[];
         this.IllustNextUrl = data.next_url || '';
-        // 更新缓存
         this.lastSearchedIllustKeyword = this.keyword;
-      } else {
+      }
+      // 小说搜索逻辑
+      else if (this.searchType === 'novel') {
+        const data = await pixiv.searchNovel(this.keyword, undefined, { sort: 'popular_desc', searchTarget: 'exact_match_for_tags' });
+        this.resultNovels = data.novels || [];
+        this.novelNextUrl = data.next_url || '';
+        this.lastSearchedNovelKeyword = this.keyword;
+      }
+      else {
         const data = await pixiv.searchUser(this.keyword);
         this.resultUsers = data.user_previews;
         this.userNextUrl = data.next_url || '';
-        // 更新缓存
         this.lastSearchedUserKeyword = this.keyword;
       }
-    } catch (e) {
-      logger.error(`[搜索异常] ${JSON.stringify(e)}`);
-    }
+    } catch (e) { logger.error(`[搜索异常] ${JSON.stringify(e)}`); }
   }
 
   // 加载更多
   async loadMoreSearchResult() {
     if (this.isLoadingMore) return; // 防抖
 
-    const nextUrl = this.searchType === 'illust' ? this.IllustNextUrl : this.userNextUrl;
+    const nextUrl = this.searchType === 'illust' ? this.IllustNextUrl :
+      this.searchType === 'novel' ? this.novelNextUrl : this.userNextUrl;
+
     if (!nextUrl) {
       if ((this.searchType === 'illust' && this.resultIllusts.length > 0) ||
+        (this.searchType === 'novel' && this.resultNovels.length > 0) ||
         (this.searchType === 'user' && this.resultUsers.length > 0)) {
         toastUtil.showToast({ message: $r('app.string.search_not_tips') });
       }
@@ -158,9 +129,14 @@ class SearchViewModel implements IIllustSwiperProvider {
     try {
       if (this.searchType === 'illust') {
         const data = await pixiv.searchIllust('', nextUrl);
+        if (data.illusts)
         this.resultIllusts.push(...data.illusts);
         this.IllustNextUrl = data.next_url || '';
-      } else {
+      } else if (this.searchType === 'novel') {
+        const data = await pixiv.searchNovel('', nextUrl);
+        if (data.novels) this.resultNovels.push(...data.novels);
+        this.novelNextUrl = data.next_url || '';
+      }  else {
         const data = await pixiv.searchUser('', nextUrl);
         this.resultUsers.push(...data.user_previews);
         this.userNextUrl = data.next_url || '';
@@ -176,7 +152,7 @@ class SearchViewModel implements IIllustSwiperProvider {
    * 从搜索建议点击或搜索框提交时调用
    * 先判断是否为纯数字 ID，若是则跳转详情；否则执行关键词搜索
    */
-  async handleSearchInput(input: string, type: 'illust' | 'user' = 'illust', force = false) {
+  async handleSearchInput(input: string, type: 'illust' | 'user' | 'novel' = 'illust', force = false) {
     const text = input.trim();
     // 存数据库
     this.searchHistoryDB.saveOrUpdate(text).then(async (result) => {
@@ -194,6 +170,9 @@ class SearchViewModel implements IIllustSwiperProvider {
       };
       if (type == 'illust') {
         // 跳转至插画详情页
+        PixState.pageStack.pushPathByName('illust_detail', params, true);
+      } else if (type == 'novel') {
+        // 跳转至小说详情页
         PixState.pageStack.pushPathByName('illust_detail', params, true);
       } else {
         // 跳转至画师详情页
@@ -223,6 +202,17 @@ class SearchViewModel implements IIllustSwiperProvider {
     PixState.pageStack.pushPathByName('illust_detail', params, true);
   }
 
+  handleNovelClick(novel: PixivNovel) {
+    // TODO: 跳转小说详情
+    logger.info(`[handleNovelClick] Clicked novel: ${novel.id}`);
+  }
+
+  handleLongPressGesture(item: PixivTrendingTag) {
+    // 长按进入详情页
+    const params: DetailPageParams = { id: item.illust.id, illust: item.illust };
+    PixState.pageStack.pushPathByName('illust_detail', params, true);
+  }
+
   updateSuggestions(input: string) {
     this.showSuggestions = true
     if (this.debounceTimerId !== -1) {
@@ -237,7 +227,7 @@ class SearchViewModel implements IIllustSwiperProvider {
       const resultList = generateSuggestions(input.trim(), tags, [
         toastUtil.getResourceString($r('app.string.jump_illusst')),
         toastUtil.getResourceString($r('app.string.jump_user')),
-        toastUtil.getResourceString($r('app.string.search'))]);
+        toastUtil.getResourceString($r('app.string.search'))], appSettings.novel_mode);
       this.suggestions = resultList;
     }, 300);
   }

@@ -8,6 +8,7 @@ import { CustomItemInfo, ItemActionType,
 import { UserDetailParams } from '../common/entity/UserDetailEntity';
 import { maskEmail } from '../common/utils/MaskEmail';
 import { CustomListItem } from '../components/CusItemBuilder';
+import { appSettings } from '../common/entity/SettingsModel';
 
 
 @ComponentV2
@@ -17,12 +18,8 @@ export struct More {
 
   private get itemList(): CustomItemInfo[] {
     return [
-      // 功能
-      new CustomItemInfo({
-        id: 'function',
-        title: $r('app.string.function'),
-        type: ItemActionType.GROUP
-      }),
+      // 账户
+      new CustomItemInfo({ id: 'account', title: $r('app.string.account'), type: ItemActionType.GROUP }),
       // 账户信息
       new CustomItemInfo({
         symbol: $r('sys.symbol.person_crop_circle_fill'),
@@ -33,6 +30,8 @@ export struct More {
           this.pushTo('account_info')
         }
       }),
+      // 数据
+      new CustomItemInfo({ id: 'data', title: $r('app.string.data'), type: ItemActionType.GROUP }),
       // 历史记录
       new CustomItemInfo({
         symbol: $r('sys.symbol.arrow_counterclockwise_clock'),
@@ -73,21 +72,26 @@ export struct More {
           this.pushTo('app_data');
         }
       }),
-      // 其他
-      // new CustomItemInfo({
-      //   id: 'other',
-      //   title: '其他',
-      //   type: ItemActionType.GROUP
-      // }),
-
+      // 功能
+      new CustomItemInfo({ id: 'function', title: $r('app.string.function'), type: ItemActionType.GROUP }),
+      // 小说
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.list_book'),
+        title: appSettings.novel_mode ? $r('app.string.illust') : $r('app.string.novel'),
+        type: ItemActionType.ROUTER_BLANK,
+        id: 'novel_mode',
+        onChange: () => {
+          moreVM.switchMode()
+        }
+      }),
       // 关于
-      new CustomItemInfo({ id: 'about', title: '关于', type: ItemActionType.GROUP }),
+      new CustomItemInfo({ id: 'about', title: $r('app.string.about'), type: ItemActionType.GROUP }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.info_circle'),
         title:$r('app.string.about'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'about',
-        onChange: (value) => {
+        onChange: () => {
           this.pushTo('about');
         }
       }),
@@ -102,7 +106,7 @@ export struct More {
         title:$r('app.string.logout'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'exit_account',
-        onChange: (value) => {
+        onChange: () => {
           this.showLogoutDialog()
         },
         isDanger: true
@@ -139,7 +143,6 @@ export struct More {
             }) {
               ForEach(group.items, (item: CustomItemInfo) => {
                 ListItem() {
-                  // this.MoreItemView(item)
                   CustomListItem({
                     item: item,
                     itemPadding: { left: 6, bottom: 8, top: 8 }
@@ -247,11 +250,11 @@ export struct More {
   // 退出登录确认弹窗
   showLogoutDialog() {
     toastUtil.showDialog({
-      title: '提示',
-      message: $r('app.string.confirm_logout').toString(),
+      title: $r('app.string.tips'),
+      message: $r('app.string.confirm_logout'),
       buttons: [
-        { text: $r('app.string.cancel'), color: '#999999' },
-        { text: '退出', color: '#FF0000' }
+        { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
+        { text: $r('app.string.exit'), color: $r('sys.color.ohos_id_color_warning') }
       ]
     }, (err, data) => {
       if (data?.index === 1) {
