@@ -3,7 +3,7 @@ import { PixState } from "../../entryability/AppState";
 import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { UserDetailViewModel } from "../../viewmodel/UserDetailViewModel";
 import { UserDetailParams } from "../../common/entity/UserDetailEntity";
-import { DetailPageParams } from "../../common/entity/IllustDetailEntity"; // 用于跳转插画
+import { DetailPageParams } from "../../common/entity/DetailEntity"; // 用于跳转插画
 import { WaterFlowView } from "../../components/WaterFlowView";
 import { NaviContainer } from "../../components/NaviContainer";
 

@@ -35,7 +35,6 @@ export default struct SearchingPage {
 
   build() {
     NaviContainer({
-      hideTitleBar: true,
       content: () => {
         this.Content()
       },

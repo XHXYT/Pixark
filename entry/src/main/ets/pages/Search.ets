@@ -5,7 +5,7 @@ import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { toastUtil } from "../common/utils/ToastUtils";
 import { searchVM } from "../viewmodel/SearchViewModel";
 import { curves } from "@kit.ArkUI";
-import { DetailPageParams } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams } from "../common/entity/DetailEntity";
 import SearchHistoryInfo from "../common/entity/SearchHistoryInfo";
 import { appSettings } from "../common/entity/SettingsModel";
 

@@ -3,7 +3,7 @@ import { CustomItemInfo, ItemActionType,
   ItemGroupData,
   makeItemGroups,
   MenuOption } from "../../common/entity/CusItemInfo"
-import { appSettings } from "../../common/entity/SettingsModel"
+import { appSettings, UISettings } from "../../common/entity/SettingsModel"
 import { SettingsUtils } from "../../common/utils/SettingsUtils"
 import { toastUtil } from "../../common/utils/ToastUtils"
 import { CustomListItem } from "../../components/CusItemBuilder"
@@ -29,16 +29,15 @@ struct UserSettings {
         title: $r('app.string.color_mode'),
         type: ItemActionType.MENU,
         id: 'color_mode',
-        value: appSettings.color_mode.toString(), // 默认跟随系统
+        value: UISettings.color_mode.toString(), // 默认跟随系统
         menuOptions: [
           new MenuOption('1', $r('app.string.light_mode')),
           new MenuOption('0', $r('app.string.dark_mode')),
           new MenuOption('-1', $r('app.string.follow_system'))
         ],
         onChange: (value) => {
-          appSettings.color_mode = Number(value)
+          UISettings.color_mode = Number(value)
           SettingsUtils.setColorMode()
-          appSettings.save()
         }
       }),
       new CustomItemInfo({
@@ -46,15 +45,14 @@ struct UserSettings {
         title: $r('app.string.language'),
         type: ItemActionType.MENU,
         id: 'language',
-        value: appSettings.language,
+        value: UISettings.language,
         menuOptions: [
           new MenuOption('zh-CN', $r('app.string.zh_cn')),
           new MenuOption('en', 'English')
         ],
         onChange: (value) => {
-          appSettings.language = value as string
+          UISettings.language = value as string
           SettingsUtils.setLanguage()
-          appSettings.save()
         }
       }),
       // 浏览与展示
@@ -100,7 +98,7 @@ struct UserSettings {
         title: $r('app.string.main_show'),
         type: ItemActionType.MENU,
         id: 'main_show',
-        value: appSettings.main_show,
+        value: UISettings.main_show,
         menuOptions: [
           new MenuOption('0', $r('app.string.home'), $r('sys.symbol.house')),
           new MenuOption('1', $r('app.string.rank'), $r('sys.symbol.ranking_badge_bolt')),
@@ -109,8 +107,7 @@ struct UserSettings {
           new MenuOption('4', $r('app.string.more'), $r('sys.symbol.square_grid_2x2'))
         ],
         onChange: (value) => {
-          appSettings.main_show = value as string
-          appSettings.save()
+          UISettings.main_show = value as string
         }
       }),
       new CustomItemInfo({

@@ -50,7 +50,7 @@ export struct UserItem {
               return
             }
             try {
-              await pixiv.unfollowUser(this.user.id, 'public')
+              await pixiv.unfollowUser(this.user.id)
               this.user.is_followed = false
               toastUtil.showToast({ message: $r('app.string.unfollow_success', this.user.name) })
               this.onButtonClick(false)

@@ -152,7 +152,9 @@ export struct Favorite {
           if (appSettings.novel_mode) {
             NovelListView({
               novelList: favVM.currentNovels,
-              onItemClick: (novel: PixivNovel) => { /* TODO: 跳转小说详情 */ },
+              onItemClick: (novel: PixivNovel) => {
+                favVM.handleNovelClick(novel)
+              },
               onReachEnd: () => { favVM.loadMore(); }
             })
           } else {
@@ -168,7 +170,9 @@ export struct Favorite {
           if (appSettings.novel_mode) {
             NovelListView({
               novelList: favVM.currentNovels,
-              onItemClick: (novel: PixivNovel) => { /* TODO: 跳转小说详情 */ },
+              onItemClick: (novel: PixivNovel) => {
+                favVM.handleNovelClick(novel)
+              },
               onReachEnd: () => { favVM.loadMore(); }
             })
           } else {

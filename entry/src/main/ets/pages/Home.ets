@@ -6,7 +6,7 @@ import { createLogger } from "../common/utils/Logger";
 import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { image } from "@kit.ImageKit";
-import { DetailPageParams } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams } from "../common/entity/DetailEntity";
 import { CardUtil } from "../common/utils/CardUtil";
 import { WaterFlowView } from "../components/WaterFlowView";
 import { UserDetailParams } from "../common/entity/UserDetailEntity";

@@ -15,7 +15,7 @@ export class MockData {
    * 模拟：获取热门标签 (SearchViewModel 用)
    */
   static async getTrendingTags(): Promise<PixivTrendingTag[]> {
-    await MockData.delay();
+    /*await MockData.delay();
 
     const tags: string[] = ['原创', '原神', '风景', '女の子', 'R-18', '机甲', '猫', '和风', 'pixiv', '插画'];
     const result: PixivTrendingTag[] = [];
@@ -55,15 +55,15 @@ export class MockData {
           is_bookmarked: i % 5 === 0 // 模拟部分已收藏
         }
       });
-    }
-    return result;
+    }*/
+    return [];
   }
 
   /**
    * 模拟：获取推荐插画 (HomeViewModel 用)
    */
   static async getRecommended(refresh: boolean = false): Promise<PixivListResult> {
-    await MockData.delay();
+ /*   await MockData.delay();
     const illusts: PixivIllust[] = [];
 
     for (let i = 0; i < 20; i++) {
@@ -96,10 +96,10 @@ export class MockData {
         total_bookmarks: Math.floor(Math.random() * 1000),
         is_bookmarked: i % 5 === 0 // 模拟部分已收藏
       });
-    }
+    }*/
 
     return {
-      illusts: illusts,
+      illusts: [],
       next_url: refresh ? 'has_next_page_mock_url' : null // 模拟分页
     };
   }

@@ -1,4 +1,4 @@
-import { IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
+import { IIllustSwiperProvider } from '../common/entity/DetailEntity';
 import IllustHistoryInfo from '../common/entity/IllustHistoryInfo';
 import NovelHistoryInfo from '../common/entity/NovelHistoryInfo';
 import { appSettings } from '../common/entity/SettingsModel';

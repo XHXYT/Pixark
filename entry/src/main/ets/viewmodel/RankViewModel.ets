@@ -5,7 +5,7 @@ import { appSettings } from '../common/entity/SettingsModel';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { FunctionConstants } from '../common/constants/FunctionConstants';
 import { RankTab } from '../common/entity/RankModel';
-import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
 import { PixState } from '../entryability/AppState';
 
 const logger = createLogger('RankVM');

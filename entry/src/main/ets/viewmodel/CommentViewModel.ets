@@ -8,7 +8,8 @@ const logger = createLogger('CommentViewModel');
 @ObservedV2
 export class CommentViewModel {
   // 需要评论的作品 ID
-  private illustId: number = -1;
+  private targetId: number = -1;
+  private type: 'illust' | 'novel' = 'illust';
 
   // 评论列表数据
   @Trace comments: PixivComment[] = [];
@@ -29,50 +30,46 @@ export class CommentViewModel {
   /**
    * 初始化，加载第一页评论
    */
-  async init(illustId: number) {
-    this.illustId = illustId;
+  async init(type: 'illust' | 'novel', targetId: number) {
     this.comments = [];
     this.nextUrl = null;
-    await this.fetchComments(true);
+    this.type = type;
+    this.targetId = targetId;
+    this.fetchComments(true);
   }
 
   /**
    * 获取评论
    * @param isRefresh 是否是下拉刷新
    */
-  async fetchComments(isRefresh: boolean = false) {
+  async fetchComments(isRefresh: boolean) {
     if (this.isLoading || this.isFetchingMore) return;
 
     if (isRefresh) {
       this.isLoading = true;
       this.nextUrl = null;
     } else {
-      if (!this.nextUrl) return;
       this.isFetchingMore = true;
     }
-    logger.debug(`[Fetch] Start fetcisRefresh: ${isRefresh}, nextUrl: ${this.nextUrl}`);
+
     try {
-      const response = await pixiv.getIllustComments(
-        this.illustId,
-        isRefresh ? undefined : this.nextUrl!
+      const res = await pixiv.getComments(
+        this.type,
+        this.targetId,
+        isRefresh ? undefined : this.nextUrl ?? undefined
       );
 
-      logger.debug(`[Fetch] Response receiveComments count: ${response.comments?.length}, next_url: ${response.next_url}`);
-
       if (isRefresh) {
-        this.comments = response.comments;
+        this.comments = res.comments;
       } else {
-        this.comments = [...this.comments, ...response.comments];
+        this.comments.push(...res.comments);
       }
-      this.nextUrl = response.next_url;
-      logger.debug(`[Fetch] State updateTotal comments: ${this.comments.length}, Current nextUrl: ${this.nextUrl}`);
+      this.nextUrl = res.next_url;
     } catch (e) {
-      logger.error(`[Fetch] Failed! isRefresh: ${isRefresh}`, e);
-      toastUtil.showToast({ message: '获取评论失败' });
+      logger.error('fetchComments error:', e);
     } finally {
       this.isLoading = false;
       this.isFetchingMore = false;
-      logger.debug(`[Fetch] FinisheisLoading: ${this.isLoading}, isFetchingMore: ${this.isFetchingMore}`);
     }
   }
 
@@ -80,37 +77,44 @@ export class CommentViewModel {
    * 获取子评论 (楼中楼)
    * @param parentCommentId 父评论 ID
    */
-  async fetchCommentReplies(parentCommentId: number) {
-    const parentIndex = this.comments.findIndex(c => c.id === parentCommentId);
-    if (parentIndex === -1) return;
+  async fetchCommentReplies(commentId: number) {
+    const comment = this.comments.find(c => c.id === commentId);
+    if (!comment) return;
 
-    const parentComment = this.comments[parentIndex];
-    if (parentComment.isLoadingReplies) return;
-    // 标记加载中
-    parentComment.isLoadingReplies = true;
-    // 使用 splice 替换原位置的元素，触发 @Trace 更新
-    this.comments.splice(parentIndex, 1, parentComment);
+    // 初始化 replies 数组和加载状态
+    if (!comment.replies) comment.replies = [];
+    comment.isLoadingReplies = true;
 
     try {
-      const nextUrl = parentComment.repliesNextUrl;
-      const response = await pixiv.getIllustCommentReplies(parentCommentId, nextUrl || undefined);
-      // 拼接子评论数据
-      if (!parentComment.replies) {
-        parentComment.replies = [];
-      }
-      // concat 返回新数组，赋值给 replies
-      parentComment.replies = parentComment.replies.concat(response.comments);
-      parentComment.repliesNextUrl = response.next_url;
-      parentComment.isLoadingReplies = false;
-      parentComment.has_replies = true; // 保持为 true
-      // 再次使用 splice 替换，触发最新数据渲染
-      this.comments.splice(parentIndex, 1, parentComment);
+      // ✅ 调用合并后的接口
+      const res = await pixiv.getCommentReplies(this.type, commentId);
+      comment.replies.push(...res.comments);
+      comment.repliesNextUrl = res.next_url;
+      comment.has_replies = true; // 标记已拉取
     } catch (e) {
-      logger.error('Fetch replies failed', e);
-      toastUtil.showToast({ message: '获取回复失败' });
-      // 恢复加载状态
-      parentComment.isLoadingReplies = false;
-      this.comments.splice(parentIndex, 1, parentComment);
+      logger.error('fetchCommentReplies error:', e);
+    } finally {
+      comment.isLoadingReplies = false;
+    }
+  }
+
+  /**
+   * 发送评论/回复
+   */
+  async sendComment() {
+    if (this.inputText.trim().length === 0) return;
+
+    try {
+      const parentId = this.replyTarget?.id;
+      // ✅ 调用合并后的接口
+      await pixiv.addComment(this.type, this.targetId, this.inputText, parentId);
+
+      this.inputText = '';
+      this.replyTarget = null;
+      // 发送成功后刷新列表
+      this.fetchComments(true);
+    } catch (e) {
+      logger.error('sendComment error:', e);
     }
   }
 
@@ -126,34 +130,6 @@ export class CommentViewModel {
    */
   cancelReply() {
     this.replyTarget = null;
-  }
-
-  /**
-   * 发送评论/回复
-   */
-  async sendComment() {
-    const text = this.inputText.trim();
-    if (!text) {
-      toastUtil.showToast({ message: '评论内容不能为空' });
-      return;
-    }
-    try {
-      toastUtil.showToast({ message: '发送中...' });
-      await pixiv.addIllustComment(
-        this.illustId,
-        text,
-        this.replyTarget?.id // 如果有回复目标，传入父评论 ID
-      );
-      toastUtil.showToast({ message: this.replyTarget ? '回复成功' : '评论成功' });
-      // 清空状态
-      this.inputText = '';
-      this.replyTarget = null;
-      // 刷新列表（发送评论后，Pixiv API 通常会返回最新数据，这里简单做刷新处理）
-      await this.fetchComments(true);
-    } catch (e) {
-      logger.error('Send comment failed', e);
-      toastUtil.showToast({ message: '发送失败' });
-    }
   }
 
 }

@@ -7,7 +7,7 @@ import { Colors, Theme } from "@ohos.arkui.theme"
 import { toastUtil } from "../common/utils/ToastUtils";
 import { ResourceUtils } from "../common/utils/ResourceUtil";
 import { PixState } from "../entryability/AppState";
-import { appSettings } from "../common/entity/SettingsModel";
+import { appSettings, UISettings } from "../common/entity/SettingsModel";
 
 
 @ComponentV2
@@ -110,7 +110,7 @@ export struct CustomListItem {
           },
           buttons: dialogButtons,
           contentAreaPadding: contentPadding,
-          themeColorMode: appSettings.color_mode + 1,
+          themeColorMode: UISettings.color_mode + 1,
           // theme: dialogTheme
         }),
         autoCancel: true,

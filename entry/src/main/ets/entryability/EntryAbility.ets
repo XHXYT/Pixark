@@ -8,7 +8,7 @@ import { PixState, _PixState } from './AppState';
 import { ImageKnife } from '@ohos/imageknifepro';
 import { ezCustomTransition } from '@hmanimations/ezcustomtransition';
 import { preferenceUtil } from '../common/utils/persistence/PreferenceUtil';
-import { appSettings } from '../common/entity/SettingsModel';
+import { appSettings, UISettings } from '../common/entity/SettingsModel';
 import { AccountContext } from '../services/PixivTypes';
 import { homeViewModel } from '../viewmodel/HomeViewModel';
 import { createLogger } from '../common/utils/Logger';
@@ -118,6 +118,7 @@ export default class EntryAbility extends UIAbility {
     await kvDbUtil.initKVManager(this.context, 'pixark')
     // 加载设置数据
     await appSettings.load()
+    await UISettings.load()
 
     // 初始化颜色工具
     ColorUtils.init(this.context)

@@ -18,7 +18,7 @@ import { Login } from './Login';
 import UIConstants from '../common/constants/UIConstants';
 import { More } from './More';
 import { createLogger } from '../common/utils/Logger';
-import { appSettings } from '../common/entity/SettingsModel';
+import { appSettings, UISettings } from '../common/entity/SettingsModel';
 import { motion } from '@kit.MultimodalAwarenessKit';
 import { HoldingHandleUtil } from '../common/utils/HoldingHandleUtil';
 
@@ -262,7 +262,7 @@ struct Index {
       }, UIConstants.AnimationSpeed_300, 'app', 0)
     })
     .onAppear(() => {
-      PixState.tabsController.changeIndex(Number(appSettings.main_show))
+      PixState.tabsController.changeIndex(Number(UISettings.main_show))
     })
     .width('100%').height('100%').fadingEdge(true)
     .margin({ top: PixState.windowMode ? 42 : 0 })

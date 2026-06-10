@@ -1,5 +1,5 @@
 import { _PixState } from "../../entryability/AppState";
-import { appSettings } from "../entity/SettingsModel";
+import { appSettings, UISettings } from "../entity/SettingsModel";
 import { createLogger } from "./Logger";
 import { i18n } from "@kit.LocalizationKit";
 
@@ -13,8 +13,8 @@ export class SettingsUtils {
    */
   static setColorMode() {
     try {
-      logger.info('ColorMode', `保存的颜色模式：${appSettings.color_mode}`);
-      _PixState.Context.getApplicationContext().setColorMode(appSettings.color_mode);
+      logger.info('ColorMode', `保存的颜色模式：${UISettings.color_mode}`);
+      _PixState.Context.getApplicationContext().setColorMode(UISettings.color_mode);
     } catch (err) {
       logger.error(`ColorMode`, `Failed to set colorMode, ${err}`)
     }
@@ -25,7 +25,7 @@ export class SettingsUtils {
    */
   static setLanguage() {
     try {
-      i18n.System.setAppPreferredLanguage(appSettings.language)
+      i18n.System.setAppPreferredLanguage(UISettings.language)
     } catch (error) {
       // TODO: Implement error handling.
     }

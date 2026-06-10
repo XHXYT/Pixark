@@ -3,101 +3,87 @@
  * 定义了登录或刷新 Token 成功后，服务器返回的数据结构
  */
 export interface PixivAuthResponse {
-  access_token: string;       // 访问令牌，用于后续 API 请求的身份验证
-  refresh_token: string;      // 刷新令牌，用于当 access_token 过期时获取新的令牌
-  expires_in: number;         // access_token 的过期时间（秒）
-  token_type: string;         // 令牌类型，通常是 "Bearer"
-  scope: string;              // 令牌的授权范围
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+  scope: string;
   user: PixivUser;
 }
 
 /**
  * Pixiv 用户/画师信息
- * 定义了画师的基本信息
  */
 export interface PixivUser {
-  /** 用户 ID */
   id: number;
-  /** 用户昵称 (画师名) */
   name: string;
-  /** 个人简介/留言 */
   comment: string;
-  /** 创建时间 */
   created_date: string;
-  /** 用户账号 ID (登录用的账号，通常不展示) */
   account: string;
-  /** 当前用户是否已关注该画师 */
   is_followed: boolean;
-  /** 用户头像 URL 列表 */
   profile_image_urls: {
-    /** 头像中图 URL */
     medium: string;
   };
-  // 邮箱 仅在登录时返回的User中存在
   mail_address?: string;
-  // 是否高级会员
   is_premium?: boolean;
-  // R18/敏感设置（0: 全年龄, 1: R18, 2: R18G）
   x_restrict?: number;
-  // 是否接受邮件通知
   mail_address_is_verified?: boolean;
 }
 
 /**
  * Pixiv 插画作品接口
- * 定义了单个插画作品的详细信息
  */
 export interface PixivIllust {
-  id: number;                 // 作品 ID
-  title: string;              // 作品标题
-  type: string;               // 作品类型 (例如: illust, manga)
-  caption: string;            // 作品描述/简介
+  id: number;
+  title: string;
+  type: string;
+  caption: string;
   user: PixivUser;
   image_urls: PixivImage;
-  tags: Array<PixivTag>;      // 作品标签列表
-  tools: string[];            // 使用的绘图工具 (如 SAI, Photoshop)
-  create_date: string;        // 创建时间
-  width: number;              // 图片宽度
-  height: number;             // 图片高度
-  total_view: number;         // 总浏览量
-  total_bookmarks: number;    // 总收藏数
-
-  // 仅在收藏接口返回的作品里存在：
-  bookmark_id?: number;       // 标记该作品在用户收藏列表中的 ID，用于分页
-  is_bookmarked: boolean;     // 该插画是否被当前登录用户收藏
-
-  /**
-   * AI 类型标识
-   * 0: 普通作品 / 未标记
-   * 1: 非 AI
-   * 2: AI 辅助
-   * 3: AI 生成
-   */
+  tags: Array<PixivTag>;
+  tools: string[];
+  create_date: string;
+  width: number;
+  height: number;
+  total_view: number;
+  total_bookmarks: number;
+  bookmark_id?: number;
+  is_bookmarked: boolean;
   illust_ai_type?: number;
-
   meta_single_page?: {
     original_image_url?: string;
   };
-
-  /**
-   * 多图页面数据
-   * 注意：只有当 meta_pages.length > 1 时，或者详情页接口返回的数据里，才会有此字段
-   * 列表接口通常为了省流量不返回此字段
-   *
-   * 结构说明：
-   * meta_pages 是一个数组，每个元素代表一页。
-   */
-  meta_pages?: Array<{ image_urls: PixivImage }>;
+  meta_pages?: Array<{
+    image_urls: PixivImage;
+  }>;
+  /** 系列ID，如果属于某个系列 */
+  series?: {
+    id: number;
+    title: string;
+  } | null;
+  /** 页数 */
+  page_count: number;
+  /** 是否为原创 */
+  is_original?: boolean;
+  /** 总评论数 */
+  total_comments?: number;
+  visible?: boolean;
+  is_muted?: boolean;
+  is_mypixiv_only?: boolean;
+  is_x_restricted?: boolean;
+  restrict?: number;
+  x_restrict?: number;
+  /** 评论区贴图信息 */
+  comment_access_control?: number;
 }
 
 export interface PixivImage {
-  large: string;            // 大图 URL
-  medium: string;           // 中图 URL
-  square_medium: string;    // 方形中图 URL (常用于列表封面)
-  original?: string;        // 原图，一般存在于详情页
+  large: string;
+  medium: string;
+  square_medium: string;
+  original?: string;
 }
 
-// 标签接口
 export interface PixivTag {
   name: string;
   translated_name?: string | null;
@@ -116,32 +102,25 @@ export interface PixivCommentUser {
 /** 单条评论结构 */
 export interface PixivComment {
   id: number;
-  comment: string;               // 评论文本内容（如果是贴图评论，可能为空或特定字符）
-  date: string;                  // 发表时间，如 "2025-10-27T12:34:56+09:00"
-  user: PixivCommentUser;        // 发表评论的用户
-
-  // 如果是贴图(表情)评论，会有这个字段；纯文本评论则为 null
+  comment: string;
+  date: string;
+  user: PixivCommentUser;
   stamp: {
     stamp_id: number;
     stamp_url: string;
   } | null;
-
-  // 如果这条评论是回复别人的，会有父评论信息；否则为 null
   parent_comment: {
     id: number;
     comment: string;
     user: PixivCommentUser;
   } | null;
-
-  // 部分接口版本会返回是否有回复（子评论）
   has_replies?: boolean;
-  // 本地扩展字段，API不会返回，用于UI展示
-  replies?: PixivComment[];        // 存放加载回来的子评论
-  repliesNextUrl?: string | null;  // 子评论的翻页 URL
-  isLoadingReplies?: boolean;      // 子评论加载状态
+  replies?: PixivComment[];
+  repliesNextUrl?: string | null;
+  isLoadingReplies?: boolean;
 }
 
-/** 小说数据结构 */
+/** 小说数据结构  */
 export interface PixivNovel {
   id: number;
   title: string;
@@ -157,276 +136,564 @@ export interface PixivNovel {
   create_date: string;
   tags: PixivTag[];
   page_count: number;
-  text_length: number; // 小说字数
+  text_length: number;
   user: PixivUser;
   series: {
     id: number;
     title: string;
   } | null;
-
+  is_bookmarked: boolean;
+  total_bookmarks: number;
+  total_view: number;
+  visible: boolean;
+  total_comments: number;
+  is_muted: boolean;
+  is_mypixiv_only: boolean;
+  is_x_restricted: boolean;
+  /** AI 类型: 0=未标记, 2=AI辅助, 3=AI生成 */
+  novel_ai_type: number;
 }
 
 /**
- * 账号上下文：存储单个账号的所有凭证和状态
+ * 账号上下文
  */
 export interface AccountContext {
-  userId: string;       // Pixiv 用户 ID，作为唯一标识
+  userId: string;
   accessToken: string;
   refreshToken: string;
   user: PixivUser;
-  // 本地缓存的密码 (用于修改邮箱/密码时自动填充旧密码) TODO 明文存储密码存在安全风险
   passWord?: string;
-  // 是否通过邮箱授权登录 (1=是, 0=否)
-  // Pixiv 登录方式有多种（邮箱、Google、Apple等），如果是非邮箱登录，可能没有传统密码概念
   isMailAuthorized?: number;
 }
 
-/**
- * 用户预览（用于 /v1/search/user）
- * 包含用户信息 + 若干预览作品
- */
+/** 用户预览 */
 export type UserPreview = {
   user: PixivUser;
   illusts: PixivIllust[];
-  novels?: any[]; // 小说，预留
+  novels: PixivNovel[];
+  is_muted?: boolean;
 };
 
-/**
- * 用户个人资料
- * 对应 API 返回的 profile 对象
- * 包含背景图、简介、地区、统计数据等详细信息
- */
+/** 用户个人资料 */
 export interface UserProfile {
-  /* ==================== 基础信息 ==================== */
-  /** 头像背景图 URL */
   background_image_url: string | null;
-  /** 个人主页/网站 URL */
   webpage: string | null;
-  /** 性别 (例如: "male", "female") */
   gender: string;
-  /** 地区 */
   region: string;
-
-  /* ==================== 生日信息 (可选) ==================== */
-  /** 完整生日 (格式: "1996-07-22") */
   birth?: string;
-  /** 生日 (格式: "07-22") */
   birth_day?: string;
-  /** 生年 (例如: 1996) */
   birth_year?: number;
-
-  /* ==================== 统计数据 (核心) ==================== */
-  /** 关注数 (当前用户关注了多少人，即 "关注用户量") */
   total_follow_users: number;
-  /** 我的好友数 */
   total_mypixiv_users: number;
-  /** 插画作品总数 */
   total_illusts: number;
-  /** 漫画作品总数 */
   total_manga: number;
-  /** 小说作品总数 */
   total_novels: number;
-  /** 公开的插画收藏数 */
   total_illust_bookmarks_public?: number;
-  /** 插画系列数 */
   total_illust_series?: number;
-  /** 小说系列数 */
   total_novel_series?: number;
-
-  /* ==================== 社交账号 (可选) ==================== */
-  /** Twitter 账号名 */
   twitter_account?: string;
-  /** Twitter 主页 URL */
   twitter_url?: string | null;
-  /** Pawoo (关联的 Mastodon 实例) URL */
   pawoo_url?: string | null;
-
-  /* ==================== 账号状态 (可选) ==================== */
-  /** 是否为高级会员 */
   is_premium?: boolean;
-  /** 是否使用了自定义头像 */
   is_using_custom_profile_image?: boolean;
-  /** 工作ID (内部字段) */
   job_id?: number;
-  /** 工作名称 */
   job?: string;
 }
 
-/**
- * 用户工作区
- * 对应 API 返回的 workspace 对象
- * 存储了画师的电脑配置、使用的软件、外设等信息
- */
+/** 用户工作区 */
 export interface UserWorkspace {
-  /** PC 机型描述 */
   pc: string;
-  /** 显示器描述 */
   monitor: string;
-  /** 绘图软件/工具 (例如: "SAI", "Photoshop") */
   tool: string;
-  /** 扫描仪型号 */
   scanner: string;
-  /** 数位板/平板型号 */
   tablet: string;
-  /** 鼠标型号 */
   mouse: string;
-  /** 打印机型号 */
   printer: string;
-  /** 桌面/机箱描述 */
   desktop: string;
-  /** 常听音乐 */
   music: string;
-  /** 书桌描述 */
   desk: string;
-  /** 椅子型号 */
   chair: string;
-  /** 工作区备注 */
   comment: string;
-  /** 工作区图片 URL */
-  workspace_image_url?: any;
+  workspace_image_url?: string;
 }
 
-
-/**
- * 用户隐私/公开设置
- * 决定了用户的哪些信息对其他人可见
- */
+/** 用户隐私/公开设置 */
 export interface ProfilePublicity {
-  /** 性别是否公开 ('public' | 'private') */
   gender: string;
-  /** 地区是否公开 ('public' | 'private') */
   region: string;
-  /** 生日(日)是否公开 ('public' | 'private') */
   birth_day: string;
-  /** 生日(年)是否公开 ('public' | 'private') */
   birth_year: string;
-  /** 职业是否公开 ('public' | 'private') */
   job: string;
-  /** Pawoo (关联服务) 是否关联/可见 */
   pawoo: boolean;
 }
 
-
-/**
- * Pixiv 热门标签
- * 对应 /v1/trending-tags/illust 接口返回的单个标签对象
- */
+/** 热门标签 */
 export interface PixivTrendingTag {
-  /** 标签名 */
   tag: string;
-  /** 标签翻译名（中文/英文等，取决于请求头或 API 返回） */
   translated_name?: string | null;
-  /** 该标签下的关联插画（用作封面展示） */
   illust: PixivIllust;
 }
 
-
-/**
- * Pixiv 亮点/专题文章
- * 对应 /v1/spotlight/articles 接口返回的单个文章对象
- */
+/** 亮点/专题文章 */
 export interface SpotlightArticle {
-  /** 文章唯一 ID */
   id: number;
-  /** 文章标题（包含 HTML 转义字符，例如 &amp;） */
   title: string;
-  /** 纯净版文章标题（去除 HTML 标签，适合直接展示在 UI 上） */
   pure_title: string;
-  /** 文章封面缩略图 URL（通常为正方形，适合轮播图） */
   thumbnail: string;
-  /** 文章详情页 URL（需要使用 WebView 组件打开此链接） */
   article_url: string;
-  /** 文章发布时间（格式示例：2023-10-01 12:00:00） */
   publish_date: string;
-  /** 文章分类（常见值：'all' 全部, 'illust' 插画专题, 'android' 官方精选） */
   category: string;
-  /** 文章作者/发布者姓名（例如：'Pixiv官方'） */
   author_name: string;
-  /** 文章主图大图 URL（可选字段，尺寸较大） */
   main_image?: string;
 }
 
-
-/**
- * 搜索筛选项
- */
+/** 搜索筛选项 */
 export interface SearchFilterOptions {
-  // 基础
-  sort?: 'date_desc' | 'date_asc' | 'popular_desc'; // 排序方式：最新、最早、热门
-
-  // 匹配范围
+  sort?: 'date_desc' | 'date_asc' | 'popular_desc';
   searchTarget?: 'partial_match_for_tags' | 'exact_match_for_tags' | 'title_and_caption';
-  // partial_match_for_tags: 部分标签匹配(默认)
-  // exact_match_for_tags: 精确标签匹配
-  // title_and_caption: 包含标题和简介
-
-  // 高级筛选
-  startDate?: string; // 格式 '2023-01-01'
-  endDate?: string;   // 格式 '2023-12-31'
-  minBookmark?: number; // 最小收藏数
-
-  // 可选：AI 筛选
-  aiType?: 0 | 1 | 2; // 0: 全部, 1: 排除AI, 2: 仅AI
+  startDate?: string;
+  endDate?: string;
+  minBookmark?: number;
+  maxBookmark?: number;
+  aiType?: 0 | 1 | 2;
 }
 
-
-/**
- * 搜索用户结果
- * 对应 /v1/search/user 的返回结构
- */
+/** 搜索用户结果 */
 export type SearchUserResult = {
   user_previews: UserPreview[];
   next_url: string | null;
 };
 
-/**
- * 热门标签响应
- * 对应 /v1/trending-tags/illust 接口返回的根对象
- */
+/** 热门标签响应 */
 export interface PixivTrendingTagsResponse {
-  /** 热门标签列表 */
   trend_tags: PixivTrendingTag[];
 }
 
-/**
- * Pixiv 搜索结果接口
- * 定义了搜索或排行榜等接口返回的列表数据结构
- */
+/** 通用列表结果（插画或小说） */
 export interface PixivListResult {
-  illusts?: PixivIllust[];     // 插画作品列表
-  novels?: PixivNovel[];      // 小说作品列表
-  next_url: string | null;    // 下一页的 URL，如果为 null 表示没有下一页
+  illusts?: PixivIllust[];
+  novels?: PixivNovel[];
+  next_url: string | null;
 }
 
-/**
- * 用户详情响应
- * 包含 user 对象 + profile/workspace/stats 扩展信息
- */
+/** 用户详情响应 */
 export interface UserDetailResponse {
-  /** 用户基础信息 */
   user: PixivUser;
-  /** 个人资料 */
   profile: UserProfile;
-  /** 工作区信息 */
   workspace: UserWorkspace;
-  /** 公开设置 */
   profile_publicity?: ProfilePublicity;
 }
 
-/**
- * Pixiv 亮点文章列表响应
- * 对应 /v1/spotlight/articles 接口返回的根对象
- */
+/** 亮点文章列表响应 */
 export interface SpotlightResponse {
-  /** 亮点文章列表 */
   spotlight_articles: SpotlightArticle[];
-  /** 下一页的请求 URL（通常首页亮点数量较少，该字段可能为空） */
-  next_url: string;
+  next_url: string | null;
 }
 
-/** 获取评论列表的响应结构 */
+/** 评论列表响应 */
 export interface PixivCommentsResponse {
   comments: PixivComment[];
-  next_url: string | null;       // 翻页 URL，为 null 表示没有下一页
+  next_url: string | null;
 }
 
+/**
+ * 小说文本响应 — 对应 Dart NovelTextResponse
+ * 接口 /v1/novel/text
+ */
+export interface NovelTextResponse {
+  /** 小说标记（阅读进度标记） */
+  novel_marker: NovelMarker;
+  /** 小说正文纯文本 */
+  novel_text: string;
+  /** 系列中上一篇小说 */
+  series_prev: TextNovel | null;
+  /** 系列中下一篇小说 */
+  series_next: TextNovel | null;
+}
+
+/** 小说标记 — 对应 Dart NovelMarker */
+export interface NovelMarker {
+  /** 标记所在页码 */
+  page: number | null;
+}
+
+/** 系列中的简略小说信息 — 对应 Dart TextNovel */
+export interface TextNovel {
+  id: number | null;
+  title: string | null;
+}
+
+/**
+ * 接口 /webview/v2/novel
+ * 包含小说完整内容、插图、系列导航等
+ */
+export interface NovelWebResponse {
+  id: string;
+  title: string;
+  /** 系列ID，可能为 null 或字符串 */
+  seriesId: string | null;
+  /** 系列标题 */
+  seriesTitle: string | null;
+  /** 是否已关注该系列 */
+  seriesIsWatched: boolean | null;
+  userId: string;
+  coverUrl: string;
+  tags: string[];
+  caption: string;
+  cdate: string;
+  rating: NovelRating;
+  /** 小说正文的HTML格式文本 */
+  text: string;
+  /** 标记信息 */
+  marker: unknown;
+  /** 系列导航（上一篇/下一篇） */
+  seriesNavigation: SeriesNavigation | null;
+  glossaryItems: unknown[] | null;
+  replaceableItemIds: unknown[] | null;
+  /** 小说中嵌入的图片，key 为图片在文中的标识 */
+  images: Record<string, NovelImage> | null;
+  /** 小说中嵌入的插画作品，key 为插画ID */
+  illusts: Record<string, NovelIllusts | null> | null;
+  /** AI 类型 */
+  aiType: number | null;
+  /** 是否原创 */
+  isOriginal: boolean | null;
+}
+
+/** 小说评分 — 对应 Dart NovelRating */
+export interface NovelRating {
+  like: number;
+  bookmark: number;
+  view: number;
+}
+
+/** 系列导航 — 对应 Dart SeriesNavigation */
+export interface SeriesNavigation {
+  nextNovel: PrevNovel | null;
+  prevNovel: PrevNovel | null;
+}
+
+/** 系列中的前/后一篇小说 — 对应 Dart PrevNovel */
+export interface PrevNovel {
+  id: number;
+  viewable: boolean;
+  contentOrder: string;
+  title: string;
+  coverUrl: string;
+}
+
+/** 小说嵌入图片 — 对应 Dart NovelImage */
+export interface NovelImage {
+  novelImageId: string | null;
+  sl: string;
+  urls: NovelUrls;
+}
+
+/** 小说嵌入图片URL — 对应 Dart NovelUrls */
+export interface NovelUrls {
+  '240mw': string | null;
+  '480mw': string | null;
+  '1200x1200': string | null;
+  '128x128': string | null;
+  original: string | null;
+}
+
+/** 小说嵌入插画 — 对应 Dart NovelIllusts */
+export interface NovelIllusts {
+  illust: NovelIllust;
+}
+
+/** 小说嵌入插画详情 — 对应 Dart NovelIllust */
+export interface NovelIllust {
+  images: NovelIllustImages;
+}
+
+/** 小说嵌入插画图片URL — 对应 Dart NovelIllustImages */
+export interface NovelIllustImages {
+  small: string | null;
+  medium: string | null;
+  original: string | null;
+}
+
+/**
+ * 小说系列详情响应 — 对应 Dart NovelSeriesResponse
+ * 接口 /v2/novel/series
+ */
+export interface NovelSeriesResponse {
+  /** 系列详细信息 */
+  novel_series_detail: NovelSeriesDetail;
+  /** 系列中的第一部小说 */
+  novel_series_first_novel: NovelSeriesFirstNovel;
+  /** 系列中的最新一部小说 */
+  novel_series_latest_novel: NovelSeriesFirstNovel | null;
+  /** 系列中的小说列表 */
+  novels: PixivNovel[];
+  /** 下一页URL */
+  next_url: string | null;
+}
+
+/** 小说系列详情 — 对应 Dart NovelSeriesDetail */
+export interface NovelSeriesDetail {
+  id: number;
+  title: string;
+  caption: string | null;
+  is_original: boolean;
+  /** 系列是否已完结 */
+  is_concluded: boolean;
+  /** 系列中作品数量 */
+  content_count: number;
+  /** 系列总字数 */
+  total_character_count: number;
+  user: SeriesDetailUser;
+  display_text: string;
+  novel_ai_type: number;
+  /** 当前用户是否已将此系列加入关注列表 */
+  watchlist_added: boolean | null;
+}
+
+/** 系列详情中的用户 — 对应 Dart NovelSeriesUser (novel_series_detail.dart) */
+export interface SeriesDetailUser {
+  id: number;
+  name: string;
+  account: string;
+  profile_image_urls: {
+    medium: string;
+  };
+  is_followed: boolean;
+  is_access_blocking_user: boolean;
+}
+
+/** 系列中第一/最新小说 — 对应 Dart NovelSeriesFirstNovel */
+export interface NovelSeriesFirstNovel {
+  id: number;
+  title: string;
+  caption: string;
+  restrict: number;
+  x_restrict: number;
+  is_original: boolean;
+  image_urls: {
+    square_medium: string;
+    medium: string;
+    large: string;
+  };
+  create_date: string;
+  tags: NovelSeriesNovelTag[];
+  page_count: number;
+  text_length: number;
+  user: SeriesDetailUser;
+  series: NovelSeriesSeries;
+  is_bookmarked: boolean;
+  total_bookmarks: number;
+  total_view: number;
+  visible: boolean;
+  total_comments: number;
+  is_muted: boolean | null;
+  is_mypixiv_only: boolean | null;
+  is_x_restricted: boolean | null;
+  novel_ai_type: number;
+}
+
+/** 系列中的小说标签 — 对应 Dart NovelSeriesNovelTag */
+export interface NovelSeriesNovelTag {
+  name: string;
+  translated_name: string | null;
+  added_by_uploaded_user: boolean;
+}
+
+/** 系列基本信息 — 对应 Dart NovelSeriesSeries */
+export interface NovelSeriesSeries {
+  id: number;
+  title: string;
+}
+
+/**
+ * 小说关注列表响应 — 对应 Dart NovelWatchListModel
+ * 接口 /v1/watchlist/novel
+ */
+export interface NovelWatchListResponse {
+  series: WatchListSeriesModel[];
+  next_url: string | null;
+}
+
+/** 关注列表中的系列模型 — 对应 Dart NovelSeriesModel (watch_list) */
+export interface WatchListSeriesModel {
+  id: number;
+  title: string;
+  url: string | null;
+  /** 被遮罩的文本（可能用于年龄限制提示） */
+  mask_text: string | null;
+  /** 已发布的作品数量 */
+  published_content_count: number;
+  /** 最新发布作品的日期时间 */
+  last_published_content_datetime: string;
+  /** 最新作品ID */
+  latest_content_id: number;
+  user: WatchListSeriesUser | null;
+}
+
+/** 关注列表系列中的用户 — 对应 Dart NovelSeriesUser (watch_list_model) */
+export interface WatchListSeriesUser {
+  id: number;
+  name: string;
+  account: string;
+  profile_image_urls: {
+    medium: string | null;
+  } | null;
+  /** 是否接受约稿请求 */
+  is_accept_request: boolean;
+}
+
+/**
+ * 漫画关注列表响应
+ * 接口 /v1/watchlist/manga
+ * 结构与小说关注列表类似
+ */
+export interface MangaWatchListResponse {
+  series: WatchListSeriesModel[];
+  next_url: string | null;
+}
+
+/**
+ * 插画系列响应
+ * 接口 /v1/illust/series
+ */
+export interface IllustSeriesResponse {
+  illust_series_detail: IllustSeriesDetail;
+  illust_series_first_illust: IllustSeriesFirstIllust;
+  illust_series_latest_illust: IllustSeriesFirstIllust | null;
+  illusts: PixivIllust[];
+  next_url: string | null;
+}
+
+/** 插画系列详情 */
+export interface IllustSeriesDetail {
+  id: number;
+  title: string;
+  caption: string | null;
+  is_original: boolean;
+  is_concluded: boolean;
+  content_count: number;
+  total_character_count: number;
+  user: SeriesDetailUser;
+  display_text: string;
+  watchlist_added: boolean | null;
+}
+
+/** 插画系列中的第一幅插画 */
+export interface IllustSeriesFirstIllust {
+  id: number;
+  title: string;
+  caption: string;
+  restrict: number;
+  x_restrict: number;
+  is_original: boolean;
+  image_urls: PixivImage;
+  create_date: string;
+  tags: PixivTag[];
+  page_count: number;
+  user: SeriesDetailUser;
+  series: { id: number; title: string };
+  is_bookmarked: boolean;
+  total_bookmarks: number;
+  total_view: number;
+  visible: boolean;
+  total_comments: number;
+}
+
+/**
+ * 插画系列中的插画响应
+ * 接口 /v1/illust-series/illust
+ */
+export interface IllustSeriesIllustResponse {
+  illust_series_detail: IllustSeriesDetail;
+  illusts: PixivIllust[];
+  next_url: string | null;
+}
+
+/**
+ * Ugoira（动图）元数据 — 对应 Dart UgoiraMetadataResponse
+ * 接口 /v1/ugoira/metadata
+ */
+export interface UgoiraMetadata {
+  zip_urls: {
+    medium: string;
+  };
+  frames: Array<{
+    file: string;
+    delay: number;
+  }>;
+}
+
+/** Ugoira 元数据完整响应 */
+export interface UgoiraMetadataResponse {
+  ugoira_metadata: UgoiraMetadata;
+}
+
+/**
+ * 插画收藏详情 — 对应 Dart IllustBookmarkDetail
+ * 接口 /v2/illust/bookmark/detail
+ */
+export interface IllustBookmarkDetail {
+  is_bookmarked: boolean;
+  tags: Array<{
+    name: string;
+    is_registered: boolean;
+  }>;
+  restrict: 'public' | 'private';
+}
+
+/** 插画收藏详情完整响应 */
+export interface IllustBookmarkDetailResponse {
+  bookmark_detail: IllustBookmarkDetail;
+}
+
+/**
+ * 收藏标签列表 — 对应 Dart IllustBookmarkTagsResponse
+ * 接口 /v1/user/bookmark-tags/illust
+ */
+export interface BookmarkTag {
+  name: string;
+  count: number;
+}
+
+/** 收藏标签列表完整响应 */
+export interface BookmarkTagsResponse {
+  bookmark_tags: BookmarkTag[];
+  next_url: string | null;
+}
+
+/**
+ * 用户关注详情 — 对应 Dart FollowDetail
+ * 接口 /v1/user/follow/detail
+ */
+export interface FollowDetail {
+  is_followed: boolean;
+  restrict: 'public' | 'private';
+}
+
+/**
+ * 搜索自动补全响应 — 对应 Dart AutoWords
+ * 接口 /v2/search/autocomplete
+ */
+export interface AutoCompleteResponse {
+  tags: Array<{
+    name: string;
+    translated_name?: string | null;
+  }>;
+}
+
+/**
+ * 用户 AI 显示设置响应
+ * 接口 /v1/user/ai-show-settings
+ */
+export interface UserAISettingsResponse {
+  show_ai: boolean;
+}
+
+/**
+ * 用户受限模式设置响应
+ * 接口 /v1/user/restricted-mode-settings
+ */
+export interface UserRestrictedModeResponse {
+  is_restricted_mode_enabled: boolean;
+}

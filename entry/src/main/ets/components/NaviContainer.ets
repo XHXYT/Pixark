@@ -6,7 +6,7 @@ import { KeyCode } from "@kit.InputKit"
 @ComponentV2
 export struct NaviContainer {
 
-  @Param title: ResourceStr = ''
+  @Param title: ResourceStr | undefined = undefined
   @Param subTitle: ResourceStr = ''
 
   @Param showMenu: boolean = false
@@ -44,9 +44,9 @@ export struct NaviContainer {
     .height('100%')
     .hideToolBar(true)
     .menus(this.buttons)
-    .hideTitleBar(this.hideTitleBar)
+    .hideTitleBar(this.hideTitleBar || !this.title)
     .transition(this.transitionEffect)
-    .padding(this.hideTitleBar ? undefined : { top: PixState.topRectHeight || 12 })
+    .padding((this.hideTitleBar || !this.title) ? undefined : { top: PixState.topRectHeight || 12 })
     .title({ main: this.title, sub: this.subTitle }, { backgroundColor: Color.Transparent })
     .onBackPressed(() => {
       return this.onBackPressed()

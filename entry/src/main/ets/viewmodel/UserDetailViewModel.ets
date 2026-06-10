@@ -4,7 +4,7 @@ import { PixivIllust, PixivUser, UserDetailResponse } from '../services/PixivTyp
 import { createLogger } from '../common/utils/Logger';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { pixiv } from '../services/PixivService';
-import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
 
 const logger = createLogger('UserDetailViewModel')
 
@@ -209,7 +209,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
 
     try {
       if (this.isFollow) {
-        await pixiv.unfollowUser(userId, 'public');
+        await pixiv.unfollowUser(userId);
         this.isFollow = false;
         if (this.userData.user) this.userData.user.is_followed = false;
       } else {

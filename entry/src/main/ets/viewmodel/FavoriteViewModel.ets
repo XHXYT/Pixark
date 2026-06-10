@@ -1,4 +1,4 @@
-import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams, IIllustSwiperProvider, NovelDetailParams } from "../common/entity/DetailEntity";
 import { PixState } from "../entryability/AppState";
 import { PixivIllust, PixivNovel, UserPreview } from "../services/PixivTypes";
 import { createLogger } from "../common/utils/Logger";
@@ -371,6 +371,14 @@ class FavoriteViewModel implements IIllustSwiperProvider {
     };
     // 执行跳转
     PixState.pageStack.pushPathByName('illust_detail', params, true);
+  }
+
+  handleNovelClick(novel: PixivNovel) {
+    const params: NovelDetailParams = {
+      id: novel.id,
+    };
+    // 执行跳转
+    PixState.pageStack.pushPathByName('novel_detail', params, true);
   }
 
   // --- 加载更多 ---

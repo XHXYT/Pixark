@@ -6,7 +6,7 @@ import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
 import { LengthMetrics } from "@kit.ArkUI";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
-import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/IllustDetailEntity";
+import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/DetailEntity";
 import { UserItem } from "../components/UserItem";
 import { PixivImageViewer } from "../components/ImageViewer";
 import { NaviContainer } from "../components/NaviContainer";
@@ -369,7 +369,7 @@ struct IllustDetailContent {
   @Builder
   CommentPanel() {
     CommentPanel({
-      illustId: this.illustId
+      targetId: this.illustId
     })
   }
 

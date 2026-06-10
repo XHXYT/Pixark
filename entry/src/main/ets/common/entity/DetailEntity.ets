@@ -8,6 +8,7 @@ export interface IIllustSwiperProvider {
   loadMore(): Promise<void>; // 加载下一页
 }
 
+// 插画传参
 export interface DetailPageParams {
   id: number;
   fromId?: string;
@@ -15,4 +16,9 @@ export interface DetailPageParams {
   // Swiper 联动所需参数
   swiperProvider?: IIllustSwiperProvider;
   swiperIndex?: number;
+}
+
+// 小说传参
+export interface NovelDetailParams {
+  id: number;
 }

@@ -84,6 +84,11 @@
       "name": "app_data",
       "pageSourceFile": "src/main/ets/view/more/AppData.ets",
       "buildFunction": "AppDataBuilder"
+    },
+    {
+      "name": "novel_detail",
+      "pageSourceFile": "src/main/ets/view/NovelDetailPage.ets",
+      "buildFunction": "NovelDetailBuilder"
     }
   ]
 }

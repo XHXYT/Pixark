@@ -1,4 +1,4 @@
-import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
 import SearchHistoryInfo from '../common/entity/SearchHistoryInfo';
 import { generateSuggestions, SuggestionItem } from '../common/entity/SearchSuggestion';
 import { PixState, _PixState } from '../entryability/AppState';

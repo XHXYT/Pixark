@@ -1,5 +1,5 @@
 import { ImageKnifeComponent, DownSamplingStrategy } from "@ohos/imageknifepro";
-import { appSettings } from "../common/entity/SettingsModel";
+import { appSettings, UISettings } from "../common/entity/SettingsModel";
 import { ConfigurationConstant } from "@kit.AbilityKit";
 
 
@@ -61,9 +61,9 @@ export struct PixivImageComponent {
           .borderRadius(this.imageBorder?.radius)
           .aspectRatio(this.imageAspectRatio)
           .size({ width: this.imageWidth || '100%', height: this.imageHeight })
-          .backgroundColor(appSettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
+          .backgroundColor(UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
           .shadow({ radius: typeof this.imageBorder?.radius == 'number' ? this.imageBorder.radius: undefined,
-            color: appSettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa',
+            color: UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa',
             offsetX: 6, offsetY: 6
           })
       }

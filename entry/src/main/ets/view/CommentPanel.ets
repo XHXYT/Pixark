@@ -7,13 +7,14 @@ import { PixivImageComponent } from '../components/PixivImage';
 @ComponentV2
 export struct CommentPanel {
 
+  @Param type: 'illust' | 'novel' = 'illust';
   // 接收参数
-  @Param illustId: number = -1;
+  @Param targetId: number = -1;
 
   private vm: CommentViewModel = new CommentViewModel();
 
   aboutToAppear() {
-    this.vm.init(this.illustId);
+    this.vm.init(this.type, this.targetId);
   }
 
   build() {

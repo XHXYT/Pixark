@@ -6,7 +6,7 @@ import { WaterFlowColumnsTemplate } from "../../common/utils/breakpoint/BreakPoi
 import { PixivImageComponent } from "../../components/PixivImage"
 import IllustHistoryInfo from "../../common/entity/IllustHistoryInfo"
 import NovelHistoryInfo from "../../common/entity/NovelHistoryInfo"
-import { DetailPageParams } from "../../common/entity/IllustDetailEntity"
+import { DetailPageParams } from "../../common/entity/DetailEntity"
 import { toastUtil } from "../../common/utils/ToastUtils"
 import { appSettings } from "../../common/entity/SettingsModel"
 import { ResourceUtils } from "../../common/utils/ResourceUtil"

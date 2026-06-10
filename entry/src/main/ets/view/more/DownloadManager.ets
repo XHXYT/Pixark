@@ -4,7 +4,7 @@ import { DownloadsViewModel, downloaderVM } from "../../viewmodel/DownloadsViewM
 import { SegmentButtonV2Items, SymbolGlyphModifier, TabSegmentButtonV2 } from "@kit.ArkUI";
 import { request } from "@kit.BasicServicesKit";
 import DownloadRecordInfo from "../../common/entity/DownloadRecordInfo";
-import { DetailPageParams } from "../../common/entity/IllustDetailEntity";
+import { DetailPageParams } from "../../common/entity/DetailEntity";
 import { toastUtil } from "../../common/utils/ToastUtils";
 import { NaviContainer } from "../../components/NaviContainer";
 import { PixivImageComponent } from "../../components/PixivImage";

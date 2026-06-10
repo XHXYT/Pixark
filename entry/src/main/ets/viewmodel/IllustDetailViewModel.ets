@@ -4,7 +4,7 @@ import { createLogger } from '../common/utils/Logger';
 import { LongTakeAnimationProperties } from '../common/utils/customtransition/LongTakeAnimationProperties';
 import { CustomTransition } from '../common/utils/customtransition/CustomNavigationUtils';
 import { homeViewModel } from './HomeViewModel';
-import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/IllustDetailEntity';
+import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
 import { CardUtil } from '../common/utils/CardUtil';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { downloaderVM } from './DownloadsViewModel';

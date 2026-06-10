@@ -872,6 +872,30 @@
     {
       "name": "illust_mode",
       "value": "插画模式"
+    },
+    {
+      "name": "start_reading",
+      "value": "开始阅读"
+    },
+    {
+      "name": "content_loading",
+      "value": "正文加载中"
+    },
+    {
+      "name": "check_out_comments",
+      "value": "查看评论"
+    },
+    {
+      "name": "content_loading_failed",
+      "value": "正文加载失败"
+    },
+    {
+      "name": "retry",
+      "value": "重试"
+    },
+    {
+      "name": "reading_srttings",
+      "value": "阅读设置"
     }
   ]
 }
