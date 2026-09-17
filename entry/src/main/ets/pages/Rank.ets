@@ -5,6 +5,7 @@ import { WaterFlowView } from "../components/WaterFlowView"
 import { FunctionConstants } from "../common/constants/FunctionConstants"
 import { RankTab } from "../common/entity/RankModel"
 import { NovelListView } from "../components/NovelListView"
+import { FloatTabBarClearance } from "../common/utils/breakpoint/BreakPoint"
 import { PixivNovel } from "../services/PixivTypes"
 
 
@@ -140,12 +141,14 @@ export struct Rank {
   @Builder RankList() {
     if (appSettings.novel_mode) {
       NovelListView({
+        contentEndOffset: PixState.TabBarVertical ? 0 : FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
         novelList: rankVM.rankNovels,
         onItemClick: (novel: PixivNovel) => { rankVM.handleNovelClick(novel); },
         onReachEnd: () => { rankVM.loadMore(); }
       })
     } else {
       WaterFlowView({
+        contentEndOffset: PixState.TabBarVertical ? 0 : FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
         illustList: rankVM.rankList,
         onCardClick: (illust) => { rankVM.handleIllustClick(illust); },
         onReachEnd: () => { rankVM.loadMore(); }

@@ -2,7 +2,8 @@
 import { PixivUser, UserDetailResponse } from "../services/PixivTypes"
 import { common } from "@kit.AbilityKit"
 import { window } from "@kit.ArkUI"
-import { PageMargin,
+import { HdsTabsController } from "@kit.UIDesignKit"
+import { FloatTabBarClearance, FloatTabBarMargin, PageMargin,
   TabBarAvoidHeight,
   TabBarHeight, TabBarVertical, Window_BAR_HEIGHT } from "../common/utils/breakpoint/BreakPoint"
 import { createLogger } from "../common/utils/Logger"
@@ -70,7 +71,7 @@ export class _PixState {
 
   // 全局路由
   @Trace pageStack: NavPathStack = new NavPathStack()
-  @Trace tabsController: TabsController = new TabsController()
+  @Trace tabsController: HdsTabsController = new HdsTabsController()
   @Trace transitionEffect: TransitionEffect = TransitionEffect.IDENTITY;
   /** @description 当前主题色(Resource) */
   @Trace currentThemeColor: Resource = $r('sys.color.icon_emphasize')
@@ -98,6 +99,30 @@ export class _PixState {
     }
     // 普通窗口，避让安全区域高度 (沉浸式 + 安全区)
     return TabBarAvoidHeight(PixState.widthBp, PixState.heightBp);
+  }
+
+  /** @description 悬浮底栏是否启用（仅底部模式；竖排侧栏保持原样式） */
+  @Computed
+  get FloatBarEnabled(): boolean {
+    return !this.TabBarVertical;
+  }
+
+  /** @description 悬浮底栏胶囊底距（HDS 推荐"标准悬浮间距" 28vp，已含手势条安全空间） */
+  @Computed
+  get FloatBarBottomMargin(): number {
+    if (this.TabBarVertical) {
+      return 0;
+    }
+    return FloatTabBarMargin;
+  }
+
+  /** @description 页面列表底部避让（不含列表组件内部已叠加的安全区） */
+  @Computed
+  get ListBottomClearance(): number {
+    if (this.TabBarVertical) {
+      return this.widthBp == 2 ? 56 : 0;
+    }
+    return FloatTabBarClearance(this.widthBp, this.heightBp);
   }
 
   @Monitor('pageStack')

@@ -7,6 +7,7 @@ import { TabBuild } from "../common/entity/IndexEntity";
 import { PixivIllust, PixivNovel } from "../services/PixivTypes";
 import { NovelListView } from "../components/NovelListView";
 import { appSettings } from "../common/entity/SettingsModel";
+import { FloatTabBarClearance } from "../common/utils/breakpoint/BreakPoint";
 
 
 @ComponentV2
@@ -158,7 +159,7 @@ export struct Favorite {
             })
           } else {
             WaterFlowView({
-              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
+              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + (PixState.TabBarVertical ? this.parseBarHeightValue(PixState.TabBarHeight) : FloatTabBarClearance(PixState.widthBp, PixState.heightBp)),
               illustList: favVM.currentIllustList,
               onCardClick: (illust) => { favVM.handleIllustClick(illust); },
               onReachEnd: () => { favVM.loadMore(); }
@@ -175,7 +176,7 @@ export struct Favorite {
             })
           } else {
             WaterFlowView({
-              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
+              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + (PixState.TabBarVertical ? this.parseBarHeightValue(PixState.TabBarHeight) : FloatTabBarClearance(PixState.widthBp, PixState.heightBp)),
               illustList: favVM.currentIllustList,
               onCardClick: (illust) => { favVM.handleIllustClick(illust); },
               onReachEnd: () => { favVM.loadMore(); }
@@ -184,7 +185,7 @@ export struct Favorite {
         } else {
           // 关注用户列表
           UserListView({
-            contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
+            contentEndOffset: PixState.TabBarVertical ? this.parseBarHeightValue(PixState.TabBarHeight) : FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
             userPres: favVM.followList,
             isFollow: true,
             onButtonClick: (result: boolean, err?: string) => { },

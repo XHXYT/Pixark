@@ -9,6 +9,7 @@ import { NaviContainer } from '../components/NaviContainer';
 import { PixivIllust, PixivNovel } from '../services/PixivTypes';
 import { appSettings } from '../common/entity/SettingsModel';
 import { NovelListView } from '../components/NovelListView';
+import { FloatTabBarClearance } from '../common/utils/breakpoint/BreakPoint';
 
 
 @Builder
@@ -174,7 +175,7 @@ export default struct SearchingPage {
           if (searchVM.searchType === 'novel') {
             // 小说
             NovelListView({
-              contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
+              contentEndOffset: PixState.TabBarVertical ? 125 + PixState.bottomRectHeight : PixState.bottomRectHeight + FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
               novelList: searchVM.resultNovels,
               onItemClick: (novel: PixivNovel) => {
                 searchVM.handleNovelClick(novel)
@@ -191,7 +192,7 @@ export default struct SearchingPage {
           } else {
             // 插画
             WaterFlowView({
-              contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
+              contentEndOffset: PixState.TabBarVertical ? 125 + PixState.bottomRectHeight : PixState.bottomRectHeight + FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
               illustList: searchVM.resultIllusts,
               onCardClick: (illust) => {
                 searchVM.handleIllustClick(illust)
@@ -213,7 +214,7 @@ export default struct SearchingPage {
           // 画师
           UserListView({
             userPres: searchVM.resultUsers,
-            contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
+            contentEndOffset: PixState.TabBarVertical ? 125 + PixState.bottomRectHeight : PixState.bottomRectHeight + FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
             onButtonClick: (result: boolean, err?: string) => {
             },
             onImageClick: (illust: PixivIllust) => {

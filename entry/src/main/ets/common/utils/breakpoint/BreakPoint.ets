@@ -77,13 +77,28 @@ export const TabBarHeight = BreakpointFunction2D<string>({
   ['xl']: {['hsm']: '100%', ['hmd']: '100%', ['hlg']: '100%'},
 })
 
-/**悬浮Tab栏高度*/
+/**悬浮Tab栏高度（HDS 默认页签高 56vp；仅底部悬浮模式给出数值，竖排侧栏断点返回 'auto'）*/
 export const FloatTabBarHeight = BreakpointFunction2D<Length>({
-  ['sm']: {['hsm']: 60, ['hmd']: 60, ['hlg']: 60},
-  ['md']: {['hsm']: '100%', ['hmd']: 'auto', ['hlg']: 'auto'},
+  ['sm']: {['hsm']: 56, ['hmd']: 56, ['hlg']: 56},
+  ['md']: {['hsm']: '100%', ['hmd']: 56, ['hlg']: 56},
   ['lg']: {['hsm']: 'auto', ['hmd']: 'auto', ['hlg']: 'auto'},
   ['xl']: {['hsm']: 'auto', ['hmd']: 'auto', ['hlg']: 'auto'},
 })
+
+/**悬浮底栏：胶囊底边到屏幕底边的视觉间距（HDS 官方推荐"标准悬浮间距" 28vp，已含手势条安全空间）*/
+export const FloatTabBarMargin: number = 28;
+
+/**悬浮底栏胶囊的数值高度；非底部悬浮模式返回 0*/
+export function FloatTabBarHeightValue(widthBp: number, heightBp: number): number {
+  const value: Length = FloatTabBarHeight(widthBp, heightBp);
+  return typeof value === 'number' ? value : 0;
+}
+
+/**页面列表底部避让（HDS 参考公式：页签高 56 + 底距 28 + 16 余量）*/
+export function FloatTabBarClearance(widthBp: number, heightBp: number): number {
+  const height: number = FloatTabBarHeightValue(widthBp, heightBp);
+  return height === 0 ? 0 : height + FloatTabBarMargin + 16;
+}
 
 /**Tab栏字体大小*/
 export const TabTitleFontSize = BreakpointFunction2D<number>({

@@ -2,11 +2,9 @@ import { PixState, _PixState } from '../entryability/AppState';
 import { TabBarAlignItems, TabBarJustifyContent, TabIconFontSize, TabBarPosition,
   TabTitleFontSize,
   TabBarWidth,
-  WindowTabBarWidth,
-  TabBarHeight,
-  TabBarAvoidHeight,
-  Window_BAR_HEIGHT} from '../common/utils/breakpoint/BreakPoint';
+  WindowTabBarWidth } from '../common/utils/breakpoint/BreakPoint';
 import { curves, LengthMetrics } from '@kit.ArkUI';
+import { hdsMaterial, HdsTabs, HdsTabsAttribute, HdsTabsFloatingStyle } from '@kit.UIDesignKit';
 import { animation } from '../common/utils/AnimationUtil';
 import { TabBuild } from '../common/entity/IndexEntity';
 import { Home } from './Home';
@@ -25,12 +23,27 @@ import { HoldingHandleUtil } from '../common/utils/HoldingHandleUtil';
 
 const logger = createLogger('Index')
 
+/** 底栏几何（barWidth/barHeight）：仅竖排侧栏模式设置；底部悬浮交给 HDS 自行布局 */
+class TabBarLayoutModifier implements AttributeModifier<HdsTabsAttribute> {
+  applyNormalAttribute(instance: HdsTabsAttribute): void {
+    if (PixState.TabBarVertical) {
+      instance.barWidth(PixState.windowMode
+        ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp)
+        : TabBarWidth(PixState.widthBp, PixState.heightBp));
+      instance.barHeight(PixState.TabBarHeight);
+    }
+  }
+}
+
 
 @Entry
 @ComponentV2
 struct Index {
 
   @Local isEnabled: boolean = true
+
+  /** 底栏几何 modifier（按形态条件设置 barWidth/barHeight） */
+  private tabBarLayout: TabBarLayoutModifier = new TabBarLayoutModifier();
 
   // 允许自定义转换的页面的名称 自
   private allowedCustomTransitionFromPageNames: string[] =
@@ -177,7 +190,10 @@ struct Index {
   TabBarButton(title: ResourceStr, index: number, tabIcon?: Resource, currentTabIcon?: Resource) {
     Flex({
       direction: FlexDirection.Column,
-      justifyContent: TabBarJustifyContent(PixState.widthBp, PixState.heightBp),
+      // 竖排侧栏沿用原布局；底部悬浮胶囊内图标文字垂直居中
+      justifyContent: PixState.TabBarVertical
+        ? TabBarJustifyContent(PixState.widthBp, PixState.heightBp)
+        : FlexAlign.Center,
       alignItems: PixState.windowMode ? ItemAlign.Center : TabBarAlignItems(PixState.widthBp, PixState.heightBp),
       space: { main: LengthMetrics.vp(3) }
     })
@@ -186,8 +202,6 @@ struct Index {
         .fontColor([PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY) // 分层颜色
         .fontSize(TabIconFontSize(PixState.widthBp, PixState.heightBp))
-        .transition(animation.isTranslate())
-        .translate({ y: PixState.currentTab == index ? -3 : 0 })
       Text(title)
         .fontColor(PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary'))
         .fontWeight(FontWeight.Medium)
@@ -196,7 +210,7 @@ struct Index {
     }
     .width('100%')
     .height('100%')
-    .padding({ top: 8 })
+    .padding({ top: PixState.TabBarVertical ? 8 : 0 })
   }
   @Builder
   CustomTabBarBuilder(title: ResourceStr, index: number, tabIcon?: Resource, currentTabIcon?: Resource) {
@@ -216,7 +230,7 @@ struct Index {
   }
   @Builder
   CustomTab() {
-    Tabs({
+    HdsTabs({
       barPosition: TabBarPosition(PixState.widthBp, PixState.heightBp),
       controller: PixState.tabsController
     }) {
@@ -245,12 +259,25 @@ struct Index {
       })
     }
     .zIndex(1)
-    .barWidth(PixState.windowMode ? WindowTabBarWidth(PixState.widthBp, PixState.heightBp) : TabBarWidth(PixState.widthBp, PixState.heightBp))
-    .barBackgroundBlurStyle(!PixState.TabBarVertical ? BlurStyle.Thin : undefined)
+    // 底栏几何：仅竖排侧栏设置 barWidth/barHeight；底部悬浮交给 HDS 自行布局（与 NextE 一致）
+    .attributeModifier(this.tabBarLayout)
+    // 底栏模糊：竖排用原 Thin；底部悬浮由 HDS 系统材质（systemMaterialEffect）接管
+    .barBackgroundBlurStyle(PixState.TabBarVertical ? BlurStyle.Thin : BlurStyle.NONE)
     .backgroundColor($r('sys.color.background_primary'))
     .barOverlap(!PixState.TabBarVertical)
+    .barMode(BarMode.Fixed)
     .vertical(PixState.TabBarVertical)
-    .barHeight(PixState.TabBarHeight)
+    // ── 悬浮胶囊：仅底部模式启用（竖排侧栏保持原贴边样式） ──
+    .barFloatingStyle(PixState.FloatBarEnabled
+      ? ({
+        barBottomMargin: PixState.FloatBarBottomMargin,
+        barSideMargin: 16,
+        systemMaterialEffect: {
+          materialType: hdsMaterial.MaterialType.ADAPTIVE,
+          materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+        }
+      } as HdsTabsFloatingStyle)
+      : undefined)
     .onTabBarClick((index: number) => {
       animation.animTo(() => {
         PixState.currentTab = index
@@ -264,12 +291,9 @@ struct Index {
     .onAppear(() => {
       PixState.tabsController.changeIndex(Number(UISettings.main_show))
     })
-    .width('100%').height('100%').fadingEdge(true)
+    .width('100%').height('100%')
     .margin({ top: PixState.windowMode ? 42 : 0 })
-    .padding({
-      top: PixState.topRectHeight,
-      bottom: PixState.bottomRectHeight == 0 ? PixState.bottomRectHeight / 2 : 0
-    })
+    .padding({ top: PixState.topRectHeight })
   }
   @Builder
   TabContentBuilder(index: number) {
@@ -295,20 +319,6 @@ struct Index {
       { name: 'more', title: $r('app.string.more'), icon: $r('sys.symbol.square_grid_2x2'), icon_fill: $r('sys.symbol.square_fill_grid_2x2') }
     ]
     return tabList
-  }
-
-  getBarHeight(): number | string {
-    const isVerticalTab = PixState.TabBarVertical;
-    // 窗口模式 + 横向 TabBar (TabBar在底部)
-    if (PixState.windowMode && !isVerticalTab) {
-      return Window_BAR_HEIGHT;
-    }
-    // 普通窗口，不避让安全区
-    if (PixState.bottomRectHeight === 0) {
-      return TabBarHeight(PixState.widthBp, PixState.heightBp);
-    }
-    // 普通窗口，避让安全区域高度 (沉浸式 + 安全区)
-    return TabBarAvoidHeight(PixState.widthBp, PixState.heightBp);
   }
 
   // 处理握持状态变化的业务逻辑

@@ -1,7 +1,7 @@
 import { PixivImageComponent } from "../components/PixivImage";
 import { PixState } from "../entryability/AppState";
 import { PixivTrendingTag } from "../services/PixivTypes";
-import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
+import { FloatTabBarClearance, GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { toastUtil } from "../common/utils/ToastUtils";
 import { searchVM } from "../viewmodel/SearchViewModel";
 import { curves } from "@kit.ArkUI";
@@ -204,7 +204,7 @@ export struct SearchContent {
               .scrollBar(BarState.Off)
               .edgeEffect(EdgeEffect.Spring)
               .nestedScroll(searchVM.nestedScrollOptions)
-              .contentEndOffset((PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight)
+              .contentEndOffset(PixState.TabBarVertical ? 125 + PixState.bottomRectHeight : PixState.bottomRectHeight + FloatTabBarClearance(PixState.widthBp, PixState.heightBp))
               .columnsTemplate(GridColumnsTemplate(PixState.widthBp))
               .columnsGap(6)
               .rowsGap(8)

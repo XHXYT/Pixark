@@ -13,6 +13,7 @@ import { UserDetailParams } from "../common/entity/UserDetailEntity";
 import { LengthMetrics } from "@kit.ArkUI";
 import { appSettings } from "../common/entity/SettingsModel";
 import { NovelListView } from "../components/NovelListView";
+import { FloatTabBarClearance } from "../common/utils/breakpoint/BreakPoint";
 
 const logger = createLogger('Home')
 
@@ -98,7 +99,7 @@ export struct Home {
               })
             } else {
               WaterFlowView({
-                contentEndOffset: 52,
+                contentEndOffset: PixState.TabBarVertical ? 52 : FloatTabBarClearance(PixState.widthBp, PixState.heightBp),
                 illustList: homeViewModel.recommendedIllusts,
                 nestedScroll: homeViewModel.nestedScrollOptions,
                 onCardClick: (illust) => { this.onCardClick(illust) },
