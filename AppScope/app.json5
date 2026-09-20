@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "org.ya.pixark",
     "vendor": "example",
-    "versionCode": 1000020,
-    "versionName": "1.0.2",
+    "versionCode": 1020000,
+    "versionName": "1.2.0",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }
