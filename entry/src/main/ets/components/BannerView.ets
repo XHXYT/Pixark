@@ -72,7 +72,6 @@ export struct BannerView {
     .padding({ top: 16, bottom: 16, left: 9, right: 9 })
     .onClick(() => {
       console.log(' 点击图片 ')
-
     })
     .margin(({ left: this.swiperMargin, right: this.swiperMargin }))
   }

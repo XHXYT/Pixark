@@ -105,8 +105,8 @@ struct DownloadManager {
                 if (!this.dVM.isEditMode) {
                   Row({ space: 8 }) {
                     if (item.status === request.agent.State.COMPLETED) {
-                      // 保存标志（仅当沙箱有文件时显示）
-                      if (this.dVM.isFileInSandbox(item.filePath)) {
+                      // 保存标志（仅当沙箱有文件且尚未保存过时显示）
+                      if (!item.savedToGallery && this.dVM.isFileInSandbox(item.filePath)) {
                         Button({ type: ButtonType.Circle }) {
                           SymbolGlyph($r('sys.symbol.save'))
                             .fontSize(18)
@@ -205,7 +205,7 @@ struct DownloadManager {
           opacity: 0,
           scale: { x: 0.95, y: 0.95 }
         })
-      }, (item: DownloadRecordInfo) => item.task_id + item.status + item.progress + this.dVM.isFileInSandbox(item.filePath))
+      }, (item: DownloadRecordInfo) => item.task_id)
     }
     .width('100%')
     .layoutWeight(1)

@@ -3,6 +3,8 @@ import { preferenceUtil } from "../utils/persistence/PreferenceUtil";
 import { ConfigurationConstant } from "@kit.AbilityKit";
 import { FunctionConstants } from "../constants/FunctionConstants";
 import { ReadingTheme } from "./NovelModel";
+import { networkModeState, parseNetworkMode, DEFAULT_IMAGE_HOST } from "../../services/direct/NetworkModeState";
+import { pixivHosts } from "../../services/direct/PixivHosts";
 
 /**
  * UI 设定类
@@ -88,6 +90,16 @@ export class AppSettings {
   @Trace show_thumbnail: boolean = false
   @Trace novel_mode: boolean = false
 
+  // 网络连接（对齐上游 PixEz：ech / compat / standard，默认标准模式）
+  @Trace network_mode_auth: string = 'standard'
+  @Trace network_mode_api: string = 'standard'
+  /** 图床源（默认 i.pximg.net，可配置镜像或自定义 host） */
+  @Trace picture_source: string = DEFAULT_IMAGE_HOST
+  /** 自定义 hosts，格式 "host=ip" 分号分隔，如 "app-api.pixiv.net=1.2.3.4;i.pximg.net=5.6.7.8" */
+  @Trace custom_hosts: string = ''
+  /** 图片 CDN 测速排序池（逗号分隔 IP，按实测吞吐降序，「CDN IP 测速」完成后写入） */
+  @Trace speed_test_pool: string = ''
+
   constructor() {}
 
   public async load(): Promise<void> {
@@ -112,11 +124,18 @@ export class AppSettings {
       this.swiper_browsing = (json["swiper_browsing"] as boolean) ?? this.swiper_browsing;
       this.show_thumbnail = (json["show_thumbnail"] as boolean) ?? this.show_thumbnail;
       this.novel_mode = (json["novel_mode"] as boolean) ?? this.novel_mode;
+      this.network_mode_auth = (json["network_mode_auth"] as string) ?? this.network_mode_auth;
+      this.network_mode_api = (json["network_mode_api"] as string) ?? this.network_mode_api;
+      this.picture_source = (json["picture_source"] as string) ?? this.picture_source;
+      this.custom_hosts = (json["custom_hosts"] as string) ?? this.custom_hosts;
+      this.speed_test_pool = (json["speed_test_pool"] as string) ?? this.speed_test_pool;
 
       console.info("[AppSettings] App配置加载成功");
     } catch (e) {
       console.error("[AppSettings] JSON 解析失败，使用默认配置", e);
     }
+    // 无论是否有持久化数据，都把当前值同步给直连层
+    this.syncNetworkState();
   }
 
   @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode')
@@ -138,13 +157,73 @@ export class AppSettings {
         "collecting_when_download": this.collecting_when_download,
         "swiper_browsing": this.swiper_browsing,
         "show_thumbnail": this.show_thumbnail,
-        "novel_mode": this.novel_mode
+        "novel_mode": this.novel_mode,
+        "network_mode_auth": this.network_mode_auth,
+        "network_mode_api": this.network_mode_api,
+        "picture_source": this.picture_source,
+        "custom_hosts": this.custom_hosts,
+        "speed_test_pool": this.speed_test_pool
       };
       const jsonStr: string = JSON.stringify(data);
       await preferenceUtil.put(AppConstants.KEY_APP_SETTINGS, jsonStr);
     } catch (error) {
       console.error("[AppSettings] 保存失败:", error);
     }
+  }
+
+  /**
+   * 把网络相关设置同步给直连层（NetworkModeState + PixivHosts 用户 hosts）
+   * 在 load / reset / 设置页变更后调用
+   */
+  public syncNetworkState(): void {
+    networkModeState.setAuthMode(parseNetworkMode(this.network_mode_auth));
+    networkModeState.setApiMode(parseNetworkMode(this.network_mode_api));
+    networkModeState.setPictureSource(this.picture_source);
+    this.applyCustomHosts();
+    this.applySpeedPool();
+  }
+
+  /**
+   * 解析 custom_hosts（"host=ip" 分号分隔）并应用到 PixivHosts
+   * 先清空再重建，保证删除条目后立即生效
+   */
+  private applyCustomHosts(): void {
+    pixivHosts.clearUserHosts();
+    const raw = this.custom_hosts.trim();
+    if (!raw) {
+      return;
+    }
+    const entries = raw.split(/[;\n，,]/);
+    for (const entry of entries) {
+      const trimmed = entry.trim();
+      if (!trimmed) {
+        continue;
+      }
+      const match = trimmed.match(new RegExp('^([A-Za-z0-9.\\-]+)[=\\s]+([0-9a-fA-F.:]+)$'));
+      if (match) {
+        pixivHosts.setUserHost(match[1], match[2]);
+      }
+    }
+  }
+
+  /**
+   * 解析 speed_test_pool（逗号分隔 IP，按实测吞吐降序）并应用到 PixivHosts 图片 CDN 池
+   * 在 load / reset / 测速完成后调用
+   */
+  private applySpeedPool(): void {
+    const raw = this.speed_test_pool.trim();
+    if (!raw) {
+      return;
+    }
+    const ips: string[] = [];
+    const parts = raw.split(',');
+    for (const part of parts) {
+      const ip = part.trim();
+      if (ip && !ips.includes(ip)) {
+        ips.push(ip);
+      }
+    }
+    pixivHosts.setSpeedPool(ips);
   }
 
   public async reset(): Promise<void> {
@@ -166,7 +245,13 @@ export class AppSettings {
       this.swiper_browsing = true;
       this.show_thumbnail = false;
       this.novel_mode = false
+      this.network_mode_auth = 'standard';
+      this.network_mode_api = 'standard';
+      this.picture_source = DEFAULT_IMAGE_HOST;
+      this.custom_hosts = '';
+      this.speed_test_pool = '';
 
+      this.syncNetworkState();
       this.save()
       console.info("[AppSettings] App配置已恢复默认");
     } catch (error) {

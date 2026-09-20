@@ -16,7 +16,7 @@ export class PixivInteraction {
    */
   private async postForm(url: string, params: Record<string, any>): Promise<void> {
     if (!this.auth.isLogin()) throw new Error('请先登录');
-    await this.auth.axiosInstance.post(url, UrlUtils.encodeQuery(params), {
+    await this.auth.client.post<Object>(url, UrlUtils.encodeQuery(params), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
   }

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from '@ohos/axios';
+import { DirectHttpClient, HttpError } from './direct/DirectHttp';
 import { createLogger } from '../common/utils/Logger';
 import { md5String } from '../common/utils/MD5';
 import { Date2UTCTimeString } from '../common/utils/TimeUtils';
@@ -11,11 +11,12 @@ const logger = createLogger('PixivAuth')
 /**
  * 认证服务类
  * 处理 Pixiv 的登录、Token 刷新、凭证管理 (支持多账号)
+ * 传输层使用 rcp 直连客户端（绕过 DNS 污染）
  */
 export class PixivAuth {
 
-  // 将 axios 实例设为 public，以便 PixivData 可以复用（因其携带 Authorization Header）
-  public axiosInstance: AxiosInstance;
+  // 将直连客户端设为 public，以便 PixivData/PixivInteraction 可以复用（因其携带 Authorization Header）
+  public client: DirectHttpClient;
 
   // 多账号映射表 (userId -> context)
   private accounts: Map<string, AccountContext> = new Map();
@@ -45,91 +46,63 @@ export class PixivAuth {
 
   constructor() {
     logger.info('Initializing Auth Service...');
-    this.axiosInstance = axios.create({
+    this.client = new DirectHttpClient({
       baseURL: 'https://app-api.pixiv.net/',
-      timeout: 30000,
-    });
-    logger.info('Axios instance created.');
-
-    // 请求拦截器：动态注入当前激活账号的 Token
-    this.axiosInstance.interceptors.request.use((config) => {
-      const account = this.getActiveAccount();
-      if (account?.accessToken) {
-        config.headers.set('Authorization', `Bearer ${account.accessToken}`);
-        // 隐式标记：记录这个请求是由哪个账号发出的 (防止切换账号后 401 重试串台)
-        config.headers.set('X-Request-UserId', account.userId);
-      }
-      // 注入其他必须的固定 Header
-      config.headers.set('User-Agent', 'PixivAndroidApp/5.0.234 (Android 11; Pixel 5)');
-      config.headers.set('App-OS', 'android');
-      config.headers.set('App-OS-Version', '11.0');
-      config.headers.set('App-Version', '5.0.234');
-      return config;
-    });
-
-    // 响应拦截器，处理 401 自动刷新 Token
-    this.axiosInstance.interceptors.response.use(
-      (response) => {
-        return response;
+      // 每次请求前动态注入当前激活账号的 Token（替代原 axios 请求拦截器）
+      onRequest: (headers: Record<string, string>) => {
+        const account = this.getActiveAccount();
+        if (account?.accessToken) {
+          headers['Authorization'] = `Bearer ${account.accessToken}`;
+          // 隐式标记：记录这个请求是由哪个账号发出的 (防止切换账号后 401 重试串台)
+          headers['X-Request-UserId'] = account.userId;
+        }
+        // 注入其他必须的固定 Header
+        headers['User-Agent'] = 'PixivAndroidApp/5.0.234 (Android 11; Pixel 5)';
+        headers['App-OS'] = 'android';
+        headers['App-OS-Version'] = '11.0';
+        headers['App-Version'] = '5.0.234';
       },
-      async (error) => {
-        const originalRequest = error.config;
-        // 1. 判断错误状态码是否为 401 (未授权)
-        // 2. 判断 originalRequest 是否存在
-        // 3. 判断 originalRequest._retry 标记是否存在 (防止死循环)
-        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-          originalRequest._retry = true; // 标记该请求已重试过，避免无限循环
+      // 收到 401 时自动刷新 Token 并重试一次（替代原 axios 响应拦截器）
+      onUnauthorized: async (headers: Record<string, string>): Promise<boolean> => {
+        const requestUserId = headers['X-Request-UserId'];
+        const currentActiveUserId = this.activeUserId;
 
-          // 提取发起该请求的原始账号 ID
-          const requestUserId = originalRequest.headers?.['X-Request-UserId'] as string;
-          const currentActiveUserId = this.activeUserId;
+        // 边界防御：如果发起请求的账号已经不是当前激活账号，说明用户已经切号了，直接放弃重试
+        if (requestUserId && requestUserId !== currentActiveUserId) {
+          logger.warn(`Request account ${requestUserId} switched to ${currentActiveUserId}, abort retry.`);
+          return false;
+        }
 
-          // 边界防御：如果发起请求的账号已经不是当前激活账号，说明用户已经切号了，直接放弃重试
-          if (requestUserId && requestUserId !== currentActiveUserId) {
-            logger.warn(`Request account ${requestUserId} switched to ${currentActiveUserId}, abort retry.`);
-            return Promise.reject(error);
-          }
-
-          // --- 场景 A: 已经有一个刷新请求正在进行 ---
-          if (this.refreshingPromise) {
-            logger.info('Token refreshing in progress, waiting...');
-            try {
-              // 等待正在进行的刷新完成
-              await this.refreshingPromise;
-              // 刷新完成后，重试原请求 (拦截器会自动注入新 Token)
-              return this.axiosInstance.request(originalRequest);
-            } catch (e) {
-              // 如果等待的那个刷新失败了，直接抛出错误
-              return Promise.reject(e);
-            }
-          }
-
-          // --- 场景 B: 还没有刷新请求，由当前请求发起刷新 ---
+        // --- 场景 A: 已经有一个刷新请求正在进行 ---
+        if (this.refreshingPromise) {
+          logger.info('Token refreshing in progress, waiting...');
           try {
-            logger.info('Access token expired, trying to refresh...');
-            const activeAccount = this.getActiveAccount();
-            if (!activeAccount) throw new Error("No active account to refresh");
-
-            // 创建刷新 Promise 并保存，让其他并发请求能看到
-            this.refreshingPromise = this.loginWithRefreshToken(activeAccount.refreshToken);
-            // 执行刷新
             await this.refreshingPromise;
-            // 刷新成功，清空 Promise 锁
-            this.refreshingPromise = null;
-            logger.info('Token refreshed, retrying original request.');
-            // 重试原请求
-            return this.axiosInstance.request(originalRequest);
-          } catch (refreshError) {
-            // 刷新失败（如 RefreshToken 也过期了）
-            this.refreshingPromise = null; // 清空锁
-            logger.error('Refresh token failed, user needs to re-login.');
-            return Promise.reject(refreshError);
+            return true;
+          } catch (e) {
+            return false;
           }
         }
-        // 如果不是 401 错误，或者是重试后依然失败，直接抛出
-        return Promise.reject(error);
-      }
-    );
+
+        // --- 场景 B: 还没有刷新请求，由当前请求发起刷新 ---
+        logger.info('Access token expired, trying to refresh...');
+        const activeAccount = this.getActiveAccount();
+        if (!activeAccount) return false;
+
+        this.refreshingPromise = this.loginWithRefreshToken(activeAccount.refreshToken);
+        try {
+          await this.refreshingPromise;
+          this.refreshingPromise = null;
+          logger.info('Token refreshed, retrying original request.');
+          return true;
+        } catch (refreshError) {
+          this.refreshingPromise = null; // 清空锁
+          logger.error('Refresh token failed, user needs to re-login.');
+          return false;
+        }
+      },
+    });
+    logger.info('Direct connect client created.');
   }
 
   // 账号管理模块
@@ -184,8 +157,8 @@ export class PixivAuth {
     if (newPassword) params.new_password = newPassword;
 
     try {
-      // 复用 axiosInstance，拦截器会自动注入 Bearer Token
-      const response = await this.axiosInstance.post(
+      // 复用直连客户端，onRequest 钩子会自动注入 Bearer Token
+      const response = await this.client.post<Object>(
         '/v1/user/account/edit',
         UrlUtils.encodeQuery({   // 表单格式提交
           current_password: currentPassword,
@@ -209,9 +182,11 @@ export class PixivAuth {
       }
       return true;
     } catch (error: any) {
-      logger.error('Account edit failed.', error?.response?.data || error.message);
+      const httpError = error as HttpError;
+      logger.error('Account edit failed.', httpError.response?.data || httpError.message);
       // 抛出错误，UI 层提示用户 (Pixiv 会返回 validation_errors)
-      throw error?.response?.data?.body?.validation_errors || error;
+      const errorBody = httpError.response?.data as { body?: { validation_errors?: Object } } | undefined;
+      throw errorBody?.body?.validation_errors || error;
     }
   }
 
@@ -280,7 +255,7 @@ export class PixivAuth {
       logger.info(`Trying credentials set ${i + 1}`);
 
       try {
-        const response = await this.retryRequest(() => axios.post(
+        const response = await this.retryRequest(() => this.client.post<{ response: PixivAuthResponse }>(
           'https://oauth.secure.pixiv.net/auth/token',
           UrlUtils.encodeQuery({
             client_id: creds.client_id,
@@ -304,7 +279,7 @@ export class PixivAuth {
           }
         ), 'Password Login');
 
-        const body: { response: PixivAuthResponse } = response.data;
+        const body = response.data;
         const auth = body.response;
         logger.info('Password login successful!');
         return this.updateAccountContext(auth.access_token, auth.refresh_token, auth.user);
@@ -328,7 +303,7 @@ export class PixivAuth {
     const hashString = `${localTime}${creds.hash_secret}`;
     const clientHash = await md5String(hashString);
 
-    const response = await this.retryRequest(() => axios.post(
+    const response = await this.retryRequest(() => this.client.post<{ response: PixivAuthResponse }>(
       'https://oauth.secure.pixiv.net/auth/token',
       UrlUtils.encodeQuery({
         client_id: creds.client_id,
@@ -354,7 +329,7 @@ export class PixivAuth {
       }
     ), 'Auth Code Login');
 
-    const body: { response: PixivAuthResponse } = response.data;
+    const body = response.data;
     const auth = body.response;
     logger.info('Auth code login successful!');
     return this.updateAccountContext(auth.access_token, auth.refresh_token, auth.user);
@@ -372,7 +347,7 @@ export class PixivAuth {
     const hashString = `${localTime}${this.CREDENTIALS[0].hash_secret}`;
     const clientHash = await md5String(hashString);
 
-    const response = await this.retryRequest(() => axios.post(
+    const response = await this.retryRequest(() => this.client.post<{ response: PixivAuthResponse }>(
       'https://oauth.secure.pixiv.net/auth/token',
       UrlUtils.encodeQuery({
         client_id: this.CREDENTIALS[0].client_id,
@@ -395,7 +370,7 @@ export class PixivAuth {
       }
     ), 'Refresh Token Login');
 
-    const body: { response: PixivAuthResponse } = response.data;
+    const body = response.data;
     const auth = body.response;
     logger.info('Refresh token login successful!');
     return this.updateAccountContext(auth.access_token, auth.refresh_token, auth.user);

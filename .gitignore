@@ -4,6 +4,9 @@
 /.idea
 **/build
 /.hvigor
+/.deveco
+/.deveco-tmp
+/.cache
 .cxx
 /.clangd
 /.clang-format

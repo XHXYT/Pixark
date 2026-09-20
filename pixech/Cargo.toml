@@ -1,0 +1,36 @@
+[package]
+name    = "pixech"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi-ohos = { version = "1.0", default-features = false, features = [
+    "napi8",
+    "async",
+] }
+napi-derive-ohos = { version = "1.0" }
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls-webpki-roots-no-provider",
+    "http2",
+    "charset",
+    "gzip",
+] }
+rustls = { version = "0.23", default-features = false, features = [
+    "std",
+    "tls12",
+    "logging",
+    "aws-lc-rs",
+] }
+webpki-roots = "0.26"
+base64 = "0.22"
+
+[build-dependencies]
+napi-build-ohos = { version = "1.0" }
+
+[profile.release]
+lto = true

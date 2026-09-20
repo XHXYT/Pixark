@@ -44,6 +44,7 @@ struct IllustDetail {
   build() {
     NaviContainer({
       title: this.illustTitle,
+      hideTitleBar: this.showLargeImage,
       content: () => { this.Content() },
       onReady: (ctx) => {
         this.pageStack = ctx.pathStack
@@ -221,6 +222,8 @@ struct IllustDetailContent {
       })
       this.FloatingControlButton()
 
+      // 全屏大图查看器：条件渲染 + hideTitleBar 联动实现全屏
+      // （bindContentCover 全屏模态内嵌套自定义组件不渲染，无法使用）
       if (this.showLargeImage) {
         PixivImageViewer({
           imageUrls: this.iDV.imageList,
@@ -236,6 +239,10 @@ struct IllustDetailContent {
           },
           onShare: (url, index) => {}
         })
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#000000')
+          .transition(TransitionEffect.OPACITY.animation({ duration: 200, curve: Curve.EaseOut }))
       }
     }
   }

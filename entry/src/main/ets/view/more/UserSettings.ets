@@ -1,4 +1,4 @@
-import { FunctionConstants } from "../../common/constants/FunctionConstants"
+﻿import { FunctionConstants } from "../../common/constants/FunctionConstants"
 import { CustomItemInfo, ItemActionType,
   ItemGroupData,
   makeItemGroups,
@@ -53,6 +53,17 @@ struct UserSettings {
         onChange: (value) => {
           UISettings.language = value as string
           SettingsUtils.setLanguage()
+        }
+      }),
+      // 网络
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.link'),
+        title: '网络',
+        subtitle: '连接模式 / 图床源 / hosts',
+        type: ItemActionType.ROUTER,
+        id: 'network_settings',
+        onChange: () => {
+          this.pushTo('network_settings')
         }
       }),
       // 浏览与展示

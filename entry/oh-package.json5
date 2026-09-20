@@ -5,6 +5,8 @@
   "main": "",
   "author": "",
   "license": "",
-  "dependencies": {}
+  "dependencies": {
+    "libpixech.so": "file:./libs/libpixech.so"
+  }
 }
 

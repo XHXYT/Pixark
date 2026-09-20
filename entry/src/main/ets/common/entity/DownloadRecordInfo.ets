@@ -24,6 +24,12 @@ export default class DownloadRecordInfo {
   illust_id: number = 0;
 
   /**
+   * Pixiv 作品分页
+   */
+  @Column({ name: 'page', type: 'INTEGER' })
+  page: number = 0;
+
+  /**
    * 作品标题
    */
   @Column({ name: 'title', type: 'TEXT' })
@@ -71,6 +77,14 @@ export default class DownloadRecordInfo {
    */
   @Trace
   progress: number = 0;
+
+  /**
+   * 是否已保存到系统相册（持久化字段：启动时据此补删残留的沙箱文件，
+   * 避免保存中途应用被杀导致"已入相册但沙箱文件一直留存"）
+   */
+  @Trace
+  @Column({ name: 'saved_to_gallery', type: 'BOOLEAN', defaultValue: 0 })
+  savedToGallery: boolean = false;
 
   /**
    * 创建时间

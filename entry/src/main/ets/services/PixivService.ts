@@ -1,6 +1,7 @@
 import { PixivAuth } from './PixivAuth';
 import { PixivData } from './PixivData';
 import { PixivInteraction } from './PixivInteraction';
+import { IpSpeedResult } from './direct/DirectHttp';
 import {
   AccountContext,
   AutoCompleteResponse,
@@ -29,6 +30,7 @@ import {
   UserPreview,
   UserRestrictedModeResponse,
 } from './PixivTypes';
+import type { RangeFetchResult } from './direct/DirectHttp';
 
 /**
  * Pixiv 服务主入口
@@ -52,6 +54,26 @@ export class PixivService {
   /** 检查当前是否已登录且 Token 有效 */
   isLogin(): boolean {
     return this.auth.isLogin();
+  }
+
+  /** 拉取图片等二进制资源（直连链路，i.pximg.net 自动携带 Referer 防盗链） */
+  async fetchBytes(url: string, referer?: string): Promise<ArrayBuffer> {
+    return this.auth.client.fetchBytes(url, referer);
+  }
+
+  /** Range 分段拉取（下载器专用：长超时会话，end=-1 表示拉取剩余全部；
+    *  onProgress 为字节级接收回调；isCancelled 为外部取消谓词，返回 true 时立刻断开在途请求；
+    *  ipSlot 为 IP 槽位（分块 worker 编号），直连时按槽位摊开到 CDN IP 池） */
+  async fetchRange(url: string, start: number, end: number, referer?: string,
+    onProgress?: (receivedBytes: number) => void,
+    isCancelled?: () => boolean,
+    ipSlot?: number): Promise<RangeFetchResult> {
+    return this.auth.client.fetchRange(url, start, end, referer, onProgress, isCancelled, ipSlot);
+  }
+
+  /** 图片 CDN 单 IP 吞吐实测（网络设置页「CDN IP 测速」用，不抛错） */
+  speedTestIp(ip: string): Promise<IpSpeedResult> {
+    return this.auth.client.speedTestIp(ip);
   }
 
   /** 使用 Web OAuth 授权码进行登录 */

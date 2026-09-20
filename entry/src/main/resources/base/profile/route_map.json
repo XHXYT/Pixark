@@ -61,6 +61,11 @@
       "buildFunction": "UserSettingsBuilder"
     },
     {
+      "name": "network_settings",
+      "pageSourceFile": "src/main/ets/view/more/NetworkSettings.ets",
+      "buildFunction": "NetworkSettingsBuilder"
+    },
+    {
       "name": "file_save_format",
       "pageSourceFile": "src/main/ets/view/more/SaveFormat.ets",
       "buildFunction": "SaveFormatBuilder"

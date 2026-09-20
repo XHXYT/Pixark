@@ -176,11 +176,14 @@ export struct CommentPanel {
 
         // 评论正文（文本或贴图）
         if (comment.stamp) {
-          // 贴图评论
-          Image(comment.stamp.stamp_url)
-            .width(80)
-            .aspectRatio(1)
-            .borderRadius(4)
+          // 贴图评论（s.pximg.net 同样被 SNI 阻断，走直连组件）
+          PixivImageComponent({
+            imageUrl: comment.stamp.stamp_url,
+            imageWidth: 80,
+            imageHeight: 80,
+            imageObjectFit: ImageFit.Cover,
+            imageBorder: { radius: 4 }
+          })
             .margin({ top: 4 })
         } else {
           // 文本评论

@@ -1,0 +1,6 @@
+{
+  "name": "libpixech.so",
+  "version": "0.1.0",
+  "description": "pixech: rustls ECH direct-connection native module",
+  "main": "index.d.ts"
+}

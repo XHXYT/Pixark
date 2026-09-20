@@ -50,7 +50,7 @@ export class PixivData {
     if (!this.auth.isLogin()) throw new Error('请先登录');
     const url = nextUrl || initialUrl;
     const params = nextUrl ? undefined : initialParams;
-    const response = await this.auth.axiosInstance.get<T>(url, { params });
+    const response = await this.auth.client.get<T>(url, { params });
     return response.data;
   }
 
@@ -671,7 +671,8 @@ export class PixivData {
         nextUrl === '/v1/user/following'
           ? { user_id: userId, restrict, filter: 'for_android' }
           : undefined;
-      const response = await this.auth.axiosInstance.get(nextUrl, { params });
+      const response = await this.auth.client.get<{ user_previews?: UserPreview[]; next_url?: string | null }>(
+        nextUrl, { params });
       const userPreviews = response.data.user_previews || [];
       allUsers.push(...userPreviews);
       nextUrl = response.data.next_url || null;

@@ -36,6 +36,27 @@ export class DownloadRecordTable extends AutoTable<DownloadRecordInfo> {
   }
 
   /**
+   * 根据作品ID和分P查询记录
+   * 这是核心的查重接口，用于判断是否下载过
+   */
+  async queryByIllustAndPage(illust_id: number, page: number): Promise<DownloadRecordInfo | null> {
+    const predicates = this.getPredicates()
+      .equalTo('illust_id', illust_id)
+      .equalTo('page', page);
+
+    // 只要查到一条就算存在
+    const results = await this.query(predicates);
+    return results.length > 0 ? results[0] : null;
+  }
+
+  /**
+   * 查询某个作品下的所有分P记录
+   */
+  async queryByIllustId(illust_id: number): Promise<DownloadRecordInfo[]> {
+    return this.query(this.getPredicates().equalTo('illust_id', illust_id));
+  }
+
+  /**
    * 查询所有记录，按创建时间倒序
    */
   async queryAllDesc(): Promise<DownloadRecordInfo[]> {
@@ -56,6 +77,18 @@ export class DownloadRecordTable extends AutoTable<DownloadRecordInfo> {
     const record = await this.queryByTaskId(task_id);
     if (record) {
       record.status = status;
+      return this.update(record);
+    }
+    return -1;
+  }
+
+  /**
+   * 更新相册保存标记（保存成功后立即落库，沙箱文件删除失败时可依此补删）
+   */
+  async updateSavedToGallery(task_id: string, saved: boolean): Promise<number> {
+    const record = await this.queryByTaskId(task_id);
+    if (record) {
+      record.savedToGallery = saved;
       return this.update(record);
     }
     return -1;

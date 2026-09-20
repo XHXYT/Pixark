@@ -10,7 +10,7 @@ export class ImageUtils {
   private static readonly logger = createLogger('ImageUtils');
 
   /**
-   * 重写 Pixiv 图片 URL 的域名 TODO 自定义图源(Image Host)
+   * 重写 Pixiv 图片 URL 的域名
    * 用于实现"自定义图床"功能
    *
    * @param originalUrl Pixiv 原始图片 URL (例如 https://i.pximg.net/...)

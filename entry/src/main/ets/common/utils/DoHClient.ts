@@ -1,15 +1,22 @@
 import axios from '@ohos/axios';
 import { createLogger } from './Logger';
+import { UrlUtils } from './UrlUtils';
 
 const logger = createLogger('DoHClient');
 
 /**
- * Cloudflare DoH JSON 接口地址列表
+ * DoH JSON 接口列表（按优先级排序）
+ * 阿里/腾讯的 DoH 在国内可直连；Cloudflare 仅海外网络可达，作为兜底
  */
-const DOH_ENDPOINTS = [
-  'https://cloudflare-dns.com/dns-query',
-  'https://1.0.0.1/dns-query',
-  'https://1.1.1.1/dns-query',
+interface DoHEndpoint {
+  url: string;
+  extraParams?: Record<string, string>;
+}
+
+const DOH_ENDPOINTS: DoHEndpoint[] = [
+  { url: 'https://dns.alidns.com/resolve' },
+  { url: 'https://doh.pub/dns-query' },
+  { url: 'https://cloudflare-dns.com/dns-query', extraParams: { 'ct': 'application/dns-json' } },
 ];
 
 /**
@@ -36,17 +43,19 @@ export async function queryDnsA(hostname: string): Promise<string[]> {
   const params = {
     name: hostname,
     type: 'A',   // 查询 A 记录
-    ct: 'application/dns-json',
   };
 
   const results: string[] = [];
 
   for (const endpoint of DOH_ENDPOINTS) {
     try {
-      logger.debug(`Query DoH: ${endpoint}?name=${hostname}`);
+      const queryUrl = UrlUtils.buildUrl(endpoint.url, {
+        ...params,
+        ...(endpoint.extraParams || {}),
+      });
+      logger.debug(`Query DoH: ${queryUrl}`);
 
-      const response = await axios.get<DoHJsonResponse>(endpoint, {
-        params,
+      const response = await axios.get<DoHJsonResponse>(queryUrl, {
         headers: {
           accept: 'application/dns-json',
         },
