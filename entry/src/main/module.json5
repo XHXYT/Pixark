@@ -25,6 +25,8 @@
 //        "startWindow": "$profile:start_window",
         "startWindowIcon": "$media:app_icon_round",
         "startWindowBackground": "$color:start_window_background",
+        "supportWindowMode": ["floating", "split", "fullscreen"],
+        "preferMultiWindowOrientation": "landscape_auto",
         "exported": true,
         "skills": [
           {

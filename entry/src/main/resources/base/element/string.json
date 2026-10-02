@@ -433,6 +433,10 @@
       "value": "显示 AI 作品标记"
     },
     {
+      "name": "show_illust_title",
+      "value": "显示插画标题"
+    },
+    {
       "name": "the_number_of_downloads",
       "value": "同时下载数目"
     },

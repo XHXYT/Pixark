@@ -14,6 +14,12 @@ export struct Rank {
   @Local showDatePicker: boolean = false
   private selectedDate: Date = new Date()
 
+  // 瀑布流嵌套滚动选项（同主页：外层 List 优先）
+  private nestedScrollOptions: NestedScrollOptions = {
+    scrollForward: NestedScrollMode.PARENT_FIRST,
+    scrollBackward: NestedScrollMode.SELF_FIRST
+  }
+
   aboutToAppear(): void {
     // 如果已经有配置，自动加载第一项
     if (!rankVM.isEmptyConfig) {
@@ -145,11 +151,26 @@ export struct Rank {
         onReachEnd: () => { rankVM.loadMore(); }
       })
     } else {
-      WaterFlowView({
-        illustList: rankVM.rankList,
-        onCardClick: (illust) => { rankVM.handleIllustClick(illust); },
-        onReachEnd: () => { rankVM.loadMore(); }
-      })
+      // 外层 List 负责滚动，瀑布流以内容高度嵌入并关闭自身裁剪，
+      // 边缘卡片阴影画进留白不被截断（同主页结构）
+      List() {
+        ListItem() {
+          Column() {
+            WaterFlowView({
+              illustList: rankVM.rankList,
+              nestedScroll: this.nestedScrollOptions,
+              clipContent: false,
+              onCardClick: (illust) => { rankVM.handleIllustClick(illust); },
+              onReachEnd: () => { rankVM.loadMore(); }
+            })
+          }
+        }
+      }
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
+      .contentEndOffset(PixState.bottomRectHeight)
+      .width('100%')
+      .layoutWeight(1)
     }
   }
 

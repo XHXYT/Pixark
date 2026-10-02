@@ -212,13 +212,13 @@ class SearchViewModel implements IIllustSwiperProvider {
       };
       if (type == 'illust') {
         // 跳转至插画详情页
-        PixState.pageStack.pushPathByName('illust_detail', params, true);
+        PixState.pushPage('illust_detail', params, true);
       } else if (type == 'novel') {
         // 跳转至小说详情页
-        PixState.pageStack.pushPathByName('illust_detail', params, true);
+        PixState.pushPage('illust_detail', params, true);
       } else {
         // 跳转至画师详情页
-        PixState.pageStack.pushPathByName('user_detail', params, true);
+        PixState.pushPage('user_detail', params, true);
       }
       return;
     }
@@ -241,7 +241,7 @@ class SearchViewModel implements IIllustSwiperProvider {
       illust: illust.user ? illust : undefined
     };
     // 跳转详情页
-    PixState.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   handleNovelClick(novel: PixivNovel) {
@@ -252,7 +252,7 @@ class SearchViewModel implements IIllustSwiperProvider {
   handleLongPressGesture(item: PixivTrendingTag) {
     // 长按进入详情页
     const params: DetailPageParams = { id: item.illust.id, illust: item.illust };
-    PixState.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   updateSuggestions(input: string) {

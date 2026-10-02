@@ -6,7 +6,7 @@ import { WaterFlowColumnsTemplate } from "../../common/utils/breakpoint/BreakPoi
 import { PixivImageComponent } from "../../components/PixivImage"
 import IllustHistoryInfo from "../../common/entity/IllustHistoryInfo"
 import NovelHistoryInfo from "../../common/entity/NovelHistoryInfo"
-import { DetailPageParams } from "../../common/entity/DetailEntity"
+import { DetailPageParams, NovelDetailParams } from "../../common/entity/DetailEntity"
 import { toastUtil } from "../../common/utils/ToastUtils"
 import { appSettings } from "../../common/entity/SettingsModel"
 import { ResourceUtils } from "../../common/utils/ResourceUtil"
@@ -193,14 +193,15 @@ struct PixHistory {
       id: illustID, fromId: pid, swiperProvider: this.dVM,
       swiperIndex: index >= 0 ? index : 0
     }
-    this.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
-  // 跳转小说详情
+  // 跳转小说详情（全屏全局路由）
   private async openNovel(novelId: number) {
     if (!novelId) return;
 
-    this.pageStack.pushPathByName('novel_detail', null, true);
+    const params: NovelDetailParams = { id: novelId };
+    PixState.pushPage('novel_detail', params, true);
   }
 
 }

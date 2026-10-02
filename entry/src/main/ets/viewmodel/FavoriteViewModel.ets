@@ -370,7 +370,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       illust: illust.user ? illust : undefined
     };
     // 执行跳转
-    PixState.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   // --- 加载更多 ---

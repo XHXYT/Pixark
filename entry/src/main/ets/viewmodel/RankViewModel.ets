@@ -172,7 +172,7 @@ export class RankViewModel implements IIllustSwiperProvider {
       id: illust.id, swiperProvider: this, swiperIndex: index >= 0 ? index : 0,
       illust: illust.user ? illust : undefined
     };
-    PixState.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   // 小说点击逻辑

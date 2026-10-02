@@ -246,7 +246,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
       swiperIndex: index >= 0 ? index : 0
     };
     // 执行跳转
-    PixState.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   async loadMoreCurrentData() {

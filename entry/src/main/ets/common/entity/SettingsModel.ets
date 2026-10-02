@@ -81,6 +81,7 @@ export class AppSettings {
   @Trace file_name: string = FunctionConstants.DEFAULT_SAVE_FORMAT
   @Trace share_text: string = FunctionConstants.DEFAULT_SHARE_FORMAT
   @Trace show_ai_sign: boolean = true
+  @Trace show_illust_title: boolean = true
   @Trace show_H: boolean = false
   @Trace private_collecting: boolean = false
   @Trace follow_after_collecting: boolean = false
@@ -116,6 +117,7 @@ export class AppSettings {
       this.file_name = (json["file_name"] as string) ?? this.file_name;
       this.share_text = (json["share_text"] as string) ?? this.share_text;
       this.show_ai_sign = (json["show_ai_sign"] as boolean) ?? this.show_ai_sign;
+      this.show_illust_title = (json["show_illust_title"] as boolean) ?? this.show_illust_title;
       this.show_H = (json["show_H"] as boolean) ?? this.show_H;
       this.private_collecting = (json["private_collecting"] as boolean) ?? this.private_collecting;
       this.follow_after_collecting = (json["follow_after_collecting"] as boolean) ?? this.follow_after_collecting;
@@ -138,7 +140,7 @@ export class AppSettings {
     this.syncNetworkState();
   }
 
-  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode')
+  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode', 'show_illust_title')
   public async save(): Promise<void> {
     try {
       const data: Record<string, Object> = {
@@ -150,6 +152,7 @@ export class AppSettings {
         "file_name": this.file_name,
         "share_text": this.share_text,
         "show_ai_sign": this.show_ai_sign,
+        "show_illust_title": this.show_illust_title,
         "show_H": this.show_H,
         "private_collecting": this.private_collecting,
         "follow_after_collecting": this.follow_after_collecting,
@@ -237,6 +240,7 @@ export class AppSettings {
       this.file_name = FunctionConstants.DEFAULT_SAVE_FORMAT;
       this.share_text = FunctionConstants.DEFAULT_SHARE_FORMAT;
       this.show_ai_sign = true;
+      this.show_illust_title = true;
       this.show_H = false;
       this.private_collecting = false
       this.follow_after_collecting = false;

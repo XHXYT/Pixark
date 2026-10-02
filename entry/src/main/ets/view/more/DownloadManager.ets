@@ -387,7 +387,7 @@ struct DownloadManager {
       fromId: illustID.toString()
     }
     // 跳转详情页
-    this.pageStack.pushPathByName('illust_detail', params, true);
+    PixState.pushPage('illust_detail', params, true);
   }
 
   // 格式化时间

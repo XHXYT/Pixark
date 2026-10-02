@@ -24,6 +24,12 @@ export struct Favorite {
     { text: $r('app.string.private') },
   ]);
 
+  // 瀑布流嵌套滚动选项（同主页：外层 List 优先）
+  private nestedScrollOptions: NestedScrollOptions = {
+    scrollForward: NestedScrollMode.PARENT_FIRST,
+    scrollBackward: NestedScrollMode.SELF_FIRST
+  };
+
   build() {
     Column() {
       if (favVM.isInitialLoading) {
@@ -135,7 +141,7 @@ export struct Favorite {
 
   @Builder tabContentBuilder(name: string) {
     Column({ space: 10 }) {
-      // 筛选器区域
+      // 筛选器区域（PC 窗口模式收窄至 50% 并居中）
       Row() {
         TabSegmentButtonV2({
           items: this.filterTabItems,
@@ -144,57 +150,56 @@ export struct Favorite {
         })
       }
       .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
-      .width('100%')
+      .width(PixState.windowMode ? '50%' : '100%')
 
-      Refresh({ refreshing: favVM.isRefreshing }) {
-        if (name == 'trend') {
-          // 动态列表
-          if (appSettings.novel_mode) {
-            NovelListView({
-              novelList: favVM.currentNovels,
-              onItemClick: (novel: PixivNovel) => {
-              },
-              onReachEnd: () => { favVM.loadMore(); }
-            })
-          } else {
-            WaterFlowView({
-              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
-              illustList: favVM.currentIllustList,
-              onCardClick: (illust) => { favVM.handleIllustClick(illust); },
-              onReachEnd: () => { favVM.loadMore(); }
-            })
+      if ((name == 'trend' || name == 'collection') && !appSettings.novel_mode) {
+        // 瀑布流：外层 List 负责滚动，瀑布流以内容高度嵌入并关闭自身裁剪，
+        // 边缘卡片阴影画进留白不被截断
+        Refresh({ refreshing: favVM.isRefreshing }) {
+          List() {
+            ListItem() {
+              Column() {
+                WaterFlowView({
+                  illustList: favVM.currentIllustList,
+                  nestedScroll: this.nestedScrollOptions,
+                  clipContent: false,
+                  onCardClick: (illust) => { favVM.handleIllustClick(illust); },
+                  onReachEnd: () => { favVM.loadMore(); }
+                })
+              }
+            }
           }
-        } else if (name == 'collection') {
-          // 收藏列表
-          if (appSettings.novel_mode) {
-            NovelListView({
-              novelList: favVM.currentNovels,
-              onItemClick: (novel: PixivNovel) => {
-              },
-              onReachEnd: () => { favVM.loadMore(); }
-            })
-          } else {
-            WaterFlowView({
-              contentEndOffset: (PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight),
-              illustList: favVM.currentIllustList,
-              onCardClick: (illust) => { favVM.handleIllustClick(illust); },
-              onReachEnd: () => { favVM.loadMore(); }
-            })
-          }
-        } else {
-          // 关注用户列表
-          UserListView({
-            contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
-            userPres: favVM.followList,
-            isFollow: true,
-            onButtonClick: (result: boolean, err?: string) => { },
-            onImageClick: (illust: PixivIllust) => { favVM.handleIllustClick(illust) },
-            onReachEnd: () => { favVM.loadMore(); }
-          })
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .contentEndOffset((PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight) + this.parseBarHeightValue(PixState.TabBarHeight))
         }
+        .layoutWeight(1)
+        .onRefreshing(async () => { await favVM.loadCurrentTabData() })
+      } else {
+        Refresh({ refreshing: favVM.isRefreshing }) {
+          if (name == 'follow') {
+            // 关注用户列表
+            UserListView({
+              contentEndOffset: this.parseBarHeightValue(PixState.TabBarHeight),
+              userPres: favVM.followList,
+              isFollow: true,
+              onButtonClick: (result: boolean, err?: string) => { },
+              onImageClick: (illust: PixivIllust) => { favVM.handleIllustClick(illust) },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          } else {
+            // 小说列表（动态/收藏）
+            NovelListView({
+              novelList: favVM.currentNovels,
+              onItemClick: (novel: PixivNovel) => {
+              },
+              onReachEnd: () => { favVM.loadMore(); }
+            })
+          }
+        }
+        .layoutWeight(1)
+        .onRefreshing(async () => { await favVM.loadCurrentTabData() })
       }
-      .layoutWeight(1)
-      .onRefreshing(async () => { await favVM.loadCurrentTabData() })
     }
     .width('100%').height('100%')
     .justifyContent(FlexAlign.Start)

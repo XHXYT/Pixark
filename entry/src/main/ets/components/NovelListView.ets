@@ -118,7 +118,7 @@ export struct NovelListView {
         id: novel.id,
       };
       // 执行跳转
-      PixState.pageStack.pushPathByName('novel_detail', params, true);
+      PixState.pushPage('novel_detail', params, true);
       this.onItemClick(novel)
     })
   }

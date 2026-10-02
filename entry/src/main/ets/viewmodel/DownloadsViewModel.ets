@@ -10,6 +10,7 @@ import { toastUtil } from "../common/utils/ToastUtils";
 import { appSettings } from "../common/entity/SettingsModel";
 import { ImageUtils } from "../common/utils/ImageUtils";
 import { DEFAULT_IMAGE_HOST, NetworkMode, networkModeState } from "../services/direct/NetworkModeState";
+import { PIXIV_DIRECT_DOMAINS } from "../services/direct/PixivHosts";
 import { pixiv } from "../services/PixivService";
 import { _PixState } from "../entryability/AppState";
 import { downloadNotifier } from "../common/utils/DownloadNotifier";
@@ -103,6 +104,36 @@ export class DownloadsViewModel {
   /** 是否为应用内直连下载任务（非 request.agent 系统任务） */
   private isDirectTaskId(task_id: string): boolean {
     return task_id.startsWith(DIRECT_TASK_PREFIX);
+  }
+
+  /** 判断记录的下载 URL 当前是否处于直连模式（compat/ech 且域名在直连管理范围内） */
+  private shouldRouteDirect(record: DownloadRecordInfo): boolean {
+    const match = record.url.match(new RegExp('^https?://([^/:?]+)'));
+    const host = match ? match[1] : '';
+    return host !== '' && PIXIV_DIRECT_DOMAINS.includes(host)
+      && networkModeState.getModeForHost(host) !== NetworkMode.STANDARD;
+  }
+
+  /**
+   * 老系统下载任务转直连（直连模式下重试/继续的必经转换）：
+   * 系统下载器走系统网络栈，SNI 明文必被阻断，重试必然失败；
+   * 换 direct- 前缀 task_id 落库使转换持久化（重启后 fetchSysTask 按 direct- 分支自动补跑），
+   * 并尽力清理系统侧旧任务，避免残留幽灵任务被反复发现。
+   */
+  private async adoptSysTaskToDirect(record: DownloadRecordInfo): Promise<void> {
+    const oldId = record.task_id;
+    try {
+      await request.agent.remove(oldId);
+    } catch (e) {
+      logger.warn(`adopt: sys task remove failed: ${oldId}`);
+    }
+    this.taskCache.delete(oldId);
+    const newId = `${DIRECT_TASK_PREFIX}${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    record.task_id = newId;
+    if (this.context) {
+      await getDownloadRecordTable(this.context).update(record);
+    }
+    logger.info(`adopted sys task ${oldId} -> direct task ${newId}`);
   }
 
   /** 直连下载通知所需的 UIAbilityContext（授权弹窗要求，能力未就绪时返回 null 静默跳过） */
@@ -484,6 +515,17 @@ export class DownloadsViewModel {
       }
       return;
     }
+    // 直连模式下的老系统任务（已暂停）：转直连后重新入队（系统通道必被 SNI 阻断）
+    const resumeRecord = this.tasks.find(d => d.task_id === id);
+    if (resumeRecord && resumeRecord.status === request.agent.State.PAUSED && this.shouldRouteDirect(resumeRecord)) {
+      await this.adoptSysTaskToDirect(resumeRecord);
+      resumeRecord.status = request.agent.State.INITIALIZED;
+      await this.persistStatus(resumeRecord.task_id, request.agent.State.INITIALIZED);
+      if (!this.directRunning.has(resumeRecord.task_id)) {
+        await this.tryRunDirectTask(resumeRecord);
+      }
+      return;
+    }
     const task = await this.getSysTask(id);
     if (task) {
       await this.attachTask(task);
@@ -509,6 +551,17 @@ export class DownloadsViewModel {
       record.status = request.agent.State.INITIALIZED;
       record.progress = 0;
       await this.persistStatus(id, request.agent.State.INITIALIZED);
+      await this.tryRunDirectTask(record);
+      return;
+    }
+    // 直连模式下的老系统任务（失败重试）：转直连重新整包下载（系统通道必被 SNI 阻断，重试必败）
+    if (this.shouldRouteDirect(record)) {
+      await this.adoptSysTaskToDirect(record);
+      this.directCancelled.delete(record.task_id);
+      await this.deleteFile(record.filePath);
+      record.status = request.agent.State.INITIALIZED;
+      record.progress = 0;
+      await this.persistStatus(record.task_id, request.agent.State.INITIALIZED);
       await this.tryRunDirectTask(record);
       return;
     }
@@ -552,11 +605,12 @@ export class DownloadsViewModel {
     }
     const task_ids = await request.agent.search({ state: request.agent.State.PAUSED });
     for (let id of task_ids) {
-      const task = await this.getSysTask(id);
-      if (task) {
-        this.attachTask(task);
-        await this.TryRunTask(task, true);
+      // 复用单个恢复方法：直连模式下的老系统任务会在其中转为直连任务
+      try {
+        await this.resumeTask(id);
         await new Promise<void>(res => setTimeout(res, 100));
+      } catch (e) {
+        logger.error(`resumeAllTask: 单个任务恢复异常 task_id: ${id}, err: ${JSON.stringify(e)}`);
       }
     }
   }

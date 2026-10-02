@@ -3,6 +3,14 @@
     {
       "name": "start_window_background",
       "value": "#000000"
+    },
+    {
+      "name": "pc_sidebar_bg",
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "pc_tab_selected_bg",
+      "value": "#14FFFFFF"
     }
   ]
 }

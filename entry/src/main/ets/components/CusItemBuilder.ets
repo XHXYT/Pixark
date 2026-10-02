@@ -196,7 +196,7 @@ export struct CustomListItem {
       this.showMenu,
       this.item.type == ItemActionType.MENU ? MenuSelectWitch(this.item, (menu) => {
         this.item.value = menu.value
-        toastUtil.showToast({ message: `${this.item.title}切换为: ${ResourceUtils.getString(menu?.title || menu.value)}` })
+        toastUtil.showToast({ message: `${ResourceUtils.getString(this.item.title)}切换为: ${ResourceUtils.getString(menu?.title || menu.value)}` })
       }) : undefined,
       {
         placement: Placement.BottomRight,

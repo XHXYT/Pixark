@@ -69,6 +69,7 @@ struct UserDetail {
             WaterFlowView({
               contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
               nestedScroll: this.uDV.nestedScrollOptions,
+              clipContent: false, // 嵌套非自滚：关闭裁剪让边缘卡片阴影画进留白
               illustList: this.uDV.currentIllustList,
               onCardClick: (illust) => {
                 this.uDV.handleIllustClick(illust)

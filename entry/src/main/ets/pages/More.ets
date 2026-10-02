@@ -270,7 +270,7 @@ export struct More {
       this.pageStack.replacePathByName(name, params, true);
     } else {
       // 全屏路由
-      PixState.pageStack.pushPathByName(name, params, true);
+      PixState.pushPage(name, params, true);
     }
   }
 

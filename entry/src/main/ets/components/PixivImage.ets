@@ -1,5 +1,5 @@
-import { ImageKnifeComponent, DownSamplingStrategy } from "@ohos/imageknifepro";
-import { appSettings, UISettings } from "../common/entity/SettingsModel";
+import { DownSamplingStrategy, ImageKnifeComponentV2, ImageInfo } from "@ohos/imageknifepro";
+import { AppSettings, appSettings, UISettings } from "../common/entity/SettingsModel";
 import { ConfigurationConstant } from "@kit.AbilityKit";
 import { image } from "@kit.ImageKit";
 import { PixState, _PixState } from "../entryability/AppState";
@@ -8,7 +8,6 @@ import { createLogger } from "../common/utils/Logger";
 import { NetworkMode, parseNetworkMode, DEFAULT_IMAGE_HOST } from "../services/direct/NetworkModeState";
 
 const logger = createLogger('PixivImage')
-
 
 @ComponentV2
 export struct PixivImageComponent {
@@ -30,17 +29,18 @@ export struct PixivImageComponent {
   @Event progress:  (progress: number) => void
   @Event onImageLongPress: (url: string) => void
   @Event onImageClick?: (url: string) => void
-  @Event onLoadListener: (width: number, height: number) => void
+  @Event onLoadListener: (width?: number, height?: number) => void
 
   /** pximg 直连图片的加载状态（idle 表示非直连 URL，走 ImageKnife） */
   @Local directState: 'idle' | 'loading' | 'success' | 'error' = 'idle'
   @Local directMap: image.PixelMap | undefined = undefined
+  @Local appS: AppSettings = appSettings
 
   aboutToAppear(): void {
     this.refreshDirectImage()
   }
 
-  @Monitor('imageUrl', 'appSettings.picture_source', 'appSettings.network_mode_api')
+  @Monitor('imageUrl', 'appS.picture_source', 'appS.network_mode_api')
   onImageUrlChange(): void {
     this.refreshDirectImage()
   }
@@ -157,27 +157,25 @@ export struct PixivImageComponent {
             .id(this.imageID || this.imageUrl)
         }
       } else {
-        ImageKnifeComponent({
+        ImageKnifeComponentV2({
           imageKnifeOption: {
             loadSrc: this.effectiveUrl(),
-            // 加载中显示的占位图
-            placeholderSrc: this.placeholderSrc,
-            // 加载失败显示的错误图
-            errorSrc: $rawfile('loading_failed.jpg'),
-            // 图片缩放模式
+            placeholderSrc: $rawfile('loading_failed.jpg'),
             objectFit: this.imageObjectFit,
+            border: this.imageBorder,
             // 开启降采样，减少内存占用
             downSampling: DownSamplingStrategy.FIT_CENTER_QUALITY,
-            progressListener: (progress: number) => {
-              // console.log('下载进度：' + progress + '%')
-              this.progress(progress)
-            },
             onLoadListener: {
-              onLoadSuccess: (info) => {
-                this.onLoadListener(info.componentWidth, info.componentHeight)
+              onLoadStart: (imageInfo: ImageInfo) => {
+                // logger.debug(`[UserAvatar] 加载开始：`, JSON.stringify(imageInfo))
+              },
+              onLoadFailed: (err: string, imageInfo: ImageInfo) => {
+                // logger.debug(`[UserAvatar] 加载失败：${err}, Data: `, JSON.stringify(imageInfo))
+              },
+              onLoadSuccess: (imageInfo: ImageInfo) => {
+                this.onLoadListener(imageInfo.componentWidth, imageInfo.componentHeight)
               }
-            },
-            border: this.imageBorder
+            }
           }
         })
           .id(this.imageID || this.imageUrl)

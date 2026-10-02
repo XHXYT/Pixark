@@ -68,7 +68,7 @@ export struct Home {
                 }
                 .onClick(() => {
                   const params: UserDetailParams = { id: user.id, user: user }
-                  PixState.pageStack.pushPathByName('user_detail', params, true);
+                  PixState.pushPage('user_detail', params, true);
                 })
               })
             }
@@ -101,6 +101,7 @@ export struct Home {
                 contentEndOffset: 52,
                 illustList: homeViewModel.recommendedIllusts,
                 nestedScroll: homeViewModel.nestedScrollOptions,
+                clipContent: false, // 嵌套非自滚：关闭裁剪让边缘卡片阴影画进留白
                 onCardClick: (illust) => { this.onCardClick(illust) },
                 onReachEnd: () => {
                   if (!PixState.isTest) {
@@ -223,7 +224,7 @@ export struct Home {
           swiperProvider: homeViewModel, // 传入共享的 ViewModel
           swiperIndex: index >= 0 ? index : 0 // 传入起始索引
         }
-        PixState.pageStack.pushPathByName('illust_detail', params, true);
+        PixState.pushPage('illust_detail', params, true);
       });
     } catch (e) {
       logger.error('点击处理异常', JSON.stringify(e));

@@ -70,6 +70,8 @@ export class _PixState {
 
   // 全局路由
   @Trace pageStack: NavPathStack = new NavPathStack()
+  // 全屏路由栈（PC 窗口模式：详情页等全屏页面，覆盖侧边栏）
+  @Trace fullScreenStack: NavPathStack = new NavPathStack()
   @Trace tabsController: TabsController = new TabsController()
   @Trace transitionEffect: TransitionEffect = TransitionEffect.IDENTITY;
   /** @description 当前主题色(Resource) */
@@ -104,6 +106,28 @@ export class _PixState {
   onPageStackChange() {
     if (this.currentTab == 3 && this.pageStack.size() <= 1 ) {
       }
+  }
+
+  /** PC 全屏页面集合（windowMode 下推送至 fullScreenStack） */
+  private static readonly FULLSCREEN_PAGES: Set<string> = new Set(['illust_detail', 'novel_detail'])
+
+  /** 智能推栈：PC 模式下全屏页面（或全屏栈已有页面时）走 fullScreenStack，其余走 pageStack */
+  pushPage(name: string, param: Object | null | undefined, animated: boolean = true): void {
+    const p: Object | null = param ?? null;
+    if (this.windowMode && (_PixState.FULLSCREEN_PAGES.has(name) || this.fullScreenStack.size() > 0)) {
+      this.fullScreenStack.pushPathByName(name, p, animated)
+    } else {
+      this.pageStack.pushPathByName(name, p, animated)
+    }
+  }
+
+  /** 智能弹栈：优先弹 fullScreenStack，空则弹 pageStack */
+  popPage(animated: boolean = false): void {
+    if (this.fullScreenStack.size() > 0) {
+      this.fullScreenStack.pop(animated)
+    } else {
+      this.pageStack.pop(animated)
+    }
   }
 
 }

@@ -21,6 +21,7 @@ import { createLogger } from '../common/utils/Logger';
 import { appSettings, UISettings } from '../common/entity/SettingsModel';
 import { motion } from '@kit.MultimodalAwarenessKit';
 import { HoldingHandleUtil } from '../common/utils/HoldingHandleUtil';
+import { KeyCode } from '@kit.InputKit';
 
 
 const logger = createLogger('Index')
@@ -57,6 +58,10 @@ struct Index {
   build() {
     // 存在账号信息显示内容
     if (PixState.isLoggedIn) {
+      // PC 窗口模式：左侧固定侧边 Tab 栏 + 右侧内容区
+      if (PixState.windowMode) {
+        this.PcMainContent()
+      } else {
       Navigation(PixState.pageStack) {
         this.MainContent()
       }
@@ -128,6 +133,7 @@ struct Index {
         };
         return customAnimation;
       })*/
+      }
     }
     // 未登录显示登录页
     else {
@@ -148,6 +154,126 @@ struct Index {
     }
     .height('100%')
     .width('100%')
+  }
+
+  // PC 窗口模式布局
+  @Builder
+  PcMainContent() {
+    // 最外层全屏路由：详情页等全屏页面覆盖整个窗口（含侧边栏）
+    Navigation(PixState.fullScreenStack) {
+      Row() {
+      // 左侧边栏
+      Column() {
+        this.PcSidebarHeader()
+        ForEach(this.getTabList(), (item: TabBuild, index: number) => {
+          this.PcTabItem(item.title, index, item.icon, item.icon_fill)
+        }, (item: TabBuild) => item.name)
+      }
+      .padding({ left: 16, right: 16 })
+      .width(220)
+      .height('100%')
+      .backgroundColor($r('app.color.pc_sidebar_bg'))
+
+      // 右侧内容区（栈空时显示当前 Tab 主页，栈非空时显示 NavDestination 子页）
+      // 各主页同时存在避免切 Tab 重建（Visibility 切换而非 if 销毁/创建）
+      Navigation(PixState.pageStack) {
+        Stack() {
+          if (PixState.isLoading) {
+            LoadingProgress()
+              .width(40)
+              .height(40);
+          }
+          Stack() {
+            Home()
+              .visibility(PixState.currentTab === 0 ? Visibility.Visible : Visibility.Hidden)
+            Rank()
+              .visibility(PixState.currentTab === 1 ? Visibility.Visible : Visibility.Hidden)
+            Favorite()
+              .visibility(PixState.currentTab === 2 ? Visibility.Visible : Visibility.Hidden)
+            SearchPage()
+              .visibility(PixState.currentTab === 3 ? Visibility.Visible : Visibility.Hidden)
+            More()
+              .visibility(PixState.currentTab === 4 ? Visibility.Visible : Visibility.Hidden)
+          }
+          .width('100%')
+          .height('100%')
+          .margin({ top: 42 }) // 避让窗口右上角最小化/最大化/关闭三键
+        }
+        .width('100%')
+        .height('100%')
+      }
+      .hideToolBar(true)
+      .hideTitleBar(true)
+      .mode(NavigationMode.Stack)
+      .backgroundColor($r('sys.color.background_primary'))
+      .layoutWeight(1)
+      .height('100%')
+    }
+      .width('100%')
+      .height('100%')
+      .onAppear(() => {
+        PixState.currentTab = Number(UISettings.main_show)
+      })
+    }
+    .hideToolBar(true)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
+    .width('100%')
+    .height('100%')
+    .focusable(true)
+    .onKeyEvent((event: KeyEvent) => {
+      // ESC 键返回上一页（优先弹全屏栈）
+      if (event.type === KeyType.Down && event.keyCode === KeyCode.KEYCODE_ESCAPE) {
+        PixState.popPage(true)
+      }
+    })
+  }
+
+  @Builder
+  PcSidebarHeader() {
+    Text('Pixark')
+      .fontSize(22)
+      .fontWeight(700)
+      .fontColor($r('sys.color.font_primary'))
+      .width('100%')
+      .textAlign(TextAlign.Start)
+      .padding({ left: 4, top: PixState.topRectHeight + 24, bottom: 16 })
+  }
+
+  @Builder
+  PcTabItem(title: ResourceStr, index: number, tabIcon?: Resource, currentTabIcon?: Resource) {
+    Row({ space: 12 }) {
+      SymbolGlyph(PixState.currentTab === index ? currentTabIcon : tabIcon)
+        .fontColor([PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary')])
+        .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
+        .fontSize(22)
+      Text(title)
+        .fontColor(PixState.currentTab === index ? PixState.currentThemeColor : $r('sys.color.font_primary'))
+        .fontSize(15)
+        .fontWeight(PixState.currentTab === index ? 600 : 400)
+    }
+    .padding({ left: 20, top: 16, bottom: 16, right: 20 })
+    .margin({ bottom: 4 })
+    .width('100%')
+    .borderRadius(10)
+    .backgroundColor(PixState.currentTab === index ? $r('app.color.pc_tab_selected_bg') : Color.Transparent)
+    .onClick(() => {
+      // 切 Tab 清空路由栈，回到该 Tab 主页（参照 AnimeZ clearAllStacks）
+      PixState.fullScreenStack.clear()
+      PixState.pageStack.clear()
+      animation.animTo(() => {
+        PixState.currentTab = index
+      }, UIConstants.AnimationSpeed_300, 'app', 0)
+    })
+    .gesture(
+      // 双击"主页"Tab 刷新推荐图片数据
+      TapGesture({ count: 2 })
+        .onAction(() => {
+          if (PixState.currentTab == 0) {
+            homeViewModel.refreshRecommended()
+          }
+        })
+    )
   }
 
   @Builder

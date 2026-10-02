@@ -86,7 +86,7 @@ export struct UserItem {
       user: this.user
     }
     // 跳转详情页
-    PixState.pageStack.pushPathByName('user_detail', params, true);
+    PixState.pushPage('user_detail', params, true);
   }
 
 }

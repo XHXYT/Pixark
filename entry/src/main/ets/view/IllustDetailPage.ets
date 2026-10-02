@@ -409,7 +409,7 @@ struct IllustDetailContent {
               swiperProvider: this.iDV,
               swiperIndex: index >= 0 ? index : 0
             }
-            this.pageStack.pushPathByName('illust_detail', params, true);
+            PixState.pushPage('illust_detail', params, true);
           })
         })
       }

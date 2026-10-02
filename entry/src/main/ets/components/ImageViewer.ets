@@ -5,10 +5,11 @@ import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
 
 const VIEWER_MAX_ZOOM = 4;
+const VIEWER_MIN_ZOOM = 0.5;
 const VIEWER_DOUBLE_TAP_ZOOM = 2.5;
 const VIEWER_TOOLBAR_HEIGHT = 60;
 
-// 单页可缩放图片：双指捏合缩放、双击放大/还原、放大后可拖拽、单击关闭
+// 单页可缩放图片：双指捏合缩放、双指旋转、双击放大/还原、放大后可拖拽、单击关闭
 @ComponentV2
 struct ViewerImage {
   @Param image: PixivImage | undefined = undefined;
@@ -18,10 +19,17 @@ struct ViewerImage {
   @Local zoom: number = 1;
   @Local offsetX: number = 0;
   @Local offsetY: number = 0;
+  @Local rotateAngle: number = 0;
 
   private pinchBaseZoom: number = 1;
+  private rotateBaseAngle: number = 0;
   private panStartX: number = 0;
   private panStartY: number = 0;
+  // 双指手势进行中/刚结束的标记：Parallel 组内 tap 识别器不会因捏合自动失败，
+  // 捏合中某指位移小于阈值再抬起会被判定为单击（且被双击仲裁延迟回调），必须显式拦截
+  private isPinchActive: boolean = false;
+  private isRotating: boolean = false;
+  private lastMultiEnd: number = 0;
 
   @Monitor('isActive')
   onActiveChange(): void {
@@ -29,7 +37,12 @@ struct ViewerImage {
       this.zoom = 1;
       this.offsetX = 0;
       this.offsetY = 0;
+      this.rotateAngle = 0;
     }
+  }
+
+  private multiTouchGuard(): boolean {
+    return this.isPinchActive || this.isRotating || (Date.now() - this.lastMultiEnd < 500);
   }
 
   private clampOffset(): void {
@@ -40,7 +53,7 @@ struct ViewerImage {
   }
 
   private applyZoom(zoom: number): void {
-    this.zoom = Math.min(VIEWER_MAX_ZOOM, Math.max(1, zoom));
+    this.zoom = Math.min(VIEWER_MAX_ZOOM, Math.max(VIEWER_MIN_ZOOM, zoom));
     this.clampOffset();
   }
 
@@ -56,8 +69,23 @@ struct ViewerImage {
     });
   }
 
+  // 视图是否偏离默认状态（缩放/旋转/位移任一非默认）
+  @Computed
+  get isTransformed(): boolean {
+    return this.zoom !== 1 || this.rotateAngle !== 0 || this.offsetX !== 0 || this.offsetY !== 0;
+  }
+
+  private resetView(): void {
+    this.getUIContext().animateTo({ duration: 220, curve: Curve.EaseOut }, () => {
+      this.zoom = 1;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.rotateAngle = 0;
+    });
+  }
+
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.BottomEnd }) {
       if (this.image !== undefined) {
         PixivImageComponent({
           imageUrl: ImageUtils.getImageUrlByQuality(this.image, appSettings.image_view_quality),
@@ -69,54 +97,170 @@ struct ViewerImage {
           // 必须显式撑满：组件根节点是 wrap-content，否则内部 100% 高度解析为 0
           .width('100%')
           .height('100%')
+          // 变换只施加在图片上：拖拽层与回正按钮不跟着缩放旋转
+          .scale({ x: this.zoom, y: this.zoom })
+          .translate({ x: this.offsetX, y: this.offsetY })
+          .rotate({ angle: this.rotateAngle, centerX: '50%', centerY: '50%' })
       }
 
-      // 放大后才挂载拖拽层，避免常驻 pan 手势抢占翻页滑动
+      // 放大后才挂载拖拽层，避免常驻 pan 手势抢占翻页滑动；
+      // 缩放/旋转必须一并挂在本层：本层是根 Stack 的子节点，仲裁中子组件优先，
+      // 若只挂 pan 会反过来抢占根上的 Pinch/Rotation，导致放大后无法缩小
       if (this.zoom > 1) {
         Column()
           .width('100%')
           .height('100%')
           .gesture(
-            PanGesture({ fingers: 1, direction: PanDirection.All })
-              .onActionStart(() => {
-                this.panStartX = this.offsetX;
-                this.panStartY = this.offsetY;
-              })
-              .onActionUpdate((event: GestureEvent) => {
-                this.offsetX = this.panStartX + event.offsetX;
-                this.offsetY = this.panStartY + event.offsetY;
-                this.clampOffset();
-              })
+            GestureGroup(GestureMode.Parallel,
+              PinchGesture({ fingers: 2 })
+                .onActionStart(() => {
+                  this.pinchBaseZoom = this.zoom;
+                  this.isPinchActive = true;
+                })
+                .onActionUpdate((event: GestureEvent) => {
+                  this.applyZoom(this.pinchBaseZoom * event.scale);
+                })
+                .onActionEnd(() => {
+                  this.isPinchActive = false;
+                  this.lastMultiEnd = Date.now();
+                  // 仅对接近 1 的值吸附回正；允许持久缩到比原始适配尺寸更小（下限 0.5）
+                  if (this.zoom > 0.95 && this.zoom < 1.05) {
+                    this.zoom = 1;
+                    this.offsetX = 0;
+                    this.offsetY = 0;
+                    if (Math.abs(this.rotateAngle) < 10) {
+                      this.rotateAngle = 0;
+                    }
+                  }
+                })
+                .onActionCancel(() => {
+                  this.isPinchActive = false;
+                  this.lastMultiEnd = Date.now();
+                }),
+              RotationGesture({ fingers: 2 })
+                .onActionStart(() => {
+                  this.rotateBaseAngle = this.rotateAngle;
+                  this.isRotating = true;
+                })
+                .onActionUpdate((event: GestureEvent) => {
+                  this.rotateAngle = this.rotateBaseAngle + event.angle;
+                })
+                .onActionEnd(() => {
+                  this.isRotating = false;
+                  this.lastMultiEnd = Date.now();
+                  if (Math.abs(this.rotateAngle) < 5) {
+                    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                      this.rotateAngle = 0;
+                    });
+                  }
+                })
+                .onActionCancel(() => {
+                  this.isRotating = false;
+                  this.lastMultiEnd = Date.now();
+                }),
+              PanGesture({ fingers: 1, direction: PanDirection.All })
+                .onActionStart(() => {
+                  if (this.isPinchActive || this.isRotating) {
+                    return;
+                  }
+                  this.panStartX = this.offsetX;
+                  this.panStartY = this.offsetY;
+                })
+                .onActionUpdate((event: GestureEvent) => {
+                  if (this.isPinchActive || this.isRotating) {
+                    return;
+                  }
+                  this.offsetX = this.panStartX + event.offsetX;
+                  this.offsetY = this.panStartY + event.offsetY;
+                  this.clampOffset();
+                })
+            )
           )
+      }
+
+      // 视图偏离默认（缩放/旋转/位移任一非默认）时右下角显示回正按钮，避开底部工具栏
+      if (this.isTransformed) {
+        Column() {
+          SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
+            .fontSize(22)
+            .fontColor([Color.White])
+        }
+        .width(42)
+        .height(42)
+        .borderRadius(21)
+        .backgroundColor('#66000000')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .margin({ right: 16, bottom: VIEWER_TOOLBAR_HEIGHT + PixState.bottomRectHeight + 12 })
+        .transition(TransitionEffect.OPACITY.animation({ duration: 150 }))
+        .onClick(() => {
+          this.resetView();
+        })
       }
     }
     .width('100%')
     .height('100%')
-    .scale({ x: this.zoom, y: this.zoom })
-    .translate({ x: this.offsetX, y: this.offsetY })
     .gesture(
       GestureGroup(GestureMode.Parallel,
         PinchGesture({ fingers: 2 })
           .onActionStart(() => {
             this.pinchBaseZoom = this.zoom;
+            this.isPinchActive = true;
           })
           .onActionUpdate((event: GestureEvent) => {
             this.applyZoom(this.pinchBaseZoom * event.scale);
           })
           .onActionEnd(() => {
-            if (this.zoom <= 1.05) {
+            this.isPinchActive = false;
+            this.lastMultiEnd = Date.now();
+            // 仅对接近 1 的值吸附回正；允许持久缩到比原始适配尺寸更小（下限 0.5）
+            if (this.zoom > 0.95 && this.zoom < 1.05) {
               this.zoom = 1;
               this.offsetX = 0;
               this.offsetY = 0;
+              if (Math.abs(this.rotateAngle) < 10) {
+                this.rotateAngle = 0;
+              }
             }
+          })
+          .onActionCancel(() => {
+            this.isPinchActive = false;
+            this.lastMultiEnd = Date.now();
+          }),
+        RotationGesture({ fingers: 2 })
+          .onActionStart(() => {
+            this.rotateBaseAngle = this.rotateAngle;
+            this.isRotating = true;
+          })
+          .onActionUpdate((event: GestureEvent) => {
+            this.rotateAngle = this.rotateBaseAngle + event.angle;
+          })
+          .onActionEnd(() => {
+            this.isRotating = false;
+            this.lastMultiEnd = Date.now();
+            if (Math.abs(this.rotateAngle) < 5) {
+              this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.rotateAngle = 0;
+              });
+            }
+          })
+          .onActionCancel(() => {
+            this.isRotating = false;
+            this.lastMultiEnd = Date.now();
           }),
         GestureGroup(GestureMode.Exclusive,
           TapGesture({ count: 2 })
             .onAction(() => {
+              if (this.multiTouchGuard()) {
+                return;
+              }
               this.toggleZoom();
             }),
           TapGesture({ count: 1 })
             .onAction(() => {
+              if (this.multiTouchGuard()) {
+                return;
+              }
               this.onTap();
             })
         )

@@ -1,4 +1,4 @@
-﻿import { FunctionConstants } from "../../common/constants/FunctionConstants"
+import { FunctionConstants } from "../../common/constants/FunctionConstants"
 import { CustomItemInfo, ItemActionType,
   ItemGroupData,
   makeItemGroups,
@@ -158,6 +158,17 @@ struct UserSettings {
           appSettings.save()
         }
       }),
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.text_below_photo_rectangle_portrait'),
+        title: $r('app.string.show_illust_title'),
+        type: ItemActionType.TOGGLE,
+        id: 'show_illust_title',
+        value: appSettings.show_illust_title,
+        onChange: (value) => {
+          appSettings.show_illust_title = value as boolean
+          appSettings.save()
+        }
+      }),
       // 个人偏好
       new CustomItemInfo({ id: 'download', title: $r('app.string.personal_preference'), type: ItemActionType.GROUP }),
       new CustomItemInfo({
@@ -303,7 +314,7 @@ struct UserSettings {
     if (PixState.widthBp > 1) {
       this.pageStack.pushPathByName(name, params, true);
     } else {
-      PixState.pageStack.pushPathByName(name, params, true);
+      PixState.pushPage(name, params, true);
     }
   }
 
