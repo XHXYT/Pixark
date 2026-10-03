@@ -26,6 +26,10 @@ export default struct SearchingPage {
   private pageInfos: NavPathStack = new NavPathStack();
   private panOptionL: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left })
   private panOptionR: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Right })
+  private nestedScrollOptions: NestedScrollOptions = {
+    scrollForward: NestedScrollMode.PARENT_FIRST,
+    scrollBackward: NestedScrollMode.SELF_FIRST
+  }
 
   private get searchTypeItems(): SegmentButtonV2Items {
     return appSettings.novel_mode
@@ -189,25 +193,37 @@ export default struct SearchingPage {
                 TransitionEffect.OPACITY.animation({ duration: 0 })
               ))
           } else {
-            // 插画
-            WaterFlowView({
-              contentEndOffset: (PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight,
-              illustList: searchVM.resultIllusts,
-              onCardClick: (illust) => {
-                searchVM.handleIllustClick(illust)
-              },
-              onReachEnd: () => {
-                // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
-                if (!PixState.isTest) {
-                  searchVM.loadMoreSearchResult()
+            // 插画：外层 List 负责滚动，瀑布流以内容高度嵌入并关闭自身裁剪，
+            // 边缘卡片阴影画进留白不被截断
+            List() {
+              ListItem() {
+                Column() {
+                  WaterFlowView({
+                    illustList: searchVM.resultIllusts,
+                    nestedScroll: this.nestedScrollOptions,
+                    clipContent: false,
+                    onCardClick: (illust) => {
+                      searchVM.handleIllustClick(illust)
+                    },
+                    onReachEnd: () => {
+                      // 只有非测试环境且当前不处于加载中时、存在下一页数据会触发数据更新
+                      if (!PixState.isTest) {
+                        searchVM.loadMoreSearchResult()
+                      }
+                    }
+                  })
+                    .transition(TransitionEffect.asymmetric(
+                      TransitionEffect.OPACITY
+                        .combine(TransitionEffect.translate({ y: 100 })),
+                      TransitionEffect.OPACITY.animation({ duration: 0 })
+                    ))
                 }
               }
-            })
-              .transition(TransitionEffect.asymmetric(
-                TransitionEffect.OPACITY
-                  .combine(TransitionEffect.translate({ y: 100 })),
-                TransitionEffect.OPACITY.animation({ duration: 0 })
-              ))
+            }
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.Spring)
+            .contentEndOffset((PixState.TabBarVertical ? 125 : 160) + PixState.bottomRectHeight)
+            .layoutWeight(1)
           }
         } else {
           // 画师

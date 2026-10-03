@@ -13,8 +13,17 @@ export struct UserItem {
 
   @Param @Require user: PixivUser
   @Param isFollow: boolean = false
-
+  @Local followState: boolean = false
   @Event onButtonClick: (result: boolean, err?: string) => void
+
+  aboutToAppear(): void {
+    this.followState = this.isFollow
+  }
+
+  @Monitor('isFollow')
+  onIsFollowChange(): void {
+    this.followState = this.isFollow
+  }
 
   build() {
     // 头像 名称 关注
@@ -35,7 +44,7 @@ export struct UserItem {
       Blank().onClick(() => {
         this.push()
       })
-      Button(this.isFollow ? $r('app.string.followed') : $r('app.string.follow'))
+      Button(this.followState ? $r('app.string.followed') : $r('app.string.follow'))
         .type(ButtonType.Normal)
         .fontSize(12)
         .height(28)
@@ -43,7 +52,7 @@ export struct UserItem {
         .borderRadius(14)
         .fontColor(Color.White)
         .onClick(async () => {
-          if (this.isFollow) {
+          if (this.followState) {
             // 取消关注
             if (!this.user.id) {
               toastUtil.showToast({ message: "用户ID不存在" })
@@ -52,6 +61,7 @@ export struct UserItem {
             try {
               await pixiv.unfollowUser(this.user.id)
               this.user.is_followed = false
+              this.followState = false
               toastUtil.showToast({ message: $r('app.string.unfollow_success', this.user.name) })
               this.onButtonClick(false)
             } catch (err) {
@@ -68,6 +78,7 @@ export struct UserItem {
             try {
               await pixiv.followUser(this.user.id, 'public')
               this.user.is_followed = true
+              this.followState = true
               toastUtil.showToast({ message: $r('app.string.follow_success', this.user.name) })
               this.onButtonClick(true)
             } catch (err) {
