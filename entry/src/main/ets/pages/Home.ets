@@ -44,8 +44,7 @@ export struct Home {
 
   @Builder
   HomeContent() {
-    Refresh({ refreshing: homeViewModel.isRefreshing }) {
-      List({ scroller: homeViewModel.listScroller }) {
+    Refresh({ refreshing: homeViewModel.isRefreshing }) {      List({ scroller: homeViewModel.listScroller }) {
         // 顶部亮点
         ListItem() {
           BannerView({ bannerList: homeViewModel.spotlightList, swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0 })
@@ -120,6 +119,7 @@ export struct Home {
       .margin({ right: PixState.rightAvoidWidth, left: PixState.leftAvoidWidth })
     }
     .onRefreshing(async () => { await homeViewModel.loadHomeData() })
+    .transition(TransitionEffect.OPACITY.animation({ duration: 250, curve: Curve.EaseOut }))
   }
 
   // 首页骨架屏
@@ -195,6 +195,7 @@ export struct Home {
     }
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
+    .transition(TransitionEffect.OPACITY.animation({ duration: 250, curve: Curve.EaseOut }))
   }
 
   @Builder Title(title: ResourceStr) {

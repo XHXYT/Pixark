@@ -8,13 +8,19 @@ import { CustomItemInfo, ItemActionType,
 import { UserDetailParams } from '../common/entity/UserDetailEntity';
 import { maskEmail } from '../common/utils/MaskEmail';
 import { CustomListItem } from '../components/CusItemBuilder';
-import { appSettings } from '../common/entity/SettingsModel';
+import { appSettings, UISettings } from '../common/entity/SettingsModel';
+import { CustomContentDialog } from '@kit.ArkUI';
+import { ButtonOptions } from '@ohos.arkui.advanced.Dialog';
 
 
 @ComponentV2
 export struct More {
 
   private pageStack: NavPathStack = new NavPathStack()
+
+  // 退出登录弹窗：是否保留账号记录（默认保留，登录页可快速登录）
+  @Local keepAccountRecord: boolean = true
+  @Local logoutDialogController: CustomDialogController | undefined
 
   private get itemList(): CustomItemInfo[] {
     return [
@@ -44,12 +50,32 @@ export struct More {
       }),
       // 偏好设置
       new CustomItemInfo({
-        symbol: $r('sys.symbol.gearshape_fill'),
+        symbol: $r('sys.symbol.gearshape'),
         title: $r('app.string.preference'),
         type: ItemActionType.ROUTER_BLANK,
         id: 'settings',
         onChange: () => {
           this.pushTo('user_settings')
+        }
+      }),
+      // 屏蔽设定
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.eye_slash'),
+        title: $r('app.string.mute_settings'),
+        type: ItemActionType.ROUTER_BLANK,
+        id: 'mute_settings',
+        onChange: () => {
+          this.pushTo('mute_settings')
+        }
+      }),
+      // 收藏标签
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.bookmark'),
+        title: $r('app.string.book_tags'),
+        type: ItemActionType.ROUTER_BLANK,
+        id: 'book_tags',
+        onChange: () => {
+          this.pushTo('book_tags')
         }
       }),
       // 下载管理
@@ -154,6 +180,7 @@ export struct More {
       .layoutWeight(1)
       .scrollBar(BarState.Off)
       .backgroundColor(Color.Transparent)
+      .contentEndOffset(PixState.bottomRectHeight + 12)
     }
     .width('100%')
     .backgroundColor($r('sys.color.background_primary'))
@@ -249,20 +276,60 @@ export struct More {
       .fontColor($r('sys.color.font_secondary'))
   }
 
-  // 退出登录确认弹窗
+  // 退出登录确认弹窗（含"保存账号记录"勾选，默认勾选；PC/自由窗口用窗口内 CustomContentDialog）
   showLogoutDialog() {
-    toastUtil.showDialog({
-      title: $r('app.string.tips'),
-      message: $r('app.string.confirm_logout'),
-      buttons: [
-        { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
-        { text: $r('app.string.exit'), color: $r('sys.color.ohos_id_color_warning') }
-      ]
-    }, (err, data) => {
-      if (data?.index === 1) {
-        moreVM.handleLogout();
+    const buttons: ButtonOptions[] = [
+      {
+        value: $r('app.string.cancel'),
+        buttonStyle: ButtonStyleMode.TEXTUAL,
+        action: () => {
+          this.logoutDialogController?.close();
+        }
+      },
+      {
+        value: $r('app.string.exit'),
+        buttonStyle: ButtonStyleMode.TEXTUAL,
+        fontColor: $r('sys.color.ohos_id_color_warning'),
+        action: () => {
+          this.logoutDialogController?.close();
+          moreVM.handleLogout(this.keepAccountRecord);
+        }
       }
+    ];
+    this.logoutDialogController = new CustomDialogController({
+      builder: CustomContentDialog({
+        primaryTitle: $r('app.string.tips'),
+        secondaryTitle: $r('app.string.confirm_logout'),
+        contentBuilder: (): void => {
+          this.LogoutDialogContent()
+        },
+        buttons: buttons,
+        contentAreaPadding: { top: 15, bottom: 15, left: 24, right: 24 },
+        themeColorMode: UISettings.color_mode + 1
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      cornerRadius: 32
     });
+    this.logoutDialogController.open();
+  }
+
+  // 退出登录弹窗内容：账号记录保留勾选
+  @Builder
+  LogoutDialogContent() {
+    Row({ space: 8 }) {
+      Checkbox()
+        .select(this.keepAccountRecord)
+        .selectedColor(PixState.currentThemeColor)
+        .onChange((value: boolean) => {
+          this.keepAccountRecord = value;
+        })
+      Text($r('app.string.keep_account_record'))
+        .fontSize(14)
+        .fontColor($r('sys.color.font_secondary'))
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
   }
 
   pushTo(name: string, params?: UserDetailParams) {

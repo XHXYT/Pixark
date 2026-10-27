@@ -1,11 +1,13 @@
 import { PixivImageComponent } from "../../components/PixivImage";
 import { PixState } from "../../entryability/AppState";
-import { SegmentButtonV2Items, TabSegmentButtonV2 } from '@kit.ArkUI';
+import { SegmentButtonV2Items, SymbolGlyphModifier, TabSegmentButtonV2 } from '@kit.ArkUI';
 import { UserDetailViewModel } from "../../viewmodel/UserDetailViewModel";
 import { UserDetailParams } from "../../common/entity/UserDetailEntity";
 import { DetailPageParams } from "../../common/entity/DetailEntity"; // 用于跳转插画
 import { WaterFlowView } from "../../components/WaterFlowView";
 import { NaviContainer } from "../../components/NaviContainer";
+import { muteFilter } from "../../services/MuteFilter";
+import { toastUtil } from "../../common/utils/ToastUtils";
 
 
 @Builder
@@ -19,6 +21,12 @@ struct UserDetail {
 
   @Local scroller: Scroller = new Scroller();
   @Local uDV: UserDetailViewModel =  new UserDetailViewModel()
+  @Local showMenu: boolean = false
+  @Local userId: number = 0
+  /** 该画师已被屏蔽（进入页面时检查） */
+  @Local userMuted: boolean = false
+  /** 本次浏览中暂时查看被屏蔽画师 */
+  @Local tempViewMuted: boolean = false
 
   private tabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
     { text: $r('app.string.works') },
@@ -30,13 +38,105 @@ struct UserDetail {
     NaviContainer({
       title: this.uDV.userData?.user.name,
       content: () => {
-        this.Content()
+        if (this.userMuted && !this.tempViewMuted) {
+          this.MuteOverlay()
+        } else {
+          this.Content()
+        }
       },
       onReady: (ctx: NavDestinationContext) => {
         const params: UserDetailParams = ctx?.pathInfo?.param as UserDetailParams
+        this.userId = params.id
+        // 进入画师主页前检查屏蔽状态
+        this.userMuted = !!muteFilter.checkUser(params.id)
+        this.tempViewMuted = false
         this.uDV.onReady(ctx, params)
-      }
+      },
+      onBackPressed: () => {
+        return false
+      },
+      showMenu: this.showMenu,
+      buttons: this.userButtons(),
+      menusBuilder: () => { this.UserMenu() }
     })
+  }
+
+  // 标题栏按钮：屏蔽菜单入口
+  private userButtons(): NavigationMenuItem[] {
+    return [
+      {
+        value: '',
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.dot_grid_2x2')),
+        action: () => {
+          this.showMenu = !this.showMenu
+        }
+      }
+    ]
+  }
+
+  // 屏蔽菜单
+  @Builder
+  UserMenu() {
+    Menu() {
+      MenuItem({ content: $r('app.string.mute_this_artist') })
+        .onClick(() => {
+          this.showMenu = false
+          this.muteThisArtist()
+        })
+      MenuItem({ content: $r('app.string.mute_settings') })
+        .onClick(() => {
+          this.showMenu = false
+          PixState.pushPage('mute_settings', null, true)
+        })
+    }
+  }
+
+  /** 屏蔽当前画师（当前页保持可见） */
+  private muteThisArtist(): void {
+    if (!this.userId) {
+      return
+    }
+    const name = this.uDV.userData?.user.name || this.uDV.preUserData?.name || ''
+    muteFilter.addRule('user', String(this.userId), name).then((ok: boolean) => {
+      toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
+    })
+  }
+
+  /** 被屏蔽画师的拦截页 */
+  @Builder
+  MuteOverlay() {
+    Column({ space: 16 }) {
+      SymbolGlyph($r('sys.symbol.eye_slash'))
+        .fontSize(64)
+        .fontColor([$r('sys.color.font_tertiary')])
+      Text($r('app.string.mute_blocked_user'))
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('sys.color.font_primary'))
+      Text(this.uDV.userData?.user.name || this.uDV.preUserData?.name || String(this.userId))
+        .fontSize(13)
+        .fontColor($r('sys.color.font_secondary'))
+      Row({ space: 12 }) {
+        Button($r('app.string.mute_temp_view'))
+          .backgroundColor($r('sys.color.comp_background_tertiary'))
+          .fontColor($r('sys.color.font_primary'))
+          .onClick(() => {
+            this.tempViewMuted = true
+          })
+        Button($r('app.string.mute_unblock'))
+          .backgroundColor(PixState.currentThemeColor)
+          .onClick(() => {
+            muteFilter.removeRule('user', String(this.userId)).then(() => {
+              this.userMuted = false
+              toastUtil.showToast({ message: $r('app.string.mute_removed') })
+            })
+          })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor($r('sys.color.background_primary'))
   }
 
   @Builder

@@ -21,10 +21,10 @@ export struct Rank {
   }
 
   aboutToAppear(): void {
-    // 如果已经有配置，自动加载第一项
+    // 如果已经有配置，自动加载第一项（等 Token 就绪门闩，失败自动重试一次）
     if (!rankVM.isEmptyConfig) {
       rankVM.currentMode = appSettings.rank_modes[0];
-      rankVM.fetchRanking();
+      rankVM.initialLoad();
     }
   }
 

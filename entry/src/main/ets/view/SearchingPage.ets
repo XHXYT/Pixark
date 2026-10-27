@@ -11,6 +11,12 @@ import { appSettings } from '../common/entity/SettingsModel';
 import { NovelListView } from '../components/NovelListView';
 
 
+/** 主栈跳转参数：从搜索 Tab 之外（主 pageStack）进入时传 mainStack=true，页面自行避让状态栏 */
+export interface SearchingPageParams {
+  mainStack?: boolean;
+}
+
+
 @Builder
 export function SearchingPageBuilder() {
   SearchingPage()
@@ -22,6 +28,8 @@ export default struct SearchingPage {
 
 
   @Local searchTypeSelectedIndex: number = 0;
+  /** 主栈进入时的顶部避让高度（搜索 Tab 内由 Tabs padding 避让，无需重复） */
+  @Local padTop: number = 0
 
   private pageInfos: NavPathStack = new NavPathStack();
   private panOptionL: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left })
@@ -54,6 +62,10 @@ export default struct SearchingPage {
       },
       onReady: (ctx) => {
         this.pageInfos = ctx.pathStack;
+        const p = ctx?.pathInfo?.param as SearchingPageParams | undefined;
+        if (p && p.mainStack) {
+          this.padTop = PixState.topRectHeight;
+        }
       }
     })
   }
@@ -249,6 +261,7 @@ export default struct SearchingPage {
     }
     .backgroundColor($r('sys.color.background_primary'))
     .size({ width: '100%', height: '100%' })
+    .padding({ top: this.padTop })
     // 左滑手势
     .gesture(
       PanGesture(this.panOptionL)

@@ -66,7 +66,9 @@ export default class DownloadRecordInfo {
   url: string = '';
 
   /**
-   * 下载状态 (0:进行中, 1:已完成, 2:失败, 3:已暂停)
+   * 下载状态，取值同 @ohos.request.agent 的 State 枚举（十六进制位段）：
+   * INITIALIZED=0x00, WAITING=0x10, RUNNING=0x20, RETRYING=0x21, PAUSED=0x30,
+   * STOPPED=0x31, COMPLETED=0x40, FAILED=0x41, REMOVED=0x50
    */
   @Trace
   @Column({ name: 'status', type: 'INTEGER', notNull: true })

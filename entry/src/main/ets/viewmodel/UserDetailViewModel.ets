@@ -5,6 +5,7 @@ import { createLogger } from '../common/utils/Logger';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { pixiv } from '../services/PixivService';
 import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
+import { muteFilter } from '../services/MuteFilter';
 
 const logger = createLogger('UserDetailViewModel')
 
@@ -135,7 +136,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
 
     try {
       const data = await pixiv.getUserIllusts(userId, 'illust', url);
-      const newIllusts = data.illusts || [];
+      const newIllusts = muteFilter.filterIllusts(data.illusts || []);
 
       if (isLoadMore) {
         this.userIllusts.push(...newIllusts);
@@ -166,7 +167,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
     try {
       // tag 和 maxBookmarkId 这里不需要，传 undefined
       const data = await pixiv.getUserBookmarks(userId, 'public', undefined, undefined, url);
-      const newBookmarks = data.illusts || [];
+      const newBookmarks = muteFilter.filterIllusts(data.illusts || []);
       if (isLoadMore) {
         this.userBookmarks.push(...newBookmarks);
       } else {

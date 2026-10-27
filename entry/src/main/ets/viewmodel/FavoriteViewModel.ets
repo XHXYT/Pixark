@@ -55,28 +55,49 @@ class FavoriteViewModel implements IIllustSwiperProvider {
 
   private lastFilterIndex: number = -1;
 
+  // 最近一次 loadCurrentTabData 是否有子请求失败（供冷启动重试判断）
+  private lastLoadFailed: boolean = false;
+
   // --- 生命周期 ---
   async onReady() {
     logger.debug('[onReady] Favorite page ready.');
-    this.loadCurrentTabData();
+    // 立即加载（Token 过期由 401 自愈等待静默刷新后重试），失败 2.5s 后自动重试一次
+    const ok = await this.loadCurrentTabData();
+    if (!ok) {
+      await new Promise<void>((resolve: (value: void) => void) => {
+        setTimeout(() => resolve(), 2500);
+      });
+      await this.loadCurrentTabData();
+    }
   }
 
   // --- 核心加载逻辑 ---
-  // 加载当前 Tab 的数据
-  async loadCurrentTabData() {
-    if (this.isRefreshing) return; // 防抖：如果正在刷新，不重复触发
+  // 加载当前 Tab 的数据，返回是否成功（失败供冷启动自动重试判断）
+  async loadCurrentTabData(): Promise<boolean> {
+    if (this.isRefreshing) return true; // 防抖：如果正在刷新，不重复触发
     this.isRefreshing = true;
+    this.lastLoadFailed = false;
     logger.debug('>>> 开始加载喜欢数据...');
     try {
-      if (this.mainTabIndex === 0) {
-        appSettings.novel_mode ? await this.loadTrendNovelData() : await this.loadTrendData();
-      } else if (this.mainTabIndex === 1) {
-        appSettings.novel_mode ? await this.loadCollectionNovelData() : await this.loadCollectionData();
-      } else if (this.mainTabIndex === 2) {
-        await this.loadFollowData(); // 关注页不分小说/插画
+      // 快速双切模式时，在途响应对应的是旧模式：丢弃并按新模式重载，防止串台/空列表
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const modeAtStart = appSettings.novel_mode;
+        if (this.mainTabIndex === 0) {
+          modeAtStart ? await this.loadTrendNovelData() : await this.loadTrendData();
+        } else if (this.mainTabIndex === 1) {
+          modeAtStart ? await this.loadCollectionNovelData() : await this.loadCollectionData();
+        } else if (this.mainTabIndex === 2) {
+          await this.loadFollowData(); // 关注页不分小说/插画
+        }
+        // 关注页与模式无关；请求期间模式被再次切换时丢弃过期数据，按新模式重试
+        if (this.mainTabIndex === 2 || appSettings.novel_mode === modeAtStart || attempt >= 2) {
+          break;
+        }
       }
+      return !this.lastLoadFailed;
     } catch (e) {
       logger.error(`[loadCurrentTabData] Failed: ${e.message}`);
+      return false;
     } finally {
       // 确保无论成功失败，都要关闭刷新状态
       this.isRefreshing = false;
@@ -183,6 +204,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       this.lastFilterIndex = this.filterIndex;
       logger.debug(`[loadTrendData] Filter: ${this.filterIndex}, Loaded ${newData.length} items.`);
     } catch (e) {
+      this.lastLoadFailed = true;
       logger.error(`[loadTrendData] Failed: ${e.message}`);
     }
   }
@@ -223,6 +245,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       this.lastFilterIndex = this.filterIndex;
       logger.debug(`[loadCollectionData] Filter: ${this.filterIndex}, Loaded ${newData.length} items.`);
     } catch (e) {
+      this.lastLoadFailed = true;
       logger.error(`[loadCollectionData] Failed: ${e.message}`);
     }
   }
@@ -264,6 +287,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       this.lastFilterIndex = this.filterIndex;
       logger.debug(`[loadFollowData] Filter: ${this.filterIndex}, Loaded ${newData.length} users.`);
     } catch (e) {
+      this.lastLoadFailed = true;
       logger.error(`[loadFollowData] Failed: ${e.message}`);
     }
   }
@@ -293,7 +317,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       this.trendNovels.push(...newData);
       this.hasLoadedTrendNovels = true;
       this.lastFilterIndex = this.filterIndex;
-    } catch (e) { logger.error(`[loadTrendNovelData] Failed: ${e.message}`); }
+    } catch (e) { this.lastLoadFailed = true; logger.error(`[loadTrendNovelData] Failed: ${e.message}`); }
   }
 
   async loadCollectionNovelData(isLoadMore: boolean = false) {
@@ -321,7 +345,7 @@ class FavoriteViewModel implements IIllustSwiperProvider {
       this.collectionNovels = isLoadMore ? [...this.collectionNovels, ...newData] : newData;
       this.hasLoadedCollectionNovels = true;
       this.lastFilterIndex = this.filterIndex;
-    } catch (e) { logger.error(`[loadCollectionNovelData] Failed: ${e.message}`); }
+    } catch (e) { this.lastLoadFailed = true; logger.error(`[loadCollectionNovelData] Failed: ${e.message}`); }
   }
 
   // --- 交互逻辑 ---

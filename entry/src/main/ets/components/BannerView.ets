@@ -71,8 +71,15 @@ export struct BannerView {
     .clip(true)
     .padding({ top: 16, bottom: 16, left: 9, right: 9 })
     .onClick(() => {
-      console.log(' 点击图片 ')
+      PixState.pushPage('spotlight', article, true)
     })
+    // 长按轮播图进入 Pixivision 专题列表（更多数据页）
+    .gesture(
+      LongPressGesture()
+        .onAction(() => {
+          PixState.pushPage('spotlight_list', null, true)
+        })
+    )
     .margin(({ left: this.swiperMargin, right: this.swiperMargin }))
   }
 }

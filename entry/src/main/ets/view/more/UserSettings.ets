@@ -169,6 +169,18 @@ struct UserSettings {
           appSettings.save()
         }
       }),
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.globe_badge_heart'),
+        title: $r('app.string.image_search_webview_mode'),
+        subtitle: $r('app.string.image_search_webview_mode_sub'),
+        type: ItemActionType.TOGGLE,
+        id: 'use_saucenao_webview',
+        value: appSettings.use_saucenao_webview,
+        onChange: (value) => {
+          appSettings.use_saucenao_webview = value as boolean
+          appSettings.save()
+        }
+      }),
       // 个人偏好
       new CustomItemInfo({ id: 'download', title: $r('app.string.personal_preference'), type: ItemActionType.GROUP }),
       new CustomItemInfo({

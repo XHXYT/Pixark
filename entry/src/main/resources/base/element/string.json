@@ -229,6 +229,18 @@
       "value": "确定要退出登录吗？"
     },
     {
+      "name": "keep_account_record",
+      "value": "保存账号记录"
+    },
+    {
+      "name": "saved_accounts",
+      "value": "已保存的账号"
+    },
+    {
+      "name": "password_login",
+      "value": "账号密码登录"
+    },
+    {
       "name": "confirm_clear_search_history",
       "value": "确定要清空搜索记录吗？"
     },
@@ -936,6 +948,274 @@
     {
       "name": "view_repo",
       "value": "查看仓库"
+    },
+    {
+      "name": "spotlight",
+      "value": "专题"
+    },
+    {
+      "name": "pixivision",
+      "value": "Pixivision"
+    },
+    {
+      "name": "parse_timeout_web_mode",
+      "value": "解析超时，已切换为网页模式"
+    },
+    {
+      "name": "cover_not_illust",
+      "value": "封面不是插画作品"
+    },
+    {
+      "name": "loading_work_list",
+      "value": "正在加载作品列表..."
+    },
+    {
+      "name": "load_failed_check_network",
+      "value": "加载失败，请检查网络"
+    },
+    {
+      "name": "no_more",
+      "value": "没有更多了"
+    },
+    {
+      "name": "load_more_failed",
+      "value": "加载更多失败"
+    },
+    {
+      "name": "saucenao",
+      "value": "SauceNAO"
+    },
+    {
+      "name": "image_search",
+      "value": "以图搜图"
+    },
+    {
+      "name": "image_search_desc",
+      "value": "选择一张图片，通过 SauceNAO 搜索 Pixiv 原作品"
+    },
+    {
+      "name": "pick_image",
+      "value": "选择图片"
+    },
+    {
+      "name": "uploading_search",
+      "value": "正在上传搜索..."
+    },
+    {
+      "name": "search_failed",
+      "value": "搜索失败"
+    },
+    {
+      "name": "no_match_found",
+      "value": "没有找到匹配的作品"
+    },
+    {
+      "name": "repick_image",
+      "value": "重新选图"
+    },
+    {
+      "name": "match_result_count",
+      "value": "共 %d 个匹配结果"
+    },
+    {
+      "name": "upload_failed_open_web",
+      "value": "上传失败，已打开网页版"
+    },
+    {
+      "name": "image_search_webview_mode",
+      "value": "以图搜图使用网页模式"
+    },
+    {
+      "name": "image_search_webview_mode_sub",
+      "value": "用 WebView 打开 SauceNAO"
+    },
+    {
+      "name": "mute_settings",
+      "value": "屏蔽设定"
+    },
+    {
+      "name": "mute_this_illust",
+      "value": "屏蔽此作品"
+    },
+    {
+      "name": "mute_this_artist",
+      "value": "屏蔽此画师"
+    },
+    {
+      "name": "mute_tag",
+      "value": "标签"
+    },
+    {
+      "name": "mute_artist",
+      "value": "画师"
+    },
+    {
+      "name": "mute_work",
+      "value": "作品"
+    },
+    {
+      "name": "mute_enable",
+      "value": "屏蔽功能"
+    },
+    {
+      "name": "mute_enable_sub",
+      "value": "关闭后所有屏蔽规则暂停生效"
+    },
+    {
+      "name": "mute_regex_badge",
+      "value": "正则"
+    },
+    {
+      "name": "mute_add",
+      "value": "添加"
+    },
+    {
+      "name": "mute_add_tag",
+      "value": "添加标签"
+    },
+    {
+      "name": "mute_add_user",
+      "value": "添加画师"
+    },
+    {
+      "name": "mute_add_illust",
+      "value": "添加作品"
+    },
+    {
+      "name": "mute_add_tag_hint",
+      "value": "标签名，或 re: 开头的正则"
+    },
+    {
+      "name": "mute_add_user_hint",
+      "value": "画师 ID 或主页链接"
+    },
+    {
+      "name": "mute_add_illust_hint",
+      "value": "作品 ID 或链接"
+    },
+    {
+      "name": "mute_add_tag_tip",
+      "value": "同时匹配标签原文与翻译名；re: 前缀按正则匹配（大小写不敏感）"
+    },
+    {
+      "name": "mute_add_user_tip",
+      "value": "支持直接输入 ID，或粘贴 pixiv 主页链接自动提取"
+    },
+    {
+      "name": "mute_add_illust_tip",
+      "value": "支持直接输入 ID，或粘贴作品链接自动提取"
+    },
+    {
+      "name": "mute_invalid_input",
+      "value": "无法识别的输入"
+    },
+    {
+      "name": "mute_added",
+      "value": "已加入屏蔽列表"
+    },
+    {
+      "name": "mute_add_failed",
+      "value": "屏蔽失败，可能已存在"
+    },
+    {
+      "name": "mute_removed",
+      "value": "已解除屏蔽"
+    },
+    {
+      "name": "mute_removed_name",
+      "value": "已删除：%s"
+    },
+    {
+      "name": "mute_blocked_illust",
+      "value": "该作品已被屏蔽"
+    },
+    {
+      "name": "mute_blocked_user",
+      "value": "该画师已被屏蔽"
+    },
+    {
+      "name": "mute_reason_illust",
+      "value": "该作品在屏蔽列表中"
+    },
+    {
+      "name": "mute_reason_user",
+      "value": "画师「%s」已被屏蔽"
+    },
+    {
+      "name": "mute_reason_tag",
+      "value": "标签「%s」已被屏蔽"
+    },
+    {
+      "name": "mute_temp_view",
+      "value": "暂时查看"
+    },
+    {
+      "name": "mute_unblock",
+      "value": "解除屏蔽"
+    },
+    {
+      "name": "mute_empty_tag",
+      "value": "还没有屏蔽标签。\n可在作品详情页长按标签屏蔽，或点右上角 + 手动添加"
+    },
+    {
+      "name": "mute_empty_user",
+      "value": "还没有屏蔽画师。\n可在画师主页右上角菜单屏蔽，或点右上角 + 手动添加"
+    },
+    {
+      "name": "mute_empty_illust",
+      "value": "还没有屏蔽作品。\n可在作品详情页右上角菜单屏蔽，或点右上角 + 手动添加"
+    },
+    {
+      "name": "mute_this_tag",
+      "value": "屏蔽此标签"
+    },
+    {
+      "name": "copy_tag",
+      "value": "复制标签"
+    },
+    {
+      "name": "copy_translation",
+      "value": "复制翻译"
+    },
+    {
+      "name": "copied_to_clipboard",
+      "value": "已复制到剪贴板"
+    },
+    {
+      "name": "book_tags",
+      "value": "收藏标签"
+    },
+    {
+      "name": "book_tag_empty",
+      "value": "还没有收藏标签。\n在作品详情页长按标签可收藏常用标签，收藏后点击即可快速搜索"
+    },
+    {
+      "name": "book_tag_use_count",
+      "value": "已搜索 %d 次"
+    },
+    {
+      "name": "book_tag_action",
+      "value": "收藏标签"
+    },
+    {
+      "name": "book_tag_cancel",
+      "value": "取消收藏"
+    },
+    {
+      "name": "book_tag_added",
+      "value": "已收藏该标签"
+    },
+    {
+      "name": "book_tag_add_failed",
+      "value": "收藏失败，可能已收藏"
+    },
+    {
+      "name": "book_tag_removed_toast",
+      "value": "已取消收藏"
+    },
+    {
+      "name": "book_tag_deleted_name",
+      "value": "已删除：%s"
     }
   ]
 }

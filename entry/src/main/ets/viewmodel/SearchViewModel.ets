@@ -8,6 +8,7 @@ import { createLogger } from '../common/utils/Logger';
 import { toastUtil } from '../common/utils/ToastUtils';
 import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
+import { muteFilter } from '../services/MuteFilter';
 
 const logger = createLogger('SearchViewModel')
 
@@ -109,10 +110,30 @@ class SearchViewModel implements IIllustSwiperProvider {
     } catch (e) {
       logger.error('[DB_INIT] 加载搜索历史失败: ', e);
     }
+    // 立即拉热门标签（Token 过期由 401 自愈等待静默刷新后重试），失败自动重试一次
+    await this.loadTrendingTags(true);
+  }
+
+  /** 拉取推荐标签；retry 为 true 时失败 2.5s 后自动重试一次（兜底冷启动网络抖动） */
+  async loadTrendingTags(retry: boolean = false): Promise<void> {
     try {
-      this.trendingTags = appSettings.novel_mode ? await pixiv.getNovelTrendTags() : await pixiv.getTrendingTags();
+      // 按发起时的模式请求；请求期间模式被再次切换（快速双切）时丢弃过期标签
+      // （新模式的 loadTrendingTags 已在路上的场景由 loadData 重入覆盖）
+      const modeAtStart = appSettings.novel_mode;
+      const tags = modeAtStart ? await pixiv.getNovelTrendTags() : await pixiv.getTrendingTags();
+      if (appSettings.novel_mode === modeAtStart) {
+        this.trendingTags = tags;
+      } else {
+        logger.info('丢弃过期热门标签响应：请求期间模式已切换');
+      }
     } catch (e) {
       logger.error('加载热门标签失败:', e);
+      if (retry) {
+        await new Promise<void>((resolve: (value: void) => void) => {
+          setTimeout(() => resolve(), 2500);
+        });
+        await this.loadTrendingTags(false);
+      }
     }
   }
 
@@ -131,14 +152,14 @@ class SearchViewModel implements IIllustSwiperProvider {
     try {
       if (this.searchType === 'illust') {
         const data = await pixiv.searchIllust(this.keyword, undefined, { sort: 'popular_desc', minBookmark: 1000, searchTarget: 'exact_match_for_tags' });
-        this.resultIllusts = data.illusts as PixivIllust[];
+        this.resultIllusts = muteFilter.filterIllusts(data.illusts as PixivIllust[]);
         this.IllustNextUrl = data.next_url || '';
         this.lastSearchedIllustKeyword = this.keyword;
       }
       // 小说搜索逻辑
       else if (this.searchType === 'novel') {
         const data = await pixiv.searchNovel(this.keyword, undefined, { sort: 'popular_desc', searchTarget: 'exact_match_for_tags' });
-        this.resultNovels = data.novels || [];
+        this.resultNovels = muteFilter.filterNovels(data.novels || []);
         this.novelNextUrl = data.next_url || '';
         this.lastSearchedNovelKeyword = this.keyword;
       }
@@ -172,11 +193,11 @@ class SearchViewModel implements IIllustSwiperProvider {
       if (this.searchType === 'illust') {
         const data = await pixiv.searchIllust('', nextUrl);
         if (data.illusts)
-        this.resultIllusts.push(...data.illusts);
+        this.resultIllusts.push(...muteFilter.filterIllusts(data.illusts));
         this.IllustNextUrl = data.next_url || '';
       } else if (this.searchType === 'novel') {
         const data = await pixiv.searchNovel('', nextUrl);
-        if (data.novels) this.resultNovels.push(...data.novels);
+        if (data.novels) this.resultNovels.push(...muteFilter.filterNovels(data.novels));
         this.novelNextUrl = data.next_url || '';
       }  else {
         const data = await pixiv.searchUser('', nextUrl);

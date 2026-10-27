@@ -7,6 +7,7 @@ import { FunctionConstants } from '../common/constants/FunctionConstants';
 import { RankTab } from '../common/entity/RankModel';
 import { DetailPageParams, IIllustSwiperProvider } from '../common/entity/DetailEntity';
 import { PixState } from '../entryability/AppState';
+import { muteFilter } from '../services/MuteFilter';
 
 const logger = createLogger('RankVM');
 
@@ -65,8 +66,8 @@ export class RankViewModel implements IIllustSwiperProvider {
     this.fetchRanking();
   }
 
-  /** 加载排行榜数据 */
-  async fetchRanking() {
+  /** 加载排行榜数据，返回是否成功（失败供冷启动自动重试判断） */
+  async fetchRanking(): Promise<boolean> {
     // 切换模式时，如果当前 mode 不再支持，自动回退
     // 获取当前模式下的可用 modes (优先用用户自定义的，没有则用全量默认)
     const supportedModes = appSettings.novel_mode
@@ -78,7 +79,7 @@ export class RankViewModel implements IIllustSwiperProvider {
       logger.debug(`[fetchRanking] 当前mode不支持，自动回退至: ${this.currentMode}`);
     }
 
-    if (this.isLoading) return;
+    if (this.isLoading) return true;
     this.isLoading = true;
     this.rankList = [];
     this.rankNovels = [];
@@ -87,22 +88,47 @@ export class RankViewModel implements IIllustSwiperProvider {
 
     // date 参数，空字符串时不传
     const dateParam = this.currentDate || undefined;
-    logger.debug(`[fetchRanking] 开始请求: mode=${this.currentMode}, date=${dateParam || '无'}, novelMode=${appSettings.novel_mode}`);
     try {
-      if (appSettings.novel_mode) {
-        const res = await pixiv.getNovelRanking(this.currentMode, dateParam);
-        this.rankNovels = res.novels || [];
-        this.nextNovelUrl = res.next_url || '';
-      } else {
-        const res = await pixiv.getRanking(this.currentMode, dateParam);
-        this.rankList = res.illusts || [];
-        this.nextUrl = res.next_url || '';
+      // 快速双切模式时，在途响应对应的是旧模式：丢弃并按新模式重载，防止串台/空列表
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const modeAtStart = appSettings.novel_mode;
+        logger.debug(`[fetchRanking] 开始请求: mode=${this.currentMode}, date=${dateParam || '无'}, novelMode=${modeAtStart}`);
+        if (modeAtStart) {
+          const res = await pixiv.getNovelRanking(this.currentMode, dateParam);
+          // 请求期间模式被再次切换：丢弃过期响应，按新模式重试
+          if (appSettings.novel_mode !== modeAtStart && attempt < 2) {
+            continue;
+          }
+          this.rankNovels = muteFilter.filterNovels(res.novels || []);
+          this.nextNovelUrl = res.next_url || '';
+        } else {
+          const res = await pixiv.getRanking(this.currentMode, dateParam);
+          if (appSettings.novel_mode !== modeAtStart && attempt < 2) {
+            continue;
+          }
+          this.rankList = muteFilter.filterIllusts(res.illusts || []);
+          this.nextUrl = res.next_url || '';
+        }
+        return true;
       }
+      return true;
     } catch (e) {
       logger.error(`[fetchRanking] 请求失败: ${JSON.stringify(e)}`);
       toastUtil.showToast({ message: '加载排行榜失败' });
+      return false;
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  /** 冷启动首载：立即加载（Token 过期由 401 自愈等待静默刷新后重试），失败 2.5s 后自动重试一次 */
+  async initialLoad(): Promise<void> {
+    const ok = await this.fetchRanking();
+    if (!ok) {
+      await new Promise<void>((resolve: (value: void) => void) => {
+        setTimeout(() => resolve(), 2500);
+      });
+      await this.fetchRanking();
     }
   }
 
@@ -112,12 +138,12 @@ export class RankViewModel implements IIllustSwiperProvider {
     try {
       if (appSettings.novel_mode) {
         const res = await pixiv.getNovelRanking(this.currentMode, this.currentDate, this.nextNovelUrl);
-        const newNovels = res.novels || [];
+        const newNovels = muteFilter.filterNovels(res.novels || []);
         this.rankNovels = [...this.rankNovels, ...newNovels];
         this.nextNovelUrl = res.next_url || '';
       } else {
         const res = await pixiv.getRanking(this.currentMode, this.currentDate, this.nextUrl);
-        const newIllusts = res.illusts || [];
+        const newIllusts = muteFilter.filterIllusts(res.illusts || []);
         this.rankList = [...this.rankList, ...newIllusts];
         this.nextUrl = res.next_url || '';
       }

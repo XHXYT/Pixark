@@ -82,7 +82,8 @@ struct UserAccounts {
   @Builder UserAccount(userInfo: AccountContext) {
     Row({ space: 16 }) {
       PixivImageComponent({
-        imageUrl: userInfo.user.profile_image_urls?.medium,
+        // OAuth user 无 medium 键，兜底 px_170x170
+        imageUrl: userInfo.user.profile_image_urls?.medium || userInfo.user.profile_image_urls?.px_170x170 || '',
         imageWidth: 64,
         imageHeight: 64,
         imageBorder: { radius: 32 }

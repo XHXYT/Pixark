@@ -26,6 +26,9 @@ export class PixivAuth {
   // 用于存储正在进行的刷新 Promise，防止并发刷新
   private refreshingPromise: Promise<AccountContext> | null = null;
 
+  // 冷启动 Token 就绪门闩：所有页面首载共享同一次静默刷新
+  private readyPromise: Promise<void> | null = null;
+
   /**
    * 客户端凭据列表
    * 因为 Pixiv 的官方凭据可能会失效或变动，这里配置了多组，
@@ -61,6 +64,8 @@ export class PixivAuth {
         headers['App-OS'] = 'android';
         headers['App-OS-Version'] = '11.0';
         headers['App-Version'] = '5.0.234';
+        // 让 pixiv 服务端在响应中返回标签的中文翻译 (tags[].translated_name)
+        headers['Accept-Language'] = 'zh-CN';
       },
       // 收到 401 时自动刷新 Token 并重试一次（替代原 axios 响应拦截器）
       onUnauthorized: async (headers: Record<string, string>): Promise<boolean> => {
@@ -126,6 +131,15 @@ export class PixivAuth {
     } else {
       logger.error(`Account not found: ${userId}`);
     }
+  }
+
+  /** 清空内存中所有账号（退出登录用；持久化记录由调用方决定是否保留） */
+  clearAccounts(): void {
+    this.accounts.clear();
+    this.activeUserId = null;
+    this.refreshingPromise = null;
+    this.readyPromise = null;
+    logger.info('All in-memory accounts cleared.');
   }
 
   /**
@@ -377,10 +391,51 @@ export class PixivAuth {
   }
 
   /**
+   * 冷启动 Token 就绪门闩（幂等，所有调用方共享同一次刷新）
+   * - 有激活账号时静默刷新一次 Access Token（登记 refreshingPromise，
+   *   使 401 重试路径能感知并等待，避免二次并发刷新）
+   * - 刷新失败也不 reject：放行页面用旧 Token 走 401 自愈路径
+   */
+  waitForReady(): Promise<void> {
+    if (!this.readyPromise) {
+      this.readyPromise = this.doSilentRefresh();
+    }
+    return this.readyPromise;
+  }
+
+  private async doSilentRefresh(): Promise<void> {
+    const account = this.getActiveAccount();
+    if (!account || !account.refreshToken) {
+      logger.info('Silent refresh skipped: no active account.');
+      return;
+    }
+    logger.info('Silently refreshing active token in background...');
+    // 登记到 refreshingPromise：并发 401 重试会等待本次刷新而不是再发一次
+    if (!this.refreshingPromise) {
+      this.refreshingPromise = this.loginWithRefreshToken(account.refreshToken);
+    }
+    try {
+      await this.refreshingPromise;
+      this.refreshingPromise = null;
+      logger.info('Silent refresh successful.');
+    } catch (e) {
+      this.refreshingPromise = null;
+      logger.warn(`Silent refresh failed: ${JSON.stringify(e)}`);
+    }
+  }
+
+  /**
    * 内部方法：更新/添加账号上下文，并设为激活状态
    */
   private updateAccountContext(access: string, refresh: string, user: PixivUser, password?: string): AccountContext {
     const userId = user.id.toString();
+    // OAuth（auth/token）响应的 user.profile_image_urls 只有 px_* 键、没有 medium，
+    // 静默刷新/快速登录会覆盖掉已补全的头像数据，导致 UI 侧 avatarUrl 闪失；
+    // 新数据缺 medium 时保留旧账号的头像字段
+    const oldAccount = this.accounts.get(userId);
+    if (oldAccount && !user.profile_image_urls?.medium && oldAccount.user.profile_image_urls?.medium) {
+      user.profile_image_urls = oldAccount.user.profile_image_urls;
+    }
     const context: AccountContext = {
       userId,
       accessToken: access,

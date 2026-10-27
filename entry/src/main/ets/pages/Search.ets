@@ -46,25 +46,34 @@ export struct SearchContent {
         Text($r('app.string.search'))
           .fontSize(22)
           .fontWeight(FontWeight.Bold)
-        Search({ value: searchVM.keyword!!, placeholder: $r('app.string.search_placeholder_1') })
-          .defaultFocus(false)
-          .focusOnTouch(false)
-          .searchButton($r('sys.symbol.picture_star_fill'))
-          .geometryTransition('SEARCH_ID', { follow: true })
-          .transition(TransitionEffect.OPACITY.animation({ duration: 350, curve: Curve.Friction }))
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Up) {
-              this.getUIContext().animateTo({
-                curve: curves.interpolatingSpring(0, 1, 342, 38)
-              }, () => {
-                this.pageInfos.pushPath({ name: 'searching_page' }, false);
-              })
-            }
-          })
-          .onSubmit(() => {
-            // TODO 拉起图片选择以图搜图
-            toastUtil.showToast({ message: '开发中-以图搜图' })
-          })
+        Stack({ alignContent: Alignment.End }) {
+          Search({ value: searchVM.keyword!!, placeholder: $r('app.string.search_placeholder_1') })
+            .defaultFocus(false)
+            .focusOnTouch(false)
+            .width('100%')
+            .geometryTransition('SEARCH_ID', { follow: true })
+            .transition(TransitionEffect.OPACITY.animation({ duration: 350, curve: Curve.Friction }))
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Up) {
+                this.getUIContext().animateTo({
+                  curve: curves.interpolatingSpring(0, 1, 342, 38)
+                }, () => {
+                  this.pageInfos.pushPath({ name: 'searching_page' }, false);
+                })
+              }
+            })
+
+          // 以图搜图入口
+          SymbolGlyph($r('sys.symbol.picture_star_fill'))
+            .fontSize(20)
+            .fontColor([$r('sys.color.font_secondary')])
+            .margin({ right: 12 })
+            .padding({ top: 8, bottom: 8, left: 6, right: 2 })
+            .onClick(() => {
+              PixState.pushPage(appSettings.use_saucenao_webview ? 'sauce_nao_web' : 'sauce_nao', null, true)
+            })
+        }
+        .width('100%')
 
         List({ space: 10 }) {
           // 搜索历史

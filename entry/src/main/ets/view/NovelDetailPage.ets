@@ -11,6 +11,7 @@ import { createLogger } from '../common/utils/Logger';
 import { getThemeConfig, ReadingTheme } from '../common/entity/NovelModel';
 import { NovelDetailParams } from '../common/entity/DetailEntity';
 import { toastUtil } from '../common/utils/ToastUtils';
+import { installWebSchemeHandler } from '../services/direct/WebDirect';
 import { UISettings } from '../common/entity/SettingsModel';
 
 const logger = createLogger('NovelDetailPage');
@@ -456,6 +457,12 @@ struct NovelDetail {
       .zoomAccess(true)
       .textZoomAtio(100)
       .onControllerAttached(() => {
+        try {
+          // 直连桥：Pixiv 域名（ECH/COMPAT 模式）接管 WebView 网络层
+          installWebSchemeHandler(this.webController);
+        } catch (error) {
+          logger.error(`install scheme handler failed: ${JSON.stringify(error)}`);
+        }
         this.loadWebContent();
       })
   }

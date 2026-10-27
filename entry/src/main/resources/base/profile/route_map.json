@@ -16,6 +16,11 @@
       "buildFunction": "TokenLoginPage"
     },
     {
+      "name": "password_login",
+      "pageSourceFile": "src/main/ets/view/login/PasswordLogin.ets",
+      "buildFunction": "PasswordLoginPage"
+    },
+    {
       "name": "illust_detail",
       "pageSourceFile": "src/main/ets/view/IllustDetailPage.ets",
       "buildFunction": "IllustDetailBuilder"
@@ -94,6 +99,36 @@
       "name": "novel_detail",
       "pageSourceFile": "src/main/ets/view/NovelDetailPage.ets",
       "buildFunction": "NovelDetailBuilder"
+    },
+    {
+      "name": "spotlight",
+      "pageSourceFile": "src/main/ets/view/SpotlightPage.ets",
+      "buildFunction": "SpotlightPageBuilder"
+    },
+    {
+      "name": "spotlight_list",
+      "pageSourceFile": "src/main/ets/view/SpotlightListPage.ets",
+      "buildFunction": "SpotlightListPageBuilder"
+    },
+    {
+      "name": "sauce_nao",
+      "pageSourceFile": "src/main/ets/view/SauceNaoPage.ets",
+      "buildFunction": "SauceNaoPageBuilder"
+    },
+    {
+      "name": "sauce_nao_web",
+      "pageSourceFile": "src/main/ets/view/SauceNaoWebPage.ets",
+      "buildFunction": "SauceNaoWebPageBuilder"
+    },
+    {
+      "name": "mute_settings",
+      "pageSourceFile": "src/main/ets/view/more/MuteSettings.ets",
+      "buildFunction": "MuteSettingsBuilder"
+    },
+    {
+      "name": "book_tags",
+      "pageSourceFile": "src/main/ets/view/more/BookTagPage.ets",
+      "buildFunction": "BookTagPageBuilder"
     }
   ]
 }

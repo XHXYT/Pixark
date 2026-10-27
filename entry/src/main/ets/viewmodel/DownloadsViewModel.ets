@@ -873,7 +873,8 @@ export class DownloadsViewModel {
       let safeTitle = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
       const extension = dotIndex > 0 ? fileName.substring(dotIndex + 1) : 'jpg';
       logger.info(`[SaveDebug] 文件名: ${fileName}, 标题: ${safeTitle}, 后缀: ${extension}`);
-      safeTitle = safeTitle.replace(/\./g, '_');
+      // 系统媒体库 CheckTitleCompatible 黑名单字符：. \ / : * ? " ' ` < > | { } [ ]，命中会导致保存弹窗静默自毁（Promise 永不结算）
+      safeTitle = safeTitle.replace(/[.\\/:*?"'`<>|{}[\]]/g, '_');
       // 生成 URI
       const srcUri = fileUri.getUriFromPath(localPath);
       logger.info(`[SaveDebug] >>> 生成的系统 URI: ${srcUri} <<<`);

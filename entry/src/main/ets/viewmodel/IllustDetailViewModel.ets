@@ -13,6 +13,7 @@ import { pixiv } from '../services/PixivService';
 import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
 import { historyVM } from './HistoryViewModel';
+import { muteFilter } from '../services/MuteFilter';
 
 
 const logger = createLogger('IllustDetailViewModel')
@@ -111,7 +112,7 @@ export class IllustDetailViewModel implements IIllustSwiperProvider {
     try {
       // 统一调用改造后的 Service 方法
       const data = await pixiv.getRelatedIllusts(id || 0, nextUrl);
-      const newIllusts = data.illusts || [];
+      const newIllusts = muteFilter.filterIllusts(data.illusts || []);
 
       if (nextUrl) {
         // 翻页：去重合并

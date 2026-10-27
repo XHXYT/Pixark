@@ -90,6 +90,10 @@ export class AppSettings {
   @Trace swiper_browsing: boolean = true
   @Trace show_thumbnail: boolean = false
   @Trace novel_mode: boolean = false
+  /** 以图搜图用 WebView 打开 SauceNAO（关闭则用原生结果页） */
+  @Trace use_saucenao_webview: boolean = false
+  /** 屏蔽功能总开关（关闭后所有屏蔽规则暂停生效） */
+  @Trace mute_enabled: boolean = true
 
   // 网络连接（对齐上游 PixEz：ech / compat / standard，默认标准模式）
   @Trace network_mode_auth: string = 'standard'
@@ -100,6 +104,8 @@ export class AppSettings {
   @Trace custom_hosts: string = ''
   /** 图片 CDN 测速排序池（逗号分隔 IP，按实测吞吐降序，「CDN IP 测速」完成后写入） */
   @Trace speed_test_pool: string = ''
+  /** 图片缓存总大小上限（MB，imgcache + ImageKnife 合计），'0' 表示不限制 */
+  @Trace image_cache_limit_mb: string = '512'
 
   constructor() {}
 
@@ -126,11 +132,14 @@ export class AppSettings {
       this.swiper_browsing = (json["swiper_browsing"] as boolean) ?? this.swiper_browsing;
       this.show_thumbnail = (json["show_thumbnail"] as boolean) ?? this.show_thumbnail;
       this.novel_mode = (json["novel_mode"] as boolean) ?? this.novel_mode;
+      this.use_saucenao_webview = (json["use_saucenao_webview"] as boolean) ?? this.use_saucenao_webview;
+      this.mute_enabled = (json["mute_enabled"] as boolean) ?? this.mute_enabled;
       this.network_mode_auth = (json["network_mode_auth"] as string) ?? this.network_mode_auth;
       this.network_mode_api = (json["network_mode_api"] as string) ?? this.network_mode_api;
       this.picture_source = (json["picture_source"] as string) ?? this.picture_source;
       this.custom_hosts = (json["custom_hosts"] as string) ?? this.custom_hosts;
       this.speed_test_pool = (json["speed_test_pool"] as string) ?? this.speed_test_pool;
+      this.image_cache_limit_mb = (json["image_cache_limit_mb"] as string) ?? this.image_cache_limit_mb;
 
       console.info("[AppSettings] App配置加载成功");
     } catch (e) {
@@ -140,7 +149,7 @@ export class AppSettings {
     this.syncNetworkState();
   }
 
-  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode', 'show_illust_title')
+  @Monitor('swiper_browsing', 'show_thumbnail', 'rank_modes', 'novel_mode', 'show_illust_title', 'image_cache_limit_mb', 'use_saucenao_webview', 'mute_enabled')
   public async save(): Promise<void> {
     try {
       const data: Record<string, Object> = {
@@ -161,11 +170,14 @@ export class AppSettings {
         "swiper_browsing": this.swiper_browsing,
         "show_thumbnail": this.show_thumbnail,
         "novel_mode": this.novel_mode,
+        "use_saucenao_webview": this.use_saucenao_webview,
+        "mute_enabled": this.mute_enabled,
         "network_mode_auth": this.network_mode_auth,
         "network_mode_api": this.network_mode_api,
         "picture_source": this.picture_source,
         "custom_hosts": this.custom_hosts,
-        "speed_test_pool": this.speed_test_pool
+        "speed_test_pool": this.speed_test_pool,
+        "image_cache_limit_mb": this.image_cache_limit_mb
       };
       const jsonStr: string = JSON.stringify(data);
       await preferenceUtil.put(AppConstants.KEY_APP_SETTINGS, jsonStr);
@@ -249,11 +261,14 @@ export class AppSettings {
       this.swiper_browsing = true;
       this.show_thumbnail = false;
       this.novel_mode = false
+      this.use_saucenao_webview = false
+      this.mute_enabled = true
       this.network_mode_auth = 'standard';
       this.network_mode_api = 'standard';
       this.picture_source = DEFAULT_IMAGE_HOST;
       this.custom_hosts = '';
       this.speed_test_pool = '';
+      this.image_cache_limit_mb = '512';
 
       this.syncNetworkState();
       this.save()

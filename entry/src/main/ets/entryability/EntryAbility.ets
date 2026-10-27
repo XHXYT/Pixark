@@ -24,6 +24,9 @@ import { bundleManager } from "@kit.AbilityKit";
 import { AppConstants } from '../common/constants/AppConstants';
 import { rankVM } from '../viewmodel/RankViewModel';
 import { searchVM } from '../viewmodel/SearchViewModel';
+import { imageCache } from '../services/direct/ImageCache';
+import { muteFilter } from '../services/MuteFilter';
+import { bookTagStore } from '../services/BookTagStore';
 
 const logger = createLogger('EntryAbility')
 const BREAKPOINT_RATIO_LANDSCAPE = 0.79;
@@ -130,8 +133,19 @@ export default class EntryAbility extends UIAbility {
     SettingsUtils.setColorMode()
     // 初始化 ImageKnife 文件缓存
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024);
+    // 按图片缓存总上限执行一次 LRU 淘汰（imgcache + ImageKnife）。
+    // 扫描+删除是主线程同步 IO，放在启动关键路径会拖慢冷启动，延迟到 UI 稳定后执行
+    // （写盘路径另有 30s/32MB 防抖兜底，不会因此超限失控）
+    setTimeout(() => {
+      imageCache.enforceLimitNow();
+    }, 5000);
     // 全局添加 Pixiv 必需的 Referer
     ImageKnife.getInstance().addHeader('Referer', AppConstants.REFERER_URL);
+    // 初始化屏蔽过滤器并加载规则到内存（列表过滤与拦截页依赖内存索引）
+    muteFilter.init(this.context);
+    await muteFilter.reload();
+    // 初始化收藏标签存储
+    bookTagStore.init(this.context);
     // 初始化AppVersion
     this.initAppVersion()
   }
@@ -186,6 +200,12 @@ export default class EntryAbility extends UIAbility {
         const accountsJson = await kvDbUtil.getData<string>('pixiv_accounts', '[]');
         savedAccounts = JSON.parse(accountsJson) as AccountContext[];
         lastActiveUserId = await kvDbUtil.getData<string>('active_user_id', '');
+        // 用户主动退出后不自动登录（账号记录保留，登录页可选择快速登录）
+        const autoLoginFlag = await kvDbUtil.getData<string>('auto_login', '1');
+        if (autoLoginFlag === '0') {
+          logger.info('InitAccounts', 'Auto-login disabled (user logged out), skipping account init.');
+          return;
+        }
         break;
       } catch (dbError) {
         retryCount--;
@@ -210,6 +230,7 @@ export default class EntryAbility extends UIAbility {
             savedAccounts.push(newAccount);
             await kvDbUtil.putData('pixiv_accounts', JSON.stringify(savedAccounts));
             await kvDbUtil.putData('active_user_id', newAccount.userId);
+            await kvDbUtil.putData('auto_login', '1');
             pixiv.initAccounts(savedAccounts, newAccount.userId);
             logger.info('InitAccounts', 'Old token migrated successfully.');
             return;
@@ -263,21 +284,19 @@ export default class EntryAbility extends UIAbility {
    */
   private async backgroundSyncData() {
     try {
-      // 后台静默刷新当前激活账号的 Token
-      const activeAccount = pixiv.getActiveAccount();
-      if (activeAccount?.refreshToken) {
-        try {
-          logger.info('BackgroundSync', 'Silently refreshing active token in background...');
-          const updatedAccount = await pixiv.loginWithRefreshToken(activeAccount.refreshToken);
-          const allAccounts = pixiv.getAllAccounts();
-          const index = allAccounts.findIndex((a: AccountContext) => a.userId === updatedAccount.userId);
-          if (index !== -1) allAccounts[index] = updatedAccount;
-          await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
-          logger.info('BackgroundSync', 'Silent refresh successful.');
-        } catch (refreshError) {
-          logger.warn('BackgroundSync', `Silent refresh failed: ${JSON.stringify(refreshError)}`);
-        }
+      // 先触发静默刷新（不等待）：refreshingPromise 已登记，
+      // 页面用旧 Token 的请求遇到 401 会等待同一次刷新后重试，不会二次并发刷新
+      const ready = pixiv.waitForReady();
+      // 主页加载与刷新并发：旧 Token 有效（常见情形）时立即出数据，
+      // 过期则经 401 自愈等刷新完成后重试，总耗时不会比串行等待更差
+      if (!PixState.isTest) {
+        this.loadHomeWithRetry();
+      } else {
+        await this.loadHomeWithRetry();
       }
+      // 刷新完成后持久化账号数据（updateAccountContext 已更新内存态，这里统一落盘）
+      await ready;
+      await kvDbUtil.putData('pixiv_accounts', JSON.stringify(pixiv.getAllAccounts()));
 
       // 补全用户详细信息
       const currentUser = PixState.currentUser;
@@ -292,16 +311,24 @@ export default class EntryAbility extends UIAbility {
         const allAccounts = pixiv.getAllAccounts();
         await kvDbUtil.putData('pixiv_accounts', JSON.stringify(allAccounts));
       }
-
-      // 加载主页内容 (展示骨架屏)
-      if (!PixState.isTest) {
-        homeViewModel.loadHomeData();
-      } else {
-        await homeViewModel.loadHomeData();
-      }
+      // 注意：主页数据只在方法开头加载一次（loadHomeWithRetry，失败自带 2.5s 重试）；
+      // Token 过期场景由 401 自愈机制等刷新后重试，无需这里再次刷新
     } catch (e) {
       logger.error('BackgroundSync', `Error: ${e?.message || JSON.stringify(e)}`);
     }
+  }
+
+  /** 加载主页数据，失败后延迟 2.5s 重试一次（兜底冷启动 ECH 链路抖动）；
+   *  重试链全部结束后才结束骨架屏，避免中途露出空列表 */
+  private async loadHomeWithRetry(): Promise<void> {
+    const ok = await homeViewModel.loadHomeData();
+    if (!ok) {
+      await new Promise<void>((resolve: (value: void) => void) => {
+        setTimeout(() => resolve(), 2500);
+      });
+      await homeViewModel.loadHomeData();
+    }
+    homeViewModel.endInitialLoading();
   }
 
   private async initAppVersion() {

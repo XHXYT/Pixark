@@ -4,7 +4,8 @@ import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { IllustDetailViewModel } from "../viewmodel/IllustDetailViewModel";
 import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
-import { LengthMetrics } from "@kit.ArkUI";
+import { LengthMetrics, SymbolGlyphModifier } from "@kit.ArkUI";
+import { pasteboard } from "@kit.BasicServicesKit";
 import { homeViewModel } from "../viewmodel/HomeViewModel";
 import { DetailPageParams, IIllustSwiperProvider } from "../common/entity/DetailEntity";
 import { UserItem } from "../components/UserItem";
@@ -18,6 +19,9 @@ import { CustomTransition } from "../common/utils/customtransition/CustomNavigat
 import { CardUtil } from "../common/utils/CardUtil";
 import { createLogger } from "../common/utils/Logger";
 import { CommentPanel } from "./CommentPanel";
+import { muteFilter, MuteReason } from "../services/MuteFilter";
+import { bookTagStore } from "../services/BookTagStore";
+import { toastUtil } from "../common/utils/ToastUtils";
 
 const logger = createLogger('IllustDetail')
 
@@ -34,6 +38,8 @@ struct IllustDetail {
   @Local illustTitle: string = ''
   @Local showLargeImage: boolean = false
   @Local currentSwiperIndex: number = 0
+  @Local showMenu: boolean = false
+  @Local currentIllust: PixivIllust | null = null
 
   private pageStack: NavPathStack = new NavPathStack()
   private swiperProvider: IIllustSwiperProvider | undefined = undefined
@@ -60,7 +66,63 @@ struct IllustDetail {
       onNaviDisAppear: () => {
         homeViewModel.restoreIllustVisibility();
         SnapShotUtils.clear();
+      },
+      showMenu: this.showMenu,
+      buttons: this.detailButtons(),
+      menusBuilder: () => { this.DetailMenu() }
+    })
+  }
+
+  // 标题栏按钮：屏蔽菜单入口
+  private detailButtons(): NavigationMenuItem[] {
+    return [
+      {
+        value: '',
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.dot_grid_2x2')),
+        action: () => {
+          this.showMenu = !this.showMenu
+        }
       }
+    ]
+  }
+
+  // 屏蔽菜单
+  @Builder
+  DetailMenu() {
+    Menu() {
+      MenuItem({ content: $r('app.string.mute_this_illust') })
+        .enabled(!!this.currentIllust)
+        .onClick(() => {
+          this.showMenu = false
+          this.muteCurrentIllust()
+        })
+      MenuItem({ content: $r('app.string.mute_this_artist') })
+        .enabled(!!this.currentIllust)
+        .onClick(() => {
+          this.showMenu = false
+          this.muteCurrentArtist()
+        })
+      MenuItem({ content: $r('app.string.mute_settings') })
+        .onClick(() => {
+          this.showMenu = false
+          PixState.pushPage('mute_settings', null, true)
+        })
+    }
+  }
+
+  private muteCurrentIllust(): void {
+    const illust = this.currentIllust
+    if (!illust) return
+    muteFilter.addRule('illust', String(illust.id), illust.title).then((ok: boolean) => {
+      toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
+    })
+  }
+
+  private muteCurrentArtist(): void {
+    const illust = this.currentIllust
+    if (!illust) return
+    muteFilter.addRule('user', String(illust.user.id), illust.user.name).then((ok: boolean) => {
+      toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
     })
   }
 
@@ -103,7 +165,8 @@ struct IllustDetail {
               pageStack: this.pageStack,
               showLargeImage: this.showLargeImage,
               onImageLarge: (show) => { this.showLargeImage = show },
-              onTitle: (title) => { this.illustTitle = title }
+              onTitle: (title) => { this.illustTitle = title },
+              onIllust: (illust) => { this.currentIllust = illust }
             })
           })
       }
@@ -127,7 +190,8 @@ struct IllustDetail {
         pageStack: this.pageStack,
         showLargeImage: this.showLargeImage,
         onImageLarge: (show) => { this.showLargeImage = show },
-        onTitle: (title) => { this.illustTitle = title }
+        onTitle: (title) => { this.illustTitle = title },
+        onIllust: (illust) => { this.currentIllust = illust }
       })
         .width('100%')
         .height('100%')
@@ -159,9 +223,19 @@ struct IllustDetailContent {
   @Local currentImageIndex: number = 0
   @Local showCommentPanel: boolean = false
   @Local iDV: IllustDetailViewModel = new IllustDetailViewModel()
+  /** 命中的屏蔽规则（进入已屏蔽作品时非空） */
+  @Local muteReason: MuteReason | null = null
+  /** 本次浏览中暂时查看被屏蔽内容 */
+  @Local tempViewMuted: boolean = false
+  /** 长按标签：选中的标签 + 详情半模态 */
+  @Local selectedTag: PixivTag | null = null
+  @Local showTagDetail: boolean = false
+  /** 当前选中标签是否已收藏 */
+  @Local tagBookmarked: boolean = false
 
   @Event onImageLarge: (show: boolean) => void
   @Event onTitle: (title: string) => void
+  @Event onIllust: (illust: PixivIllust | null) => void
 
   async aboutToAppear(): Promise<void> {
     // 根据 ID 加载详情
@@ -169,8 +243,22 @@ struct IllustDetailContent {
     this.iDV.loadRelated(this.illustId);
   }
 
+  /** 详情数据变化：上报给外层菜单 + 检查屏蔽状态 */
+  @Monitor('iDV.detailData')
+  onDetailDataChanged(): void {
+    const illust = this.iDV.detailData
+    this.onIllust(illust)
+    if (!illust || this.tempViewMuted) {
+      return
+    }
+    this.muteReason = muteFilter.checkIllust(illust)
+  }
+
   build() {
-    Stack({ alignContent: 8 - PixState.buttonPosition }) {
+    if (this.muteReason && !this.tempViewMuted) {
+      this.MuteOverlay()
+    } else {
+      Stack({ alignContent: 8 - PixState.buttonPosition }) {
       Row() {
         List({ space: 10 }) {
           ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
@@ -245,6 +333,183 @@ struct IllustDetailContent {
           .transition(TransitionEffect.OPACITY.animation({ duration: 200, curve: Curve.EaseOut }))
       }
     }
+    }
+  }
+
+  /** 被屏蔽作品的拦截页 */
+  @Builder
+  MuteOverlay() {
+    Column({ space: 16 }) {
+      SymbolGlyph($r('sys.symbol.eye_slash'))
+        .fontSize(64)
+        .fontColor([$r('sys.color.font_tertiary')])
+      Text($r('app.string.mute_blocked_illust'))
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('sys.color.font_primary'))
+      if (this.muteReason?.kind === 'illust') {
+        Text($r('app.string.mute_reason_illust'))
+          .fontSize(13)
+          .fontColor($r('sys.color.font_secondary'))
+          .textAlign(TextAlign.Center)
+          .constraintSize({ maxWidth: '80%' })
+      } else if (this.muteReason?.kind === 'user') {
+        Text($r('app.string.mute_reason_user', this.muteReason?.name ?? ''))
+          .fontSize(13)
+          .fontColor($r('sys.color.font_secondary'))
+          .textAlign(TextAlign.Center)
+          .constraintSize({ maxWidth: '80%' })
+      } else {
+        Text($r('app.string.mute_reason_tag', this.muteReason?.name ?? ''))
+          .fontSize(13)
+          .fontColor($r('sys.color.font_secondary'))
+          .textAlign(TextAlign.Center)
+          .constraintSize({ maxWidth: '80%' })
+      }
+      Row({ space: 12 }) {
+        Button($r('app.string.mute_temp_view'))
+          .backgroundColor($r('sys.color.comp_background_tertiary'))
+          .fontColor($r('sys.color.font_primary'))
+          .onClick(() => {
+            this.tempViewMuted = true
+          })
+        Button($r('app.string.mute_unblock'))
+          .backgroundColor(PixState.currentThemeColor)
+          .onClick(() => {
+            this.unblockCurrent()
+          })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor($r('sys.color.background_primary'))
+  }
+
+  /** 解除当前命中的屏蔽规则 */
+  private unblockCurrent(): void {
+    const reason = this.muteReason
+    if (!reason) {
+      return
+    }
+    muteFilter.removeRule(reason.kind, reason.key).then(() => {
+      this.muteReason = null
+      toastUtil.showToast({ message: $r('app.string.mute_removed') })
+    })
+  }
+
+  /** 长按标签：屏蔽该标签 */
+  private muteTag(tag: PixivTag): void {
+    muteFilter.addRule('tag', tag.name, tag.name).then((ok: boolean) => {
+      toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
+      // 当前页保持可见（本次浏览内不再检查屏蔽）
+      this.tempViewMuted = true
+    })
+  }
+
+  /** 标签详情半模态（完整标签名 + 翻译 + 收藏/屏蔽/复制操作） */
+  @Builder
+  TagDetailSheet() {
+    Column({ space: 16 }) {
+      Column({ space: 8 }) {
+        Text(`#${this.selectedTag?.name ?? ''}`)
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.font_primary'))
+          .width('100%')
+          .textSelectable(TextSelectableMode.SELECTABLE_UNFOCUSABLE)
+        if (this.selectedTag?.translated_name) {
+          Text(this.selectedTag?.translated_name ?? '')
+            .fontSize(14)
+            .fontColor($r('sys.color.font_secondary'))
+            .width('100%')
+            .textSelectable(TextSelectableMode.SELECTABLE_UNFOCUSABLE)
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+
+      Row({ space: 12 }) {
+        // 收藏标签（再次点击取消收藏）
+        Button(this.tagBookmarked ? $r('app.string.book_tag_cancel') : $r('app.string.book_tag_action'))
+          .layoutWeight(1)
+          .backgroundColor(this.tagBookmarked ? $r('sys.color.comp_background_list_card') : PixState.currentThemeColor)
+          .fontColor(this.tagBookmarked ? $r('sys.color.font_primary') : Color.White)
+          .onClick(() => {
+            this.toggleBookmark()
+          })
+        Button($r('app.string.mute_this_tag'))
+          .layoutWeight(1)
+          .backgroundColor($r('sys.color.comp_background_list_card'))
+          .fontColor($r('sys.color.font_primary'))
+          .onClick(() => {
+            const tag = this.selectedTag
+            this.showTagDetail = false
+            if (tag) {
+              this.muteTag(tag)
+            }
+          })
+      }
+      .width('100%')
+
+      Row({ space: 12 }) {
+        Button($r('app.string.copy_tag'))
+          .layoutWeight(1)
+          .backgroundColor($r('sys.color.comp_background_list_card'))
+          .fontColor($r('sys.color.font_primary'))
+          .onClick(() => {
+            this.copyText(this.selectedTag?.name ?? '')
+            this.showTagDetail = false
+          })
+        Button($r('app.string.copy_translation'))
+          .layoutWeight(1)
+          .enabled(!!this.selectedTag?.translated_name)
+          .backgroundColor($r('sys.color.comp_background_list_card'))
+          .fontColor($r('sys.color.font_primary'))
+          .onClick(() => {
+            this.copyText(this.selectedTag?.translated_name ?? '')
+            this.showTagDetail = false
+          })
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 16, bottom: PixState.bottomRectHeight + 12 })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 收藏 / 取消收藏当前标签（半模态内切换，不关闭） */
+  private toggleBookmark(): void {
+    const tag = this.selectedTag
+    if (!tag) {
+      return
+    }
+    if (this.tagBookmarked) {
+      bookTagStore.remove(tag.name).then((ok: boolean) => {
+        if (ok) {
+          this.tagBookmarked = false
+          toastUtil.showToast({ message: $r('app.string.book_tag_removed_toast') })
+        }
+      })
+    } else {
+      bookTagStore.add(tag.name, tag.translated_name ?? '').then((ok: boolean) => {
+        this.tagBookmarked = true
+        toastUtil.showToast({ message: ok ? $r('app.string.book_tag_added') : $r('app.string.book_tag_add_failed') })
+      })
+    }
+  }
+
+  /** 复制文本到剪贴板 */
+  private copyText(text: string): void {
+    if (!text) {
+      return
+    }
+    const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text)
+    pasteboard.getSystemPasteboard().setData(data).then(() => {
+      toastUtil.showToast({ message: $r('app.string.copied_to_clipboard') })
+    }).catch(() => {
+      toastUtil.showToast({ message: text })
+    })
   }
 
   /**
@@ -336,17 +601,47 @@ struct IllustDetailContent {
       // 标签
       Flex({ wrap: FlexWrap.Wrap, space: { main: LengthMetrics.vp(8), cross: LengthMetrics.vp(8) } }) {
         ForEach(this.iDV.detailData!.tags, (tag: PixivTag) => {
-          Text(`#${tag.name}`)
-            .fontColor(PixState.currentThemeColor)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .backgroundColor('#EDF5FF')
-            .borderRadius(4)
-            .fontSize(13)
-            .maxLines(1)
-        })
+          Row({ space: 4 }) {
+            Text(`#${tag.name}`)
+              .fontColor(PixState.currentThemeColor)
+              .fontSize(13)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            if (tag.translated_name && tag.translated_name !== tag.name) {
+              Text(tag.translated_name)
+                .fontColor($r('sys.color.font_secondary'))
+                .fontSize(11)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .backgroundColor('#EDF5FF')
+          .borderRadius(4)
+          .constraintSize({ maxWidth: '100%' })
+          // 长按标签：弹出详情半模态
+          .gesture(
+            LongPressGesture()
+              .onAction(() => {
+                this.selectedTag = tag
+                this.showTagDetail = true
+                bookTagStore.exists(tag.name).then((ok: boolean) => {
+                  this.tagBookmarked = ok
+                })
+              })
+          )
+        }, (tag: PixivTag) => `${tag.name}_${tag.translated_name ?? ''}`)
       }
       .width('100%')
+      // 标签详情半模态
+      .bindSheet(this.showTagDetail, this.TagDetailSheet(), {
+        height: SheetSize.FIT_CONTENT,
+        dragBar: true,
+        showClose: true,
+        onDisappear: () => {
+          this.showTagDetail = false
+        }
+      })
     }
     .width('100%')
     .borderRadius(12)

@@ -202,19 +202,19 @@ export class AppDataViewModel {
       let skipCount = 0;
 
       for (const item of data.downloadRecords) {
-        // 下载记录按 illust_id 判重，如果本地已经有了，就跳过不再导入
-        const existing = await this.downloadRecordDB.query(
-          this.downloadRecordDB.getPredicates().equalTo('illust_id', item.illust_id)
-        );
+        // 兼容旧导出文件缺少 page 字段的情况，统一按 0 处理
+        item.page = item.page ?? 0;
+        // 下载记录按 作品ID+分P 判重，如果本地已经有了，就跳过不再导入（多页作品各分P独立成记录）
+        const existing = await this.downloadRecordDB.queryByIllustAndPage(item.illust_id, item.page);
 
-        if (existing.length > 0) {
+        if (existing) {
           skipCount++;
           continue; // 跳过重复项
         }
-        // 不存在则新增，并重置下载状态
+        // 不存在则新增：导入的是下载历史，置为已完成（绿色对勾）；文件不在本机沙箱，不显示保存按钮
         item.id = null;
         item.task_id = `imported_${Date.now()}_${Math.random()}`;
-        item.status = request.agent.State.FAILED;
+        item.status = request.agent.State.COMPLETED;
         item.progress = 0;
         item.filePath = '';
         await this.downloadRecordDB.insert(item);
@@ -257,7 +257,10 @@ export class AppDataViewModel {
 
     try {
       let totalSize = 0;
-      const targetDir = `${this.context.filesDir}/${dir}`;
+      // "图片缓存" = ImageKnife 磁盘缓存 + pximg 直连缓存(imgcache，无上限增长，通常是最大头)
+      const targetDirs: string[] = dir === 'ImageKnife'
+        ? [`${this.context.filesDir}/ImageKnife`, `${this.context.filesDir}/imgcache`]
+        : [`${this.context.filesDir}/${dir}`];
 
       const calculateDirSize = (currentDir: string) => {
         try {
@@ -276,7 +279,9 @@ export class AppDataViewModel {
         } catch (e) { /* 忽略无权限目录 */ }
       };
 
-      calculateDirSize(targetDir);
+      for (const targetDir of targetDirs) {
+        calculateDirSize(targetDir);
+      }
       const sizeStr = this.formatSize(totalSize);
 
       if (dir === 'ImageKnife') {
@@ -307,33 +312,43 @@ export class AppDataViewModel {
     }
 
     try {
-      const cacheDir = `${this.context.filesDir}/${dir}`;
-      if (!fs.accessSync(cacheDir)) {
-        toastUtil.showToast({ message: '目录不存在，无需清理' });
-        await this.calculateCacheSize(dir);
-        return;
-      }
+      // "图片缓存" = ImageKnife 磁盘缓存 + pximg 直连缓存(imgcache)
+      const cacheDirs: string[] = dir === 'ImageKnife'
+        ? [`${this.context.filesDir}/ImageKnife`, `${this.context.filesDir}/imgcache`]
+        : [`${this.context.filesDir}/${dir}`];
+      let existed = false;
 
-      const files = fs.listFileSync(cacheDir);
-      for (const file of files) {
-        const filePath = `${cacheDir}/${file}`;
-        try {
-          const stat = fs.statSync(filePath);
-          // ImageKnife 等库可能会有子目录，如果是目录需递归删除，否则直接删文件
-          if (stat.isDirectory()) {
-            // 简易递归删除子目录内容
-            const subFiles = fs.listFileSync(filePath);
-            for (const subFile of subFiles) {
-              fs.unlinkSync(`${filePath}/${subFile}`);
+      for (const cacheDir of cacheDirs) {
+        if (!fs.accessSync(cacheDir)) {
+          continue;
+        }
+        existed = true;
+
+        const files = fs.listFileSync(cacheDir);
+        for (const file of files) {
+          const filePath = `${cacheDir}/${file}`;
+          try {
+            const stat = fs.statSync(filePath);
+            // ImageKnife 等库可能会有子目录，如果是目录需递归删除，否则直接删文件
+            if (stat.isDirectory()) {
+              // 简易递归删除子目录内容
+              const subFiles = fs.listFileSync(filePath);
+              for (const subFile of subFiles) {
+                fs.unlinkSync(`${filePath}/${subFile}`);
+              }
             }
+            fs.unlinkSync(filePath);
+          } catch (e) {
+            logger.warn(`清理子文件失败: ${filePath}`, e);
           }
-          fs.unlinkSync(filePath);
-        } catch (e) {
-          logger.warn(`清理子文件失败: ${filePath}`, e);
         }
       }
 
-      toastUtil.showToast({ message: '缓存已清理' });
+      if (existed) {
+        toastUtil.showToast({ message: '缓存已清理' });
+      } else {
+        toastUtil.showToast({ message: '目录不存在，无需清理' });
+      }
       await this.calculateCacheSize(dir);
     } catch (e) {
       toastUtil.showToast({ message: '清理失败' });

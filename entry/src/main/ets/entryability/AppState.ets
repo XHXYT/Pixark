@@ -109,7 +109,7 @@ export class _PixState {
   }
 
   /** PC 全屏页面集合（windowMode 下推送至 fullScreenStack） */
-  private static readonly FULLSCREEN_PAGES: Set<string> = new Set(['illust_detail', 'novel_detail'])
+  private static readonly FULLSCREEN_PAGES: Set<string> = new Set(['illust_detail', 'novel_detail', 'spotlight', 'spotlight_list', 'sauce_nao', 'sauce_nao_web'])
 
   /** 智能推栈：PC 模式下全屏页面（或全屏栈已有页面时）走 fullScreenStack，其余走 pageStack */
   pushPage(name: string, param: Object | null | undefined, animated: boolean = true): void {

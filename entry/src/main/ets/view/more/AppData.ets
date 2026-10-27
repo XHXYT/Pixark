@@ -1,10 +1,12 @@
-import { CustomItemInfo, ItemActionType, ItemGroupData, makeItemGroups, DialogConfig } from "../../common/entity/CusItemInfo"
+import { CustomItemInfo, ItemActionType, ItemGroupData, makeItemGroups, DialogConfig, MenuOption } from "../../common/entity/CusItemInfo"
 import { toastUtil } from "../../common/utils/ToastUtils"
 import { CustomListItem } from "../../components/CusItemBuilder"
 import { NaviContainer } from "../../components/NaviContainer"
 import { PixState } from "../../entryability/AppState"
 import { appDataVM } from "../../viewmodel/AppDataViewModel"
 import { ResourceUtils } from "../../common/utils/ResourceUtil"
+import { appSettings } from "../../common/entity/SettingsModel"
+import { imageCache } from "../../services/direct/ImageCache"
 
 @Builder
 export function AppDataBuilder() {
@@ -128,6 +130,26 @@ struct AppData {
 
       // 存储管理
       new CustomItemInfo({ id: 'storage', title: $r('app.string.storage_management'), type: ItemActionType.GROUP }),
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.archivebox_fill'),
+        title: '缓存大小上限',
+        subtitle: '图片缓存（含直连缓存与 ImageKnife）总大小上限，超出后自动清理最久未使用的图片',
+        type: ItemActionType.MENU,
+        id: 'image_cache_limit',
+        value: appSettings.image_cache_limit_mb,
+        menuOptions: [
+          new MenuOption('256', '256 MB'),
+          new MenuOption('512', '512 MB'),
+          new MenuOption('1024', '1 GB'),
+          new MenuOption('2048', '2 GB'),
+          new MenuOption('0', '不限制')
+        ],
+        onChange: (value) => {
+          appSettings.image_cache_limit_mb = value as string
+          appSettings.save()
+          imageCache.enforceLimitNow()
+        }
+      }),
       new CustomItemInfo({
         symbol: $r('sys.symbol.trash'),
         title: $r('app.string.clear_image_cache'),

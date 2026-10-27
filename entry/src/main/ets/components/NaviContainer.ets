@@ -24,6 +24,9 @@ export struct NaviContainer {
   @Event onReady: (ctx: NavDestinationContext) => void
   @Event onBackPressed: () => boolean
   @Event onNaviDisAppear: () => void
+  /** 页面每次重新显示时触发（如从下一页返回），默认空实现，可选传入 */
+  @Event onNaviShown: () => void = () => {
+  }
 
   build() {
     NavDestination() {
@@ -63,6 +66,9 @@ export struct NaviContainer {
     .onReady((ctx: NavDestinationContext) => {
       this.pageStack = ctx.pathStack
       this.onReady(ctx)
+    })
+    .onShown(() => {
+      this.onNaviShown()
     })
     .animation({ duration: UIConstants.AnimationSpeed_300, curve: Curve.Ease })
   }

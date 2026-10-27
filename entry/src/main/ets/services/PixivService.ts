@@ -91,6 +91,11 @@ export class PixivService {
     return this.auth.loginWithRefreshToken(this.auth.getCurrentRefreshToken());
   }
 
+  /** 冷启动 Token 就绪门闩：页面首次加载前调用（幂等，失败也放行） */
+  waitForReady(): Promise<void> {
+    return this.auth.waitForReady();
+  }
+
   /** 加载并激活指定的 Refresh Token */
   async loadRefreshToken(refreshToken: string): Promise<void> {
     await this.auth.loginWithRefreshToken(refreshToken);
@@ -133,6 +138,11 @@ export class PixivService {
   /** 登出并移除特定账号 */
   removeAccount(userId: string) {
     this.auth.removeAccount(userId);
+  }
+
+  /** 清空内存中所有账号（退出登录用；持久化记录由调用方决定是否保留） */
+  clearAccounts() {
+    this.auth.clearAccounts();
   }
 
   /** 初始化账号数据 App启动时调用 */

@@ -49,6 +49,15 @@ interface RawResponse {
   text: string;
 }
 
+/**
+ * WebView scheme handler 转发用原始响应（4xx/5xx 原样返回不抛错，网页需展示 302/404 等真实状态）
+ */
+export interface ForwardRawResponse {
+  status: number;
+  headers: Record<string, string | string[]>;
+  body: ArrayBuffer;
+}
+
 export interface HttpConfig {
   params?: Record<string, Object | string | number | boolean | undefined | null>;
   headers?: Record<string, string>;
@@ -507,7 +516,7 @@ export class DirectHttpClient {
   private async doFetch(
     method: rcp.HttpMethod,
     url: string,
-    data: string | undefined,
+    data: string | ArrayBuffer | undefined,
     config: HttpConfig,
     retryCount: number
   ): Promise<RawResponse> {
@@ -563,16 +572,38 @@ export class DirectHttpClient {
   }
 
   /**
+   * WebView scheme handler 专用转发：任意方法/头/体透传（body 支持 ArrayBuffer），
+   * 4xx/5xx 原样返回（网页需展示 302/404 等真实状态），路由/重试/ECH 回退与常规请求一致
+   */
+  async forward(method: string, url: string, headers: Record<string, string>,
+    body?: ArrayBuffer): Promise<ForwardRawResponse> {
+    const raw = await this.doFetch(method as rcp.HttpMethod, url, body, { headers: headers }, 0);
+    if (raw.body !== undefined) {
+      return { status: raw.statusCode, headers: raw.headers, body: raw.body };
+    }
+    // 文本响应转字节（text/html、JSON 等；decodeUtf8 的逆过程）
+    const textBytes = encodeUtf8(raw.text);
+    const textBuffer = new ArrayBuffer(textBytes.length);
+    new Uint8Array(textBuffer).set(textBytes);
+    return { status: raw.statusCode, headers: raw.headers, body: textBuffer };
+  }
+
+  /**
    * ECH 链路请求（libpixech.so：rustls ECH + aws-lc-rs）
    */
   private async doEchFetch(
     method: rcp.HttpMethod,
     fullUrl: string,
     headers: Record<string, string>,
-    data: string | undefined,
+    data: string | ArrayBuffer | undefined,
     config: HttpConfig
   ): Promise<RawResponse> {
-    const body = data !== undefined ? encodeUtf8(data) : undefined;
+    let body: Uint8Array | undefined = undefined;
+    if (typeof data === 'string') {
+      body = encodeUtf8(data);
+    } else if (data !== undefined) {
+      body = new Uint8Array(data);
+    }
     const res = await echRequest(method, fullUrl, headers, body, config.timeoutMs);
     const plainHeaders: Record<string, string | string[]> = {};
     for (const h of res.headers) {

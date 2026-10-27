@@ -23,6 +23,13 @@ export interface PixivUser {
   is_followed: boolean;
   profile_image_urls: {
     medium: string;
+    /**
+     * OAuth（auth/token）响应的 user 不带 medium 键，只有以下 px_* 键
+     * （app-api 如 /v1/user/detail 才有 medium），此处声明用于头像兜底
+     */
+    px_16x16?: string;
+    px_50x50?: string;
+    px_170x170?: string;
   };
   mail_address?: string;
   is_premium?: boolean;

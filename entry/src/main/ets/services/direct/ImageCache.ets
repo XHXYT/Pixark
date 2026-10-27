@@ -3,8 +3,17 @@ import { fileIo } from '@kit.CoreFileKit';
 import { createLogger } from '../../common/utils/Logger';
 import { _PixState } from '../../entryability/AppState';
 import { pixiv } from '../PixivService';
+import { appSettings } from '../../common/entity/SettingsModel';
 
 const logger = createLogger('ImageCache');
+
+/** 缓存文件条目（LRU 淘汰用） */
+interface CacheFileEntry {
+  path: string;
+  size: number;
+  /** 最后访问/写入时间（秒，statSync.mtime） */
+  mtime: number;
+}
 
 /** 内存缓存上限（张），超出入队最早者淘汰（不主动 release，可能仍在显示中，交由 GC 回收） */
 const MEMORY_LIMIT = 24;
@@ -151,6 +160,10 @@ class ImageCacheService {
         const stat = fileIo.statSync(file.fd);
         const buf = new ArrayBuffer(stat.size);
         fileIo.readSync(file.fd, buf);
+        // LRU touch：刷新 mtime 为当前时间，淘汰时按最久未用排序
+        try {
+          fileIo.utimes(path, Math.floor(Date.now() / 1000));
+        } catch (e) { /* touch 失败不影响命中 */ }
         return buf;
       } finally {
         fileIo.closeSync(file);
@@ -174,6 +187,9 @@ class ImageCacheService {
       } finally {
         fileIo.closeSync(file);
       }
+      // 写盘后防抖触发限额淘汰
+      this.bytesWrittenSinceCheck += buf.byteLength;
+      this.maybeEvict(path);
     } catch (e) {
       // 磁盘缓存写失败不影响显示
       logger.warn(`write disk cache failed: ${e}`);
@@ -188,6 +204,109 @@ class ImageCacheService {
       }
     } catch (e) {
       logger.warn(`remove disk cache failed: ${e}`);
+    }
+  }
+
+  // ---------- 图片缓存总限额（imgcache + ImageKnife 合计，LRU 淘汰） ----------
+
+  /** 上次淘汰检查时间戳（ms），用于防抖 */
+  private lastEvictCheckMs: number = 0;
+  /** 距上次检查累计写入字节数 */
+  private bytesWrittenSinceCheck: number = 0;
+
+  /**
+   * 图片缓存总上限（字节），0 表示不限制
+   */
+  private limitBytes(): number {
+    const mb = Number(appSettings.image_cache_limit_mb);
+    if (!mb || mb <= 0 || isNaN(mb)) {
+      return 0;
+    }
+    return mb * 1024 * 1024;
+  }
+
+  /**
+   * 写盘后防抖触发限额淘汰（距上次检查 ≥30s 或累计写入 ≥32MB 才真正扫描一次）
+   */
+  private maybeEvict(justWrittenPath: string): void {
+    const now = Date.now();
+    if (now - this.lastEvictCheckMs < 30000 && this.bytesWrittenSinceCheck < 32 * 1024 * 1024) {
+      return;
+    }
+    this.lastEvictCheckMs = now;
+    this.bytesWrittenSinceCheck = 0;
+    this.evictOverLimit(justWrittenPath);
+  }
+
+  /**
+   * 立即执行一次限额淘汰（设置变更 / 应用启动时调用）
+   */
+  enforceLimitNow(): void {
+    this.lastEvictCheckMs = Date.now();
+    this.bytesWrittenSinceCheck = 0;
+    this.evictOverLimit('');
+  }
+
+  /**
+   * 扫描 imgcache + ImageKnife 两个目录，总量超出上限时按 mtime（最久未用）优先淘汰到上限的 90%
+   * @param skipPath 跳过不删的文件（刚写入的文件），空串表示不跳过
+   */
+  private evictOverLimit(skipPath: string): void {
+    const limit = this.limitBytes();
+    if (limit <= 0) {
+      return;
+    }
+    try {
+      const filesDir = _PixState.Context.filesDir;
+      const entries: CacheFileEntry[] = [];
+
+      const scanDir = (dir: string) => {
+        try {
+          if (!fileIo.accessSync(dir)) {
+            return;
+          }
+          const names = fileIo.listFileSync(dir);
+          for (const name of names) {
+            const path = `${dir}/${name}`;
+            try {
+              const stat = fileIo.statSync(path);
+              if (stat.isDirectory()) {
+                scanDir(path);
+              } else {
+                entries.push({ path: path, size: stat.size, mtime: stat.mtime });
+              }
+            } catch (e) { /* 单文件 stat 失败跳过 */ }
+          }
+        } catch (e) { /* 目录不可读跳过 */ }
+      };
+      scanDir(`${filesDir}/imgcache`);
+      scanDir(`${filesDir}/ImageKnife`);
+
+      let total = 0;
+      for (const entry of entries) {
+        total += entry.size;
+      }
+      if (total <= limit) {
+        return;
+      }
+      // 预留 10% 余量，避免每次写盘都触发淘汰
+      const target = limit * 0.9;
+      entries.sort((a: CacheFileEntry, b: CacheFileEntry) => a.mtime - b.mtime);
+      for (const entry of entries) {
+        if (total <= target) {
+          break;
+        }
+        if (entry.path === skipPath) {
+          continue;
+        }
+        try {
+          fileIo.unlinkSync(entry.path);
+          total -= entry.size;
+        } catch (e) { /* 删除失败继续下一个 */ }
+      }
+      logger.info(`evictOverLimit: 淘汰完成，剩余约 ${(total / 1024 / 1024).toFixed(1)}MB / 上限 ${(limit / 1024 / 1024).toFixed(0)}MB`);
+    } catch (e) {
+      logger.warn(`evictOverLimit failed: ${e}`);
     }
   }
 }

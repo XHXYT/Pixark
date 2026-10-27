@@ -10,6 +10,7 @@ import { BusinessError } from "@kit.BasicServicesKit";
 import { NaviContainer } from "../../components/NaviContainer";
 import { pixiv } from "../../services/PixivService";
 import { AppConstants } from "../../common/constants/AppConstants";
+import { installWebSchemeHandler, setPixivSchemeCallback } from "../../services/direct/WebDirect";
 
 const logger = createLogger('WebLogin')
 
@@ -23,8 +24,8 @@ export function WebLoginPage() {
 struct WebLoginPageComponent {
   webviewController: webview.WebviewController = new webview.WebviewController();
 
-  // URL 相关
-  private loginUrl: string = ''
+  // URL 相关（@Local：aboutToAppear 异步构建后驱动 Web src 重新加载，避免空 URL 白屏）
+  @Local loginUrl: string = ''
   private codeVerifier: string = '';
   private pageStack: NavPathStack = new NavPathStack()
 
@@ -33,8 +34,13 @@ struct WebLoginPageComponent {
   @Local isLoadingLogin: boolean = false;       // 是否正在处理登录（换 token）
   @Local loadProgress: number = 0;              // 加载进度 0-100
   @Local loadMessage: string = '正在准备登录...'; // 加载提示文字
+  private urlLoadTriggered: boolean = false;    // 显式 loadUrl 幂等标记
 
   async aboutToAppear(): Promise<void> {
+    // 桥内截获 302 Location: pixiv:// 回调（内核 applink 打开会失败白屏）
+    setPixivSchemeCallback((url: string) => {
+      this.handleCallback(url);
+    });
     try {
       this.isLoadingLogin = true;
       this.loadMessage = '正在生成安全验证...';
@@ -50,11 +56,17 @@ struct WebLoginPageComponent {
 
       logger.info(`Loading Pixiv Login URL: ${this.loginUrl}`);
       this.isLoadingLogin = false;
+      // ArkWeb 的 src 参数更新不触发导航，URL 就绪后必须显式 loadUrl
+      this.tryLoadLoginUrl();
     } catch (error) {
       logger.error(`初始化失败: `, error);
       this.loadMessage = '初始化失败，请重试';
       toastUtil.showToast({ message: '初始化失败，请重试' });
     }
+  }
+
+  aboutToDisappear(): void {
+    setPixivSchemeCallback(null);
   }
 
   build() {
@@ -81,11 +93,18 @@ struct WebLoginPageComponent {
         .fileAccess(true)
         .onlineImageAccess(true)
         .onAppear(() => {
-          try {
-            this.webviewController.loadUrl(this.loginUrl)
-          } catch (error) {
-            logger.error(`loadUrl ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
+          // loginUrl 已就绪但此前 loadUrl 失败（controller 未 attach）时的兜底
+          this.tryLoadLoginUrl();
+        })
+        .onLoadIntercept((event) => {
+          // 拦截 pixiv:// 回调：ArkWeb 默认将其作为 applink 打开（16000019 失败白屏），必须在此截获
+          const url = event.data.getRequestUrl();
+          if (url.startsWith('pixiv://account/login')) {
+            logger.info(`Pixiv scheme intercepted: ${url}`);
+            this.handleCallback(url);
+            return true;
           }
+          return false;
         })
         .onPageBegin((event) => {
           const url = event.url;
@@ -112,9 +131,13 @@ struct WebLoginPageComponent {
           logger.info("onControllerAttached");
           try {
             this.webviewController.setCustomUserAgent('Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36');
+            // 直连桥：Pixiv 域名（ECH/COMPAT 模式）接管 WebView 网络层，阻断网络下登录页可加载
+            installWebSchemeHandler(this.webviewController);
           } catch (error) {
             logger.error(`ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
           }
+          // Web 挂载时 URL 可能已就绪（aboutToAppear 中 loadUrl 因未挂载而失败），补一次显式加载
+          this.tryLoadLoginUrl();
         })
         .onProgressChange((event) => {
           this.loadProgress = event.newProgress;
@@ -195,7 +218,12 @@ struct WebLoginPageComponent {
   }
 
   // 处理回调，提取 code 并登录
+  private handled: boolean = false; // 防止 onLoadIntercept / onPageBegin 双触发重复登录
   async handleCallback(url: string) {
+    if (this.handled) {
+      return;
+    }
+    this.handled = true;
     logger.info(`Callback URL: ${url}`);
     this.isLoadingLogin = true;
     this.loadMessage = '正在登录...';
@@ -227,6 +255,7 @@ struct WebLoginPageComponent {
       if (activeAccount) {
         await kvDbUtil.putData('active_user_id', activeAccount.userId);
       }
+      await kvDbUtil.putData('auto_login', '1');
 
       // 发送获取数据事件
       EventHub.sendEvent(EventKey.FetchData);
@@ -235,8 +264,12 @@ struct WebLoginPageComponent {
       setTimeout(() => {
         // 根据模式显示不同提示语
         toastUtil.showToast({ message: PixState.isAddingAccount ? $r('app.string.account_added_successfully') : $r('app.string.login_successfully') });
-        // Pop 2 层直接退账号管理页
-        this.pageStack.pop(2);
+        // 弹出自身；下层若是 login 路由页（添加账号/重登流程）一并弹出，回到账号管理页。
+        // 注意：NavPathStack 无 pop(index) 重载，原 pop(2) 实为 pop(result) 只弹 1 层
+        this.pageStack.pop();
+        if (this.pageStack.size() > 0) {
+          this.pageStack.pop();
+        }
         // 重置添加模式标记
         PixState.isAddingAccount = false;
       }, 500);
@@ -249,6 +282,22 @@ struct WebLoginPageComponent {
   }
 
   // --- 工具函数区域 ---
+
+  // 显式加载登录 URL（幂等）：ArkWeb 的 src 参数更新不触发导航，必须主动 loadUrl
+  private tryLoadLoginUrl(): void {
+    if (this.urlLoadTriggered || !this.loginUrl) {
+      return;
+    }
+    try {
+      this.webviewController.loadUrl(this.loginUrl);
+      this.urlLoadTriggered = true;
+      logger.info('Explicit loadUrl triggered.');
+    } catch (e) {
+      // 17100001: controller 未 attach，等 onControllerAttached / onAppear 回调重试
+      logger.info(`Controller not ready yet: ${(e as BusinessError).message}`);
+    }
+  }
+
   private stringToUint8Array(str: string): Uint8Array {
     return new Uint8Array(buffer.from(str, 'utf-8').buffer);
   }

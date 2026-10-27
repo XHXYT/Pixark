@@ -62,11 +62,16 @@ struct TokenLoginPageComponent {
             if (activeAccount) {
               await kvDbUtil.putData('active_user_id', activeAccount.userId);
             }
+            await kvDbUtil.putData('auto_login', '1');
             EventHub.sendEvent(EventKey.FetchData);
             // 根据模式显示不同提示语
             toastUtil.showToast({ message: PixState.isAddingAccount ? $r('app.string.account_added_successfully') : $r('app.string.login_successfully') });
-            // 直接退回账号管理页
-            this.pageStack.pop(2);
+            // 弹出自身；下层若是 login 路由页（添加账号/重登流程）一并弹出，回到账号管理页。
+            // 注意：NavPathStack 无 pop(index) 重载，原 pop(2) 实为 pop(result) 只弹 1 层
+            this.pageStack.pop();
+            if (this.pageStack.size() > 0) {
+              this.pageStack.pop();
+            }
             // 重置添加模式标记
             PixState.isAddingAccount = false;
           } catch (e) {
