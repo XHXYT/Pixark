@@ -1,6 +1,5 @@
 import { DownSamplingStrategy, ImageKnifeComponentV2, ImageInfo } from "@ohos/imageknifepro";
-import { AppSettings, appSettings, UISettings } from "../common/entity/SettingsModel";
-import { ConfigurationConstant } from "@kit.AbilityKit";
+import { AppSettings, appSettings } from "../common/entity/SettingsModel";
 import { image } from "@kit.ImageKit";
 import { PixState, _PixState } from "../entryability/AppState";
 import { imageCache, CachedImage } from "../services/direct/ImageCache";
@@ -190,9 +189,9 @@ export struct PixivImageComponent {
           .borderRadius(this.imageBorder?.radius)
           .aspectRatio(this.imageAspectRatio)
           .size({ width: this.imageWidth || '100%', height: this.imageHeight })
-          .backgroundColor(UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
+          .backgroundColor($r('app.color.image_mask_color'))
           .shadow({ radius: typeof this.imageBorder?.radius == 'number' ? this.imageBorder.radius: undefined,
-            color: UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa',
+            color: $r('app.color.image_shadow_color'),
             offsetX: 6, offsetY: 6 })
       }
       if (this.showAISign && appSettings.show_ai_sign) {

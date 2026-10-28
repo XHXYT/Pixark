@@ -145,8 +145,8 @@ export struct Login {
         .width('80%')
         .height(50)
         .fontSize(18)
-        .backgroundColor('#F0F0F0')
-        .fontColor('#333333')
+        .backgroundColor($r('sys.color.comp_background_list_card'))
+        .fontColor($r('sys.color.font_primary'))
         .onClick(() => {
           // 跳转到 Token 登录页
           this.pageStack.pushPathByName('token_login', null);

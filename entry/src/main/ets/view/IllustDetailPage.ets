@@ -21,6 +21,7 @@ import { createLogger } from "../common/utils/Logger";
 import { CommentPanel } from "./CommentPanel";
 import { muteFilter, MuteReason } from "../services/MuteFilter";
 import { bookTagStore } from "../services/BookTagStore";
+import { mangaVM } from "../viewmodel/MangaViewModel";
 import { toastUtil } from "../common/utils/ToastUtils";
 
 const logger = createLogger('IllustDetail')
@@ -86,10 +87,18 @@ struct IllustDetail {
     ]
   }
 
-  // 屏蔽菜单
+  // 屏蔽/追更菜单
   @Builder
   DetailMenu() {
     Menu() {
+      // 追更系列（作品属于某系列时显示）
+      if (this.currentIllust?.series) {
+        MenuItem({ content: $r('app.string.manga_watch_action') })
+          .onClick(() => {
+            this.showMenu = false
+            this.watchCurrentSeries()
+          })
+      }
       MenuItem({ content: $r('app.string.mute_this_illust') })
         .enabled(!!this.currentIllust)
         .onClick(() => {
@@ -123,6 +132,19 @@ struct IllustDetail {
     if (!illust) return
     muteFilter.addRule('user', String(illust.user.id), illust.user.name).then((ok: boolean) => {
       toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
+    })
+  }
+
+  /** 追更当前作品所属的漫画系列（成功后漫画页在追列表会同步刷新） */
+  private watchCurrentSeries(): void {
+    const series = this.currentIllust?.series
+    if (!series) return
+    mangaVM.watch(series.id).then((ok: boolean) => {
+      if (ok) {
+        toastUtil.showToast({ message: $r('app.string.manga_watched') })
+      } else {
+        toastUtil.showToast({ message: $r('app.string.manga_watch_failed') })
+      }
     })
   }
 
@@ -589,10 +611,11 @@ struct IllustDetailContent {
       // 分割线
       Divider().color($r('sys.color.ohos_id_color_text_field_sub_bg'))
 
-      // 作者行：头像 + 名称 + 关注按钮
+      // 作者行：头像 + 名称 + 关注按钮（按作品类型默认定位到插画/漫画筛选）
       UserItem({
         user: this.iDV.detailData?.user,
         isFollow: this.iDV.isFollow,
+        worksType: this.iDV.detailData?.type === 'manga' ? 'manga' : 'illust',
         onButtonClick: (result: boolean, err?: string) => {
           this.iDV.followOrCancel(result, err)
         }
@@ -616,7 +639,7 @@ struct IllustDetailContent {
             }
           }
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-          .backgroundColor('#EDF5FF')
+          .backgroundColor(ColorUtils.getColorWithAlphaString(PixState.currentThemeColor, 15))
           .borderRadius(4)
           .constraintSize({ maxWidth: '100%' })
           // 长按标签：弹出详情半模态

@@ -3,9 +3,7 @@ import { PixivIllust, UserPreview } from "../services/PixivTypes"
 import { ListColumnsTemplate } from "../common/utils/breakpoint/BreakPoint"
 import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
-import { ConfigurationConstant } from "@kit.AbilityKit"
 import { UserItem } from "./UserItem"
-import { appSettings, UISettings } from "../common/entity/SettingsModel"
 
 
 const logger = createLogger('UserListView')
@@ -76,7 +74,7 @@ export struct UserListView {
         .clip(true)
         .borderRadius(16)
         .backgroundColor($r('sys.color.comp_background_tertiary'))
-        .shadow({ radius: 16, color: UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
+        .shadow({ radius: 16, color: $r('app.color.image_shadow_color'), offsetX: 6, offsetY: 6 })
         .margin(({
           left: PixState.PageMarginValue,
           right: PixState.PageMarginValue

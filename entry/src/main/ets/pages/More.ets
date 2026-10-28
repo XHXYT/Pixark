@@ -110,6 +110,16 @@ export struct More {
           moreVM.switchMode()
         }
       }),
+      // 漫画
+      new CustomItemInfo({
+        symbol: $r('sys.symbol.bookmark_book_closed'),
+        title: $r('app.string.manga'),
+        type: ItemActionType.ROUTER_BLANK,
+        id: 'manga',
+        onChange: () => {
+          this.pushTo('manga')
+        }
+      }),
       // 关于
       new CustomItemInfo({ id: 'about', title: $r('app.string.about'), type: ItemActionType.GROUP }),
       new CustomItemInfo({

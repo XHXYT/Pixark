@@ -82,13 +82,14 @@ export class IllustDetailViewModel implements IIllustSwiperProvider {
       if (this.detailData && this.detailData.user) {
         this.isFollow = this.detailData.user.is_followed;
       }
-      // 数据加载成功后，自动记录历史
+      // 数据加载成功后，自动记录历史（按作品类型区分：插画/漫画）
       if (this.detailData) {
         historyVM.addIllustHistory(
           this.detailData.id.toString(),
           this.detailData.title,
           // 使用详情接口返回的更高质量的图作为历史记录封面
-          ImageUtils.getImageUrlByQuality(this.detailData.image_urls, appSettings.image_preview_quality)
+          ImageUtils.getImageUrlByQuality(this.detailData.image_urls, appSettings.image_preview_quality),
+          this.detailData.type
         );
       }
       logger.debug(`>>> 详情加载完毕, 图片: ${JSON.stringify(this.imageList.map(image => image.medium))}`);

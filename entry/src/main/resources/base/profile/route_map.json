@@ -129,6 +129,11 @@
       "name": "book_tags",
       "pageSourceFile": "src/main/ets/view/more/BookTagPage.ets",
       "buildFunction": "BookTagPageBuilder"
+    },
+    {
+      "name": "manga",
+      "pageSourceFile": "src/main/ets/view/more/MangaPage.ets",
+      "buildFunction": "MangaPageBuilder"
     }
   ]
 }

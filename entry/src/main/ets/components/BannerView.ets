@@ -1,11 +1,9 @@
 
-import { ConfigurationConstant } from "@kit.AbilityKit";
 import { BaseDataSource } from "../viewmodel/BaseDataSource";
 import { PixivImageComponent } from "./PixivImage";
 import { SpotlightArticle } from "../services/PixivTypes";
 import { HomeBannerBannerMargin, HomeBannerDisplayCount } from "../common/utils/breakpoint/BreakPoint";
 import { PixState } from "../entryability/AppState";
-import { appSettings, UISettings } from "../common/entity/SettingsModel";
 
 // 主页轮播图
 @ComponentV2
@@ -56,8 +54,8 @@ export struct BannerView {
         .width('100%')
         .borderRadius(16)
         .aspectRatio(1.75)
-        .backgroundColor(UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#80000000' : '#40000000')
-        .shadow({ radius: 16, color: UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#aaaaaa', offsetX: 6, offsetY: 6 })
+        .backgroundColor($r('app.color.image_mask_color'))
+        .shadow({ radius: 16, color: $r('app.color.image_shadow_color'), offsetX: 6, offsetY: 6 })
       // 标题
       Text(article.title)
         .fontColor(Color.White)

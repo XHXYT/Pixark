@@ -1216,6 +1216,82 @@
     {
       "name": "book_tag_deleted_name",
       "value": "已删除：%s"
+    },
+    {
+      "name": "manga",
+      "value": "漫画"
+    },
+    {
+      "name": "manga_recommend_tab",
+      "value": "推荐"
+    },
+    {
+      "name": "manga_watch_tab",
+      "value": "在追"
+    },
+    {
+      "name": "manga_hero_title",
+      "value": "发现你的下一部漫画"
+    },
+    {
+      "name": "manga_hero_subtitle",
+      "value": "每日精选漫画推荐 · 追更进度一览"
+    },
+    {
+      "name": "manga_series_info",
+      "value": "共 %d 话 · 更新于 %s"
+    },
+    {
+      "name": "manga_open_latest",
+      "value": "看最新"
+    },
+    {
+      "name": "manga_recommend_empty",
+      "value": "暂时没有推荐的漫画"
+    },
+    {
+      "name": "manga_watch_empty",
+      "value": "还没有在追的漫画系列\n在 pixiv 上关注漫画系列后，可在这里查看追更进度"
+    },
+    {
+      "name": "manga_unwatch_confirm",
+      "value": "确定不再追更该系列吗？"
+    },
+    {
+      "name": "manga_unwatch_ok",
+      "value": "取消追更"
+    },
+    {
+      "name": "manga_unwatched",
+      "value": "已取消追更"
+    },
+    {
+      "name": "manga_unwatch_failed",
+      "value": "操作失败，请重试"
+    },
+    {
+      "name": "manga_watch_action",
+      "value": "追更系列"
+    },
+    {
+      "name": "manga_watched",
+      "value": "已追更，可在漫画页查看"
+    },
+    {
+      "name": "manga_watch_failed",
+      "value": "追更失败，可能已在追更列表"
+    },
+    {
+      "name": "manga_history_tab",
+      "value": "历史"
+    },
+    {
+      "name": "manga_history_empty",
+      "value": "还没有漫画浏览记录\n看过的漫画会显示在这里"
+    },
+    {
+      "name": "manga_history_delete_confirm",
+      "value": "确定要删除这条漫画历史记录吗？"
     }
   ]
 }

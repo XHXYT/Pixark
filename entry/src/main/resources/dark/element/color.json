@@ -11,6 +11,18 @@
     {
       "name": "pc_tab_selected_bg",
       "value": "#14FFFFFF"
+    },
+    {
+      "name": "card_shadow_color",
+      "value": "#000000"
+    },
+    {
+      "name": "image_shadow_color",
+      "value": "#000000"
+    },
+    {
+      "name": "image_mask_color",
+      "value": "#80000000"
     }
   ]
 }

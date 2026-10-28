@@ -4,8 +4,7 @@ import { WaterFlowColumnsTemplate } from "../common/utils/breakpoint/BreakPoint"
 import { CardUtil } from "../common/utils/CardUtil"
 import { createLogger } from "../common/utils/Logger"
 import { PixivImageComponent } from "./PixivImage"
-import { appSettings, UISettings } from "../common/entity/SettingsModel"
-import { ConfigurationConstant } from "@kit.AbilityKit"
+import { appSettings } from "../common/entity/SettingsModel"
 import { ImageUtils } from '../common/utils/ImageUtils';
 import { FunctionConstants } from "../common/constants/FunctionConstants"
 import { pixiv } from "../services/PixivService"
@@ -78,7 +77,7 @@ export struct WaterFlowView {
           // 卡片阴影（AnimeZ 主页列表同款）
           .shadow({
             radius: 14,
-            color: UISettings.color_mode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ? '#000000' : '#cccccc',
+            color: $r('app.color.card_shadow_color'),
             offsetX: 6,
             offsetY: 6
           })

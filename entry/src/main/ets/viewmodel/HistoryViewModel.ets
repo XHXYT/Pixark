@@ -54,7 +54,8 @@ export class HistoryViewModel implements IIllustSwiperProvider {
       if (this.isNovelMode()) {
         this.allList = await this.getNovelDB().queryAll();
       } else {
-        this.allList = await this.getIllustDB().queryAllByAccessTimeDesc();
+        // 主历史页只显示插画记录，漫画历史在漫画页查看
+        this.allList = await this.getIllustDB().queryByWorkType('illust');
       }
       this.filter();
     } catch (e) {
@@ -63,12 +64,14 @@ export class HistoryViewModel implements IIllustSwiperProvider {
   }
 
   /**
-   * 添加插画浏览记录
+   * 添加插画/漫画浏览记录
+   * @param workType 'illust' 插画 / 'manga' 漫画（pixiv 作品 type 字段）
    */
-  async addIllustHistory(pid: string, title: string, coverUrl: string) {
+  async addIllustHistory(pid: string, title: string, coverUrl: string, workType: string = 'illust') {
     try {
       const item = new IllustHistoryInfo(pid, title);
       item.coverUrl = coverUrl;
+      item.workType = workType === 'manga' ? 'manga' : 'illust';
       item.accessTime = Date.now(); // 更新为当前访问时间
       await this.getIllustDB().addHistory(item);
     } catch (e) {
@@ -185,7 +188,7 @@ export class HistoryViewModel implements IIllustSwiperProvider {
       alignment: DialogAlignment.Center,
       primaryButton: { value: $r('app.string.clear'), fontColor: Color.Red, action: async () => {
         if (this.isNovelMode()) await this.getNovelDB().clearAll();
-        else await this.getIllustDB().clearAll();
+        else await this.getIllustDB().clearByWorkType('illust'); // 只清插画，漫画历史在漫画页管理
         toastUtil.showToast({ message: `已清空${typeStr}浏览历史` });
         await this.fetchData();
       }},

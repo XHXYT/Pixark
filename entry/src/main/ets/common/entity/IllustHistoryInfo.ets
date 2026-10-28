@@ -47,6 +47,13 @@ export default class IllustHistoryInfo {
   accessTime: number = 0
 
   /**
+   * 作品类型：illust 插画 / manga 漫画
+   * 用于区分历史记录归属（主历史页只显示插画，漫画历史在漫画页查看）
+   */
+  @Column({ name: 'workType', type: 'TEXT', defaultValue: 'illust' })
+  workType: string = 'illust'
+
+  /**
    * 构造函数
    * @param pid 插画 ID（必填）
    * @param title 插画标题（可选，默认空字符串）

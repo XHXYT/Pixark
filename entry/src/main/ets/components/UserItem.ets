@@ -13,6 +13,8 @@ export struct UserItem {
 
   @Param @Require user: PixivUser
   @Param isFollow: boolean = false
+  /** 跳转作者页时默认展示的作品类型（插画/漫画详情页传入） */
+  @Param worksType: 'illust' | 'manga' = 'illust'
   @Local followState: boolean = false
   @Event onButtonClick: (result: boolean, err?: string) => void
 
@@ -94,7 +96,8 @@ export struct UserItem {
   push() {
     const params: UserDetailParams = {
       id: this.user.id,
-      user: this.user
+      user: this.user,
+      worksType: this.worksType
     }
     // 跳转详情页
     PixState.pushPage('user_detail', params, true);

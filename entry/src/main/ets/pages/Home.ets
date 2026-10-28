@@ -49,10 +49,9 @@ export struct Home {
         ListItem() {
           BannerView({ bannerList: homeViewModel.spotlightList, swiperMargin: PixState.widthBp < 2 ? PixState.PageMarginValue - 9 : 0 })
         }
-        // 推荐作者
-        ListItem() {
-          Column() {
-            this.Title($r('app.string.recommend_author'))
+        // 推荐作者：标题同样 sticky 吸顶
+        ListItemGroup({ header: this.SectionHeader($r('app.string.recommend_author')) }) {
+          ListItem() {
             List({ space: 5 }) {
               ForEach(homeViewModel.recommendedUsers, (user: PixivUser) => {
                 ListItem() {
@@ -77,13 +76,10 @@ export struct Home {
             .margin({ bottom: 5 })
             .width('100%')
           }
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Start)
         }
-        // 推荐插画 / 小说
-        ListItem() {
-          Column() {
-            this.Title(appSettings.novel_mode ? $r('app.string.recommend_novel') :$r('app.string.recommend_illust'))
+        // 推荐插画 / 小说：标题 sticky 吸顶，跟随滚动到顶部后停住并盖在内容上层
+        ListItemGroup({ header: this.SectionHeader(appSettings.novel_mode ? $r('app.string.recommend_novel') : $r('app.string.recommend_illust')) }) {
+          ListItem() {
             // 根据模式切换组件
             if (appSettings.novel_mode) {
               NovelListView({
@@ -110,12 +106,11 @@ export struct Home {
               })
             }
           }
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Start)
         }
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
+      .sticky(StickyStyle.Header)
       .margin({ right: PixState.rightAvoidWidth, left: PixState.leftAvoidWidth })
     }
     .onRefreshing(async () => { await homeViewModel.loadHomeData() })
@@ -196,6 +191,16 @@ export struct Home {
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
     .transition(TransitionEffect.OPACITY.animation({ duration: 250, curve: Curve.EaseOut }))
+  }
+
+  // 分区吸顶标题：盖在滚动内容上层，不再被卡片压在底下
+  @Builder SectionHeader(title: ResourceStr) {
+    Row() {
+      this.Title(title)
+    }
+    .width('100%')
+    .backgroundColor($r('sys.color.background_primary'))
+    .zIndex(10)
   }
 
   @Builder Title(title: ResourceStr) {

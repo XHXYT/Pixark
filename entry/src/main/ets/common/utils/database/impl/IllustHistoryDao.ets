@@ -136,6 +136,15 @@ export class IllustHistoryTable extends AutoTable<IllustHistoryInfo> {
   }
 
   /**
+   * 按作品类型查询历史记录（访问时间倒序）
+   * @param workType 'illust' 插画 / 'manga' 漫画
+   */
+  async queryByWorkType(workType: string): Promise<IllustHistoryInfo[]> {
+    logger.debug(`queryByWorkType workType=${workType}`)
+    return this.query(this.getPredicates().equalTo('workType', workType).orderByDesc('accessTime'))
+  }
+
+  /**
    * 根据访问时间正序查询所有历史记录
    * 最早播放的记录排在前面
    * @returns 历史记录数组，按访问时间正序排列
@@ -186,6 +195,15 @@ export class IllustHistoryTable extends AutoTable<IllustHistoryInfo> {
   async clearAll(): Promise<number> {
     logger.debug('clearAll')
     return this.deleteItem(this.getPredicates())
+  }
+
+  /**
+   * 按作品类型清空历史记录
+   * @param workType 'illust' 插画 / 'manga' 漫画
+   */
+  async clearByWorkType(workType: string): Promise<number> {
+    logger.debug(`clearByWorkType workType=${workType}`)
+    return this.deleteItem(this.getPredicates().equalTo('workType', workType))
   }
 
   /**

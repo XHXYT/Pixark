@@ -147,10 +147,9 @@ struct UserDetail {
       ListItem() {
         this.UserHeader()
       }
-      // 内容主题
+      // 作品 收藏 详情分段按钮：独立成 ListItem，随头部一起滚走
       ListItem() {
         Column() {
-          // 作品 收藏 详情分段按钮
           Row() {
             TabSegmentButtonV2({
               items: this.tabItems,
@@ -162,28 +161,42 @@ struct UserDetail {
           }
           .width('100%')
           .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
-          .margin({ top: 20, bottom: 10 })
-          // 内容区域
-          if (this.uDV.tabIndex === 0 || this.uDV.tabIndex === 1) {
-            // 作品 / 收藏
-            WaterFlowView({
-              contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
-              nestedScroll: this.uDV.nestedScrollOptions,
-              clipContent: false, // 嵌套非自滚：关闭裁剪让边缘卡片阴影画进留白
-              illustList: this.uDV.currentIllustList,
-              onCardClick: (illust) => {
-                this.uDV.handleIllustClick(illust)
-              },
-              onReachEnd: () => {
-                this.uDV.loadMoreCurrentData()
-              }
-            })
-          } else if (this.uDV.tabIndex === 2) {
-            // 详细信息
-            this.UserDetailList()
+
+          // 作品页签下的类型筛选：插画 / 漫画（pixiv 接口两者独立查询）
+          if (this.uDV.tabIndex === 0) {
+            Row({ space: 8 }) {
+              this.WorksTypePill($r('app.string.illust'), 'illust')
+              this.WorksTypePill($r('app.string.manga'), 'manga')
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .padding({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
+            .margin({ top: 10 })
           }
         }
         .width('100%')
+        .margin({ top: 20, bottom: 10 })
+      }
+      // 内容区域
+      ListItem() {
+        if (this.uDV.tabIndex === 0 || this.uDV.tabIndex === 1) {
+          // 作品 / 收藏：PARENT_FIRST 下外层先滚走头部和按钮，瀑布流才内部滚动，
+          WaterFlowView({
+            contentEndOffset: PixState.bottomRectHeight === 0 ? PixState.PageMarginValue : PixState.bottomRectHeight,
+            nestedScroll: this.uDV.nestedScrollOptions,
+            clipContent: false,
+            illustList: this.uDV.currentIllustList,
+            onCardClick: (illust) => {
+              this.uDV.handleIllustClick(illust)
+            },
+            onReachEnd: () => {
+              this.uDV.loadMoreCurrentData()
+            }
+          })
+        } else {
+          // 详细信息
+          this.UserDetailList()
+        }
       }
     }
     .backgroundColor($r('sys.color.background_primary'))
@@ -192,6 +205,21 @@ struct UserDetail {
     .width('100%').height('100%')
     .align(Alignment.TopStart)
     .scrollBar(BarState.Off)
+  }
+
+  /** 作品类型筛选胶囊（插画/漫画） */
+  @Builder
+  WorksTypePill(label: ResourceStr, type: 'illust' | 'manga') {
+    Text(label)
+      .fontSize(13)
+      .fontWeight(this.uDV.worksType === type ? FontWeight.Bold : FontWeight.Normal)
+      .fontColor(this.uDV.worksType === type ? Color.White : $r('sys.color.font_secondary'))
+      .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+      .borderRadius(16)
+      .backgroundColor(this.uDV.worksType === type ? PixState.currentThemeColor : $r('sys.color.comp_background_tertiary'))
+      .onClick(() => {
+        this.uDV.switchWorksType(type)
+      })
   }
 
   @Builder
@@ -244,7 +272,7 @@ struct UserDetail {
           .margin({ top: 4 })
         // 关注按钮
         Button(this.uDV.isFollow ? $r('app.string.unfollow') : $r('app.string.follow'))
-          .backgroundColor(this.uDV.isFollow ? '#F0F0F0' : '#0096fa')
+          .backgroundColor(this.uDV.isFollow ? $r('sys.color.comp_background_list_card') : '#0096fa')
           .fontColor(this.uDV.isFollow ? $r('sys.color.font_primary') : Color.White)
           .padding({ left: 20, right: 20 })
           .type(ButtonType.Normal)
@@ -359,6 +387,7 @@ struct UserDetail {
     }
     .width('100%')
     .borderRadius(12)
+    .contentEndOffset(PixState.bottomRectHeight)
     .margin({ left: PixState.PageMarginValue, right: PixState.PageMarginValue })
   }
 

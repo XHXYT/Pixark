@@ -27,7 +27,10 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
   // --- 作品相关 ---
   @Trace userIllusts: PixivIllust[] = [];
   @Trace isIllustLoading: boolean = false;
+  /** 作品类型筛选：插画作 / 漫画作（pixiv 接口两者独立查询） */
+  @Trace worksType: 'illust' | 'manga' = 'illust';
   private nextIllustUrl: string = '';
+  private currentUserId: number = 0;
 
   // --- 收藏相关 ---
   @Trace userBookmarks: PixivIllust[] = [];
@@ -79,6 +82,9 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
     this.hasLoadedIllusts = false;   // 重置“已加载”标志位
     this.hasLoadedBookmarks = false; // 重置“已加载”标志位
     this.tabIndex = 0;               // 默认回到第一个 Tab (作品)
+    // 按来源作品类型定位筛选：插画详情进入显示插画，漫画详情进入显示漫画
+    this.worksType = params.worksType === 'manga' ? 'manga' : 'illust';
+    this.currentUserId = userId;     // 记录当前用户 ID（详情未加载完成时切换类型用）
     // 页面初始化
     logger.debug(`[onReady] Start. UserId: ${userId}, HasPreUserData:${!!params.user}`);
     // 初始化预加载数据
@@ -135,7 +141,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
     logger.debug(`[loadUserIllusts] ${isLoadMore ? 'LoadMore' : 'Init'}. UserId: ${userId}, NextUrl: ${url ? 'Exists' : 'None'}`);
 
     try {
-      const data = await pixiv.getUserIllusts(userId, 'illust', url);
+      const data = await pixiv.getUserIllusts(userId, this.worksType, url);
       const newIllusts = muteFilter.filterIllusts(data.illusts || []);
 
       if (isLoadMore) {
@@ -188,7 +194,7 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
   // --- 交互逻辑 ---
   handleTabChange(index: number) {
     this.tabIndex = index;
-    const userId = this.userData?.user.id;
+    const userId = this.userData?.user.id ?? this.currentUserId;
     logger.debug(`[handleTabChange] Index: ${index}, UserId: ${userId}`);
     if (!userId) {
       logger.warn(`[handleTabChange] No userId found, skipping load.`);
@@ -199,6 +205,23 @@ export class UserDetailViewModel implements IIllustSwiperProvider {
     } else if (index === 1) {
       this.loadUserBookmarks(userId);
     }
+  }
+
+  /** 切换作品类型（插画/漫画）：重置作品列表并按新类型重新加载 */
+  switchWorksType(type: 'illust' | 'manga') {
+    if (this.worksType === type) {
+      return;
+    }
+    this.worksType = type;
+    const userId = this.userData?.user.id ?? this.currentUserId;
+    if (!userId) {
+      logger.warn(`[switchWorksType] No userId found.`);
+      return;
+    }
+    this.userIllusts = [];
+    this.nextIllustUrl = '';
+    this.hasLoadedIllusts = false;
+    this.loadUserIllusts(userId);
   }
 
   async followOrCancel() {
