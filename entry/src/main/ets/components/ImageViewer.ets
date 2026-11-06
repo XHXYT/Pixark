@@ -1,5 +1,6 @@
 import { PixState } from "../entryability/AppState";
 import { PixivImageComponent } from "./PixivImage";
+import { UgoiraPlayer } from "./UgoiraPlayer";
 import { PixivImage } from '../services/PixivTypes';
 import { appSettings } from '../common/entity/SettingsModel';
 import { ImageUtils } from '../common/utils/ImageUtils';
@@ -14,6 +15,10 @@ const VIEWER_TOOLBAR_HEIGHT = 60;
 struct ViewerImage {
   @Param image: PixivImage | undefined = undefined;
   @Param isActive: boolean = false;
+  /** 该页是否为动图（ugoira）作品 */
+  @Param isUgoira: boolean = false;
+  /** 动图作品 ID（isUgoira 时用于加载帧序列） */
+  @Param illustId: number = 0;
   @Event onTap: () => void = () => {};
 
   @Local zoom: number = 1;
@@ -86,7 +91,23 @@ struct ViewerImage {
 
   build() {
     Stack({ alignContent: Alignment.BottomEnd }) {
-      if (this.image !== undefined) {
+      if (this.isUgoira) {
+        // 动图（ugoira）作品：逐帧轮播播放器（缩放/旋转/拖拽变换与静态图一致）
+        UgoiraPlayer({
+          illustId: this.illustId,
+          placeholderUrl: this.image !== undefined
+            ? ImageUtils.getImageUrlByQuality(this.image, appSettings.image_view_quality) : '',
+          imageObjectFit: ImageFit.Contain,
+          imageWidth: '100%',
+          imageHeight: '100%'
+        })
+          // 必须显式撑满：组件根节点是 wrap-content，否则内部 100% 高度解析为 0
+          .width('100%')
+          .height('100%')
+          .scale({ x: this.zoom, y: this.zoom })
+          .translate({ x: this.offsetX, y: this.offsetY })
+          .rotate({ angle: this.rotateAngle, centerX: '50%', centerY: '50%' })
+      } else if (this.image !== undefined) {
         PixivImageComponent({
           imageUrl: ImageUtils.getImageUrlByQuality(this.image, appSettings.image_view_quality),
           imageObjectFit: ImageFit.Contain,
@@ -275,6 +296,10 @@ export struct PixivImageViewer {
   @Param imageUrls: PixivImage[] = [];
   // 初始索引
   @Param startIndex: number = 0;
+  // 动图（ugoira）作品标记（ugoira 恒为单页，仅第 0 页播放）
+  @Param isUgoira: boolean = false;
+  // 动图作品 ID
+  @Param illustId: number = 0;
   // 当前索引 (用于显示页码)
   @Local currentIndex: number = 0;
   // 翻页拖拽中的横向偏移
@@ -341,6 +366,8 @@ export struct PixivImageViewer {
             ViewerImage({
               image: image,
               isActive: index === this.currentIndex,
+              isUgoira: this.isUgoira && index === 0,
+              illustId: this.illustId,
               onTap: () => {
                 this.onClose();
               }

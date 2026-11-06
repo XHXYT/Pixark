@@ -1,6 +1,5 @@
-import axios from '@ohos/axios';
 import { createLogger } from '../../common/utils/Logger';
-import { UrlUtils } from '../../common/utils/UrlUtils';
+import { queryDnsAnswers } from '../../common/utils/DoHClient';
 import { echFetch, EchResponse, EchFetchOptions, EchHeader } from 'libpixech.so';
 
 const logger = createLogger('EchDirect');
@@ -13,7 +12,7 @@ const logger = createLogger('EchDirect');
  * 把真实 SNI 加密进 ClientHello 的 encrypted_client_hello 扩展，外层明文 SNI 用
  * cloudflare-ech.com，从而既过 GFW 又能被 CF 正确路由。
  *
- * ECH 配置来源：阿里 DoH 查询 cloudflare-ech.com 的 HTTPS RR（type 65），
+ * ECH 配置来源：DoH 查询 cloudflare-ech.com 的 HTTPS RR（type 65，阿里 DoH 优先多端点回退），
  * Answer.data 中的 ech=<base64> 即 rustls 所需的 ECHConfigList，ipv4hint 为推荐边缘 IP。
  * 该记录 TTL 很短（约 1-2 分钟），需按 TTL 动态刷新。
  */
@@ -31,19 +30,6 @@ interface EchLookup {
   expiresAt: number;
   /** 过期后仍可沿用的最后期限（ms）：窗口内先用旧配置顶住并后台刷新 */
   usableUntil: number;
-}
-
-/** DoH JSON 响应（HTTPS RR 查询） */
-interface DoHJsonAnswer {
-  name: string;
-  type: number;
-  data: string;
-  ttl?: number;
-}
-
-interface DoHJsonResponse {
-  Status?: number;
-  Answer?: DoHJsonAnswer[];
 }
 
 let cachedLookup: EchLookup | null = null;
@@ -153,16 +139,8 @@ export async function getEchLookup(): Promise<EchLookup | null> {
 }
 
 async function doLookup(): Promise<EchLookup | null> {
-  const queryUrl = UrlUtils.buildUrl('https://dns.alidns.com/resolve', {
-    name: 'cloudflare-ech.com',
-    type: '65',
-  });
   try {
-    const response = await axios.get<DoHJsonResponse>(queryUrl, {
-      headers: { accept: 'application/dns-json' },
-      timeout: 5000,
-    });
-    const answers = response.data?.Answer;
+    const answers = await queryDnsAnswers('cloudflare-ech.com', '65');
     if (!answers || answers.length === 0) {
       logger.warn('DoH HTTPS RR: no answer');
       configFailEpoch++;

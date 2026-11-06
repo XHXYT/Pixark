@@ -16,6 +16,7 @@ import { NetworkMode, DEFAULT_IMAGE_HOST } from "../../services/direct/NetworkMo
 import { pixivHosts, SPEED_POOL_APPLY_SIZE } from "../../services/direct/PixivHosts"
 
 const logger = createLogger('CdnSpeedTest')
+const selfCheckLogger = createLogger('SelfCheck')
 
 /** 持久化 IP 池格式化为可读文本（页面构建时兜底展示） */
 function persistedSpeedPoolText(): string {
@@ -43,18 +44,30 @@ export function NetworkSettingsBuilder() {
 struct NetworkSettings {
   private pageStack: NavPathStack = new NavPathStack()
 
-  @Local checking: boolean = false
-  @Local apiCheckResult: string = '未检测'
-  @Local imageCheckResult: string = '未检测'
-  @Local speedTesting: boolean = false
+  private checking: boolean = false
+  private speedTesting: boolean = false
   // 当前会话有测速结果优先展示；否则页面构建时回退到持久化 IP 池
-  @Local speedTestText: string = persistedSpeedPoolText()
-  @Local hasSpeedResult: boolean = appSettings.speed_test_pool.trim().length > 0
+  private speedTestText: string = persistedSpeedPoolText()
+  private hasSpeedResult: boolean = appSettings.speed_test_pool.trim().length > 0
 
   /** 测速结果行右侧文案 */
   private speedResultLabel(): string {
     if (this.speedTesting) return '测速中…'
     return this.hasSpeedResult ? '点击查看' : '未测速'
+  }
+
+  /** 测速两行状态同步（@Trace 原地更新驱动刷新） */
+  private syncSpeedTestItems(): void {
+    this.speedTestItem.value = this.speedTesting ? '测速中…' : '开始测速'
+    this.speedTestItem.enabled = !this.speedTesting
+    this.speedResultItem.value = this.speedResultLabel()
+    this.speedResultItem.enabled = this.hasSpeedResult && !this.speedTesting
+  }
+
+  /** 自检按钮行状态同步 */
+  private syncSelfCheckItem(): void {
+    this.runSelfCheckItem.value = this.checking ? '检测中…' : '开始检测'
+    this.runSelfCheckItem.enabled = !this.checking
   }
 
   /** 弹窗展示测速结果（与"关于"页弹窗同风格） */
@@ -68,12 +81,13 @@ struct NetworkSettings {
     }, 'speed_test_result')
   }
 
-  /** 三种连接模式的菜单选项 */
+  /** 四种连接模式的菜单选项 */
   private modeMenuOptions(): MenuOption[] {
     return [
       new MenuOption(NetworkMode.ECH, 'ECH 直连'),
       new MenuOption(NetworkMode.COMPAT, '兼容模式'),
       new MenuOption(NetworkMode.STANDARD, '标准模式'),
+      new MenuOption(NetworkMode.PROXY, '代理模式'),
     ]
   }
 
@@ -115,11 +129,13 @@ struct NetworkSettings {
     }
     appSettings.save()
     appSettings.syncNetworkState()
+    this.echStatusItem.value = this.echStatusText()
   }
 
   /** 图床源变更（菜单：默认 / i.pixiv.cat） */
   private onPictureSourceChange(value: string): void {
     appSettings.picture_source = value
+    this.customSourceItem.value = value === DEFAULT_IMAGE_HOST || value === 'i.pixiv.cat' ? '' : value
     appSettings.save()
     appSettings.syncNetworkState()
   }
@@ -132,6 +148,28 @@ struct NetworkSettings {
       return
     }
     appSettings.picture_source = host.length > 0 ? host : DEFAULT_IMAGE_HOST
+    this.customSourceItem.value = host
+    appSettings.save()
+    appSettings.syncNetworkState()
+  }
+
+  /** 代理类型切换（http / socks5） */
+  private onProxyTypeChange(value: string): void {
+    appSettings.proxy_type = value
+    appSettings.save()
+    appSettings.syncNetworkState()
+  }
+
+  /** 代理服务器地址输入（域名或 IP） */
+  private onProxyHostInput(value: string): void {
+    appSettings.proxy_host = value.trim()
+    appSettings.save()
+    appSettings.syncNetworkState()
+  }
+
+  /** 代理端口输入（1-65535，非法值不生效，代理回退系统网络） */
+  private onProxyPortInput(value: string): void {
+    appSettings.proxy_port = value.trim()
     appSettings.save()
     appSettings.syncNetworkState()
   }
@@ -147,35 +185,55 @@ struct NetworkSettings {
    * 连通性自检：走当前配置的实际链路
    * - API：walkthrough（无需登录）
    * - 图片：i.pximg.net 根路径字节拉取
+   * 两项并行执行，进度与结果通过 @Trace 原地写入持久 item 实例；finally 保证 checking 复位
    */
   private async runSelfCheck(): Promise<void> {
     if (this.checking) {
       return
     }
     this.checking = true
-    this.apiCheckResult = '检测中…'
-    this.imageCheckResult = '检测中…'
+    this.apiCheckItem.value = '检测中…'
+    this.imageCheckItem.value = '检测中…'
+    this.syncSelfCheckItem()
+    selfCheckLogger.info('self check started')
+    const start = Date.now()
+    try {
+      await Promise.all([
+        this.checkApiConnectivity(),
+        this.checkImageConnectivity()
+      ])
+    } finally {
+      this.checking = false
+      this.syncSelfCheckItem()
+      this.echStatusItem.value = this.echStatusText()
+      selfCheckLogger.info(`self check finished in ${Date.now() - start}ms, api=[${this.apiCheckItem.value}], image=[${this.imageCheckItem.value}]`)
+    }
+  }
 
-    const apiStart = Date.now()
+  /** API 连通性检测：walkthrough 走当前 API 链路 */
+  private async checkApiConnectivity(): Promise<void> {
+    const start = Date.now()
     try {
       await pixiv.walkthroughIllusts()
-      this.apiCheckResult = `正常（${Date.now() - apiStart}ms）`
+      this.apiCheckItem.value = `正常（${Date.now() - start}ms）`
     } catch (e) {
-      this.apiCheckResult = `失败：${e instanceof Error ? e.message : JSON.stringify(e)}`
+      this.apiCheckItem.value = `失败：${e instanceof Error ? e.message : JSON.stringify(e)}`
     }
+  }
 
-    const imgStart = Date.now()
+  /** 图片连通性检测：i.pximg.net 根路径走当前图床链路 */
+  private async checkImageConnectivity(): Promise<void> {
+    const start = Date.now()
     try {
       const bytes = await pixiv.fetchBytes('https://i.pximg.net/')
       if (bytes.byteLength > 0) {
-        this.imageCheckResult = `正常（${bytes.byteLength}B，${Date.now() - imgStart}ms）`
+        this.imageCheckItem.value = `正常（${bytes.byteLength}B，${Date.now() - start}ms）`
       } else {
-        this.imageCheckResult = '失败：响应为空'
+        this.imageCheckItem.value = '失败：响应为空'
       }
     } catch (e) {
-      this.imageCheckResult = `失败：${e instanceof Error ? e.message : JSON.stringify(e)}`
+      this.imageCheckItem.value = `失败：${e instanceof Error ? e.message : JSON.stringify(e)}`
     }
-    this.checking = false
   }
 
   /**
@@ -191,6 +249,7 @@ struct NetworkSettings {
     }
     this.speedTesting = true
     this.speedTestText = '测速中…'
+    this.syncSpeedTestItems()
     const startAll = Date.now()
     try {
       const pool = pixivHosts.getDirectIps('i.pximg.net')
@@ -228,6 +287,7 @@ struct NetworkSettings {
         pixivHosts.setSpeedPool(applied)
         appSettings.speed_test_pool = applied.join(',')
         appSettings.save()
+        this.ipPoolItem.value = this.ipPoolText()
         summary = `已按吞吐应用 Top ${applied.length}`
         logger.info(`[SpeedTest] applied pool: ${appSettings.speed_test_pool}`)
       }
@@ -235,152 +295,203 @@ struct NetworkSettings {
       this.speedTestText = `${summary}\n` + lines.join('\n')
       this.hasSpeedResult = true
       this.speedTesting = false
+      this.syncSpeedTestItems()
       // 测速完成自动弹出一次结果，无需手动点击
       this.showSpeedResultDialog()
     } catch (e) {
       this.speedTestText = `测速失败: ${e instanceof Error ? e.message : JSON.stringify(e)}`
       this.hasSpeedResult = true
       this.speedTesting = false
+      this.syncSpeedTestItems()
       this.showSpeedResultDialog()
     } finally {
       this.speedTesting = false
     }
   }
 
-  private get itemList(): CustomItemInfo[] {
-    return [
-      // 连接模式
-      new CustomItemInfo({ id: 'mode', title: '连接模式', type: ItemActionType.GROUP }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.person_crop_circle_fill'),
-        title: '身份验证',
-        subtitle: 'oauth / accounts 登录服务',
-        type: ItemActionType.MENU,
-        id: 'network_mode_auth',
-        value: appSettings.network_mode_auth,
-        menuOptions: this.modeMenuOptions(),
-        onChange: (value) => {
-          this.onModeChange('auth', value as string)
-        }
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.link'),
-        title: 'API 服务',
-        subtitle: 'app-api 数据接口',
-        type: ItemActionType.MENU,
-        id: 'network_mode_api',
-        value: appSettings.network_mode_api,
-        menuOptions: this.modeMenuOptions(),
-        onChange: (value) => {
-          this.onModeChange('api', value as string)
-        }
-      }),
-      // 图床
-      new CustomItemInfo({ id: 'picture', title: '图床', type: ItemActionType.GROUP }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.picture_fill'),
-        title: '图床源',
-        subtitle: '标准模式下走系统网络，图床源不生效',
-        type: ItemActionType.MENU,
-        id: 'picture_source',
-        value: appSettings.picture_source,
-        menuOptions: [
-          new MenuOption(DEFAULT_IMAGE_HOST, '默认 (i.pximg.net)'),
-          new MenuOption('i.pixiv.cat', 'i.pixiv.cat')
-        ],
-        onChange: (value) => {
-          this.onPictureSourceChange(value as string)
-        }
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.square_and_pencil'),
-        title: '自定义图床',
-        subtitle: '输入自定义图床 host',
-        type: ItemActionType.INPUT,
-        id: 'custom_picture_source',
-        value: appSettings.picture_source === DEFAULT_IMAGE_HOST || appSettings.picture_source === 'i.pixiv.cat'
-          ? '' : appSettings.picture_source,
-        onChange: (value) => {
-          this.onCustomSourceInput(value as string)
-        }
-      }),
-      // 直连 Hosts
-      new CustomItemInfo({ id: 'hosts', title: '直连 Hosts', type: ItemActionType.GROUP }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.doc_plaintext_fill'),
-        title: '自定义 hosts',
-        subtitle: '格式 host=ip，多条用 ; 分隔',
-        type: ItemActionType.INPUT,
-        id: 'custom_hosts',
-        value: appSettings.custom_hosts,
-        onChange: (value) => {
-          this.onCustomHostsInput(value as string)
-        }
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.dot_grid_2x2'),
-        title: '当前 IP 池',
-        type: ItemActionType.TEXT,
-        id: 'ip_pool',
-        value: this.ipPoolText()
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.bolt_fill'),
-        title: 'CDN IP 测速',
-        subtitle: '实测吞吐排序并应用到 IP 池（持久生效）',
-        type: ItemActionType.BUTTON,
-        id: 'cdn_speed_test',
-        onChange: () => {
-          this.runCdnSpeedTest()
-        }
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.timer'),
-        title: '测速结果',
-        type: ItemActionType.ROUTER,
-        id: 'speed_test_result',
-        value: this.speedResultLabel(),
-        enabled: this.hasSpeedResult && !this.speedTesting,
-        onChange: () => {
-          this.showSpeedResultDialog()
-        }
-      }),
-      // 连接状态
-      new CustomItemInfo({ id: 'status', title: '连接状态', type: ItemActionType.GROUP }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.checkmark_circle_fill'),
-        title: 'ECH 直连',
-        subtitle: '连续失败 3 次进入 3 分钟冷却',
-        type: ItemActionType.TEXT,
-        id: 'ech_status',
-        value: this.echStatusText()
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.globe_badge_heart'),
-        title: 'API 连通性',
-        type: ItemActionType.TEXT,
-        id: 'api_check',
-        value: this.apiCheckResult
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.picture_star_fill'),
-        title: '图片连通性',
-        type: ItemActionType.TEXT,
-        id: 'image_check',
-        value: this.imageCheckResult
-      }),
-      new CustomItemInfo({
-        symbol: $r('sys.symbol.arrow_2_circlepath'),
-        title: '运行连接自检',
-        subtitle: '按当前配置的实际链路检测',
-        type: ItemActionType.BUTTON,
-        id: 'run_self_check',
-        onChange: () => {
-          this.runSelfCheck()
-        }
-      }),
-    ]
-  }
+  // 列表项为持久实例：keyed Repeat 只保留首次构建的组件与 item 实例，
+  // 动态刷新必须通过 @Trace 原地更新 value/enabled，不能在 getter 里整体重建
+  // 连接模式
+  private readonly modeGroupItem: CustomItemInfo = new CustomItemInfo({ id: 'mode', title: '连接模式', type: ItemActionType.GROUP })
+  private readonly authModeItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.person_crop_circle_fill'),
+    title: '身份验证',
+    subtitle: 'oauth / accounts 登录服务',
+    type: ItemActionType.MENU,
+    id: 'network_mode_auth',
+    value: appSettings.network_mode_auth,
+    menuOptions: this.modeMenuOptions(),
+    onChange: (value) => {
+      this.onModeChange('auth', value as string)
+    }
+  })
+  private readonly apiModeItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.link'),
+    title: 'API 服务',
+    subtitle: 'app-api 数据接口',
+    type: ItemActionType.MENU,
+    id: 'network_mode_api',
+    value: appSettings.network_mode_api,
+    menuOptions: this.modeMenuOptions(),
+    onChange: (value) => {
+      this.onModeChange('api', value as string)
+    }
+  })
+  // 代理（常驻分组，代理模式选用）
+  private readonly proxyGroupItem: CustomItemInfo = new CustomItemInfo({ id: 'proxy', title: '代理', type: ItemActionType.GROUP })
+  private readonly proxyTypeItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.dot_radiowaves_left_and_right'),
+    title: '代理类型',
+    subtitle: '代理模式使用的协议',
+    type: ItemActionType.MENU,
+    id: 'proxy_type',
+    value: appSettings.proxy_type,
+    menuOptions: [
+      new MenuOption('http', 'HTTP'),
+      new MenuOption('socks5', 'SOCKS5')
+    ],
+    onChange: (value) => {
+      this.onProxyTypeChange(value as string)
+    }
+  })
+  private readonly proxyHostItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.wifi_router'),
+    title: '代理服务器',
+    subtitle: '域名或 IP，代理模式下未配置时回退系统网络',
+    type: ItemActionType.INPUT,
+    id: 'proxy_host',
+    value: appSettings.proxy_host,
+    onChange: (value) => {
+      this.onProxyHostInput(value as string)
+    }
+  })
+  private readonly proxyPortItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.lock_shield'),
+    title: '代理端口',
+    subtitle: '1-65535',
+    type: ItemActionType.INPUT,
+    id: 'proxy_port',
+    value: appSettings.proxy_port,
+    onChange: (value) => {
+      this.onProxyPortInput(value as string)
+    }
+  })
+  // 图床
+  private readonly pictureGroupItem: CustomItemInfo = new CustomItemInfo({ id: 'picture', title: '图床', type: ItemActionType.GROUP })
+  private readonly pictureSourceItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.picture_fill'),
+    title: '图床源',
+    subtitle: '标准模式下走系统网络，图床源不生效',
+    type: ItemActionType.MENU,
+    id: 'picture_source',
+    value: appSettings.picture_source,
+    menuOptions: [
+      new MenuOption(DEFAULT_IMAGE_HOST, '默认 (i.pximg.net)'),
+      new MenuOption('i.pixiv.cat', 'i.pixiv.cat')
+    ],
+    onChange: (value) => {
+      this.onPictureSourceChange(value as string)
+    }
+  })
+  private readonly customSourceItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.square_and_pencil'),
+    title: '自定义图床',
+    subtitle: '输入自定义图床 host',
+    type: ItemActionType.INPUT,
+    id: 'custom_picture_source',
+    value: appSettings.picture_source === DEFAULT_IMAGE_HOST || appSettings.picture_source === 'i.pixiv.cat'
+      ? '' : appSettings.picture_source,
+    onChange: (value) => {
+      this.onCustomSourceInput(value as string)
+    }
+  })
+  // 直连 Hosts
+  private readonly hostsGroupItem: CustomItemInfo = new CustomItemInfo({ id: 'hosts', title: '直连 Hosts', type: ItemActionType.GROUP })
+  private readonly customHostsItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.doc_plaintext_fill'),
+    title: '自定义 hosts',
+    subtitle: '格式 host=ip，多条用 ; 分隔',
+    type: ItemActionType.INPUT,
+    id: 'custom_hosts',
+    value: appSettings.custom_hosts,
+    onChange: (value) => {
+      this.onCustomHostsInput(value as string)
+    }
+  })
+  private readonly ipPoolItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.dot_grid_2x2'),
+    title: '当前 IP 池',
+    type: ItemActionType.TEXT,
+    id: 'ip_pool',
+    value: this.ipPoolText()
+  })
+  private readonly speedTestItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.bolt_fill'),
+    title: 'CDN IP 测速',
+    subtitle: '实测吞吐排序并应用到 IP 池（持久生效）',
+    type: ItemActionType.BUTTON,
+    id: 'cdn_speed_test',
+    value: '开始测速',
+    onChange: () => {
+      this.runCdnSpeedTest()
+    }
+  })
+  private readonly speedResultItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.timer'),
+    title: '测速结果',
+    type: ItemActionType.ROUTER,
+    id: 'speed_test_result',
+    value: this.speedResultLabel(),
+    enabled: this.hasSpeedResult && !this.speedTesting,
+    onChange: () => {
+      this.showSpeedResultDialog()
+    }
+  })
+  // 连接状态
+  private readonly statusGroupItem: CustomItemInfo = new CustomItemInfo({ id: 'status', title: '连接状态', type: ItemActionType.GROUP })
+  private readonly echStatusItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.checkmark_circle_fill'),
+    title: 'ECH 直连',
+    subtitle: '连续失败 3 次进入 3 分钟冷却',
+    type: ItemActionType.TEXT,
+    id: 'ech_status',
+    value: this.echStatusText()
+  })
+  private readonly apiCheckItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.globe_badge_heart'),
+    title: 'API 连通性',
+    type: ItemActionType.TEXT,
+    id: 'api_check',
+    value: '未检测'
+  })
+  private readonly imageCheckItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.picture_star_fill'),
+    title: '图片连通性',
+    type: ItemActionType.TEXT,
+    id: 'image_check',
+    value: '未检测'
+  })
+  private readonly runSelfCheckItem: CustomItemInfo = new CustomItemInfo({
+    symbol: $r('sys.symbol.arrow_2_circlepath'),
+    title: '运行连接自检',
+    subtitle: '按当前配置的实际链路检测',
+    type: ItemActionType.BUTTON,
+    id: 'run_self_check',
+    value: '开始检测',
+    onChange: () => {
+      this.runSelfCheck()
+    }
+  })
+
+  private readonly itemList: CustomItemInfo[] = [
+    this.modeGroupItem, this.authModeItem, this.apiModeItem,
+    this.proxyGroupItem, this.proxyTypeItem, this.proxyHostItem, this.proxyPortItem,
+    this.pictureGroupItem, this.pictureSourceItem, this.customSourceItem,
+    this.hostsGroupItem, this.customHostsItem, this.ipPoolItem,
+    this.speedTestItem, this.speedResultItem,
+    this.statusGroupItem, this.echStatusItem, this.apiCheckItem, this.imageCheckItem,
+    this.runSelfCheckItem
+  ]
 
   build() {
     NaviContainer({
@@ -402,17 +513,21 @@ struct NetworkSettings {
   Content() {
     Column() {
       List({ space: 16 }) {
-        ForEach(makeItemGroups(this.itemList), (group: ItemGroupData) => {
-          ListItemGroup({
-            header: group.group?.title ? this.GroupHeader(group.group.title) : undefined
-          }) {
-            ForEach(group.items, (item: CustomItemInfo) => {
-              ListItem() {
-                CustomListItem({ item: item, itemPadding: { left: 16, right: 16, top: 12, bottom: 12 } })
-              }
-            })
-          }
-        })
+        Repeat<ItemGroupData>(makeItemGroups(this.itemList))
+          .each((groupRi: RepeatItem<ItemGroupData>) => {
+            ListItemGroup({
+              header: groupRi.item.group?.title ? this.GroupHeader(groupRi.item.group.title) : undefined
+            }) {
+              Repeat<CustomItemInfo>(groupRi.item.items)
+                .each((ri: RepeatItem<CustomItemInfo>) => {
+                  ListItem() {
+                    CustomListItem({ item: ri.item, itemPadding: { left: 16, right: 16, top: 12, bottom: 12 } })
+                  }
+                })
+                .key((item: CustomItemInfo) => item.id)
+            }
+          })
+          .key((group: ItemGroupData) => group.group?.id ?? '')
       }
       .width('100%')
       .layoutWeight(1)

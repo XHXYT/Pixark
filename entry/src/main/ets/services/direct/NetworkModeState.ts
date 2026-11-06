@@ -14,11 +14,13 @@ const logger = createLogger('NetworkModeState');
  * - ECH：ECH 直连（加密 ClientHello 穿墙，失败自动回退 COMPAT）
  * - COMPAT：兼容模式（SNI-less + Host 头路由 + DoH/IP 直连）
  * - STANDARD：标准模式（系统网络栈：系统 DNS / 系统代理 / 正常证书校验）
+ * - PROXY：代理模式（标准链路 + 用户配置的代理服务器，CONNECT 隧道端到端 TLS 正常证书校验）
  */
 export enum NetworkMode {
   ECH = 'ech',
   COMPAT = 'compat',
   STANDARD = 'standard',
+  PROXY = 'proxy',
 }
 
 /** 身份验证域名组（oauth / accounts） */
@@ -35,7 +37,8 @@ export const DEFAULT_IMAGE_HOST = 'i.pximg.net';
  * 缺省/非法值回退标准模式（对齐上游 PixEz NetworkMode.fromCode）
  */
 export function parseNetworkMode(code: string | undefined | null): NetworkMode {
-  if (code === NetworkMode.ECH || code === NetworkMode.COMPAT || code === NetworkMode.STANDARD) {
+  if (code === NetworkMode.ECH || code === NetworkMode.COMPAT
+    || code === NetworkMode.STANDARD || code === NetworkMode.PROXY) {
     return code;
   }
   return NetworkMode.STANDARD;
@@ -48,6 +51,8 @@ class NetworkModeState {
   apiMode: NetworkMode = NetworkMode.STANDARD;
   /** 图床源（默认 i.pximg.net，可配置镜像/自定义 host） */
   pictureSource: string = DEFAULT_IMAGE_HOST;
+  /** 代理完整 URL（代理模式用，类型://地址:端口，如 http://host:port、socks5://host:port；为空时回退系统网络） */
+  proxyServer: string = '';
 
   setAuthMode(mode: NetworkMode): void {
     this.authMode = mode;
@@ -62,6 +67,11 @@ class NetworkModeState {
   setPictureSource(host: string): void {
     this.pictureSource = host;
     logger.info(`picture source -> ${host}`);
+  }
+
+  setProxyServer(server: string): void {
+    this.proxyServer = server;
+    logger.info(`proxy server -> ${server}`);
   }
 
   /**
@@ -81,7 +91,11 @@ class NetworkModeState {
       if (this.pictureSource !== DEFAULT_IMAGE_HOST) {
         return NetworkMode.STANDARD;
       }
-      return this.apiMode === NetworkMode.STANDARD ? NetworkMode.STANDARD : NetworkMode.COMPAT;
+      if (this.apiMode === NetworkMode.STANDARD) {
+        return NetworkMode.STANDARD;
+      }
+      // API 组为代理模式时图片同样走代理（CONNECT 隧道端到端 TLS，无需 SNI-less）
+      return this.apiMode === NetworkMode.PROXY ? NetworkMode.PROXY : NetworkMode.COMPAT;
     }
     return NetworkMode.STANDARD;
   }

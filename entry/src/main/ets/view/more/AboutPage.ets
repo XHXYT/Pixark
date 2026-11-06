@@ -24,13 +24,6 @@ struct AboutPage {
   private get thirdPartyLibs(): ThirdPartyLibInfo[] {
     return [
       {
-        name: 'Axios',
-        packageName: '@ohos/axios',
-        description: '基于 Axios v1.3.4 适配 HarmonyOS 的 Promise 网络请求库，支持请求/响应拦截器、自动 JSON 转换、请求取消、文件上传下载等特性。',
-        license: 'MIT',
-        url: 'https://ohpm.openharmony.cn/#/cn/detail/@ohos%2Faxios'
-      },
-      {
         name: 'ImageKnifePro',
         packageName: '@ohos/imageknifepro',
         description: '专为 OpenHarmony 打造的高性能图片加载缓存库，核心逻辑下沉至 C/C++ Native 层，支持内存+磁盘二级缓存、图片变换、占位图、自定义下载等。',
@@ -43,6 +36,48 @@ struct AboutPage {
         description: 'ES7 元数据反射提案的 polyfill 实现，允许为类、方法、属性附加元数据并在运行时读取，常用于依赖注入、装饰器元信息等场景。',
         license: 'Apache-2.0',
         url: 'https://ohpm.openharmony.cn/#/cn/detail/reflect-metadata'
+      },
+      {
+        name: 'rustls',
+        packageName: 'crates.io/rustls',
+        description: '纯 Rust 实现的 TLS 库，为 ECH 直连提供 TLS 1.3 加密 ClientHello（ECH）能力，是内置 libpixech.so 的核心依赖。',
+        license: 'Apache-2.0 OR ISC OR MIT',
+        url: 'https://crates.io/crates/rustls'
+      },
+      {
+        name: 'aws-lc-rs',
+        packageName: 'crates.io/aws-lc-rs',
+        description: 'AWS libcrypto（aws-lc）的 Rust 绑定，为 rustls ECH 链路提供密码学后端（椭圆曲线、AES-GCM 等）。',
+        license: 'ISC AND (Apache-2.0 OR ISC)',
+        url: 'https://crates.io/crates/aws-lc-rs'
+      },
+      {
+        name: 'reqwest',
+        packageName: 'crates.io/reqwest',
+        description: 'Rust HTTP 客户端库，编译于 libpixech.so 内，承载 ECH 链路上的 HTTP/2 请求、gzip 解压与字符集处理。',
+        license: 'MIT OR Apache-2.0',
+        url: 'https://crates.io/crates/reqwest'
+      },
+      {
+        name: 'webpki-roots',
+        packageName: 'crates.io/webpki-roots',
+        description: 'Mozilla CA 根证书集，用于 ECH 直连链路的 TLS 服务端证书校验。',
+        license: 'CDLA-Permissive-2.0',
+        url: 'https://crates.io/crates/webpki-roots'
+      },
+      {
+        name: 'base64',
+        packageName: 'crates.io/base64',
+        description: 'Base64 编解码库，用于解析 DNS HTTPS 记录中的 ECHConfigList 配置。',
+        license: 'MIT OR Apache-2.0',
+        url: 'https://crates.io/crates/base64'
+      },
+      {
+        name: 'napi-ohos',
+        packageName: 'crates.io/napi-ohos',
+        description: 'napi-rs 的 OpenHarmony 移植（含 napi-derive-ohos / napi-build-ohos），提供 Rust↔ArkTS 的 N-API 绑定，是 libpixech.so 与应用层交互的基础。',
+        license: 'MIT',
+        url: 'https://crates.io/crates/napi-ohos'
       }
     ]
   }

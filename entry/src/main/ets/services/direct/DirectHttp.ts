@@ -163,6 +163,10 @@ export class DirectHttpClient {
   private readonly systemSession: rcp.Session;
   /** 测速会话：直连同款设置 + 短超时（懒创建，仅网络设置页测速使用） */
   private speedSession: rcp.Session | undefined = undefined;
+  /** 代理会话：代理模式走用户配置的代理服务器（懒创建，地址变更时重建） */
+  private proxySession: rcp.Session | undefined = undefined;
+  /** 代理会话对应的代理地址（变更检测用） */
+  private proxySessionKey: string = '';
 
   constructor(options: DirectClientOptions = {}) {
     this.options = options;
@@ -212,6 +216,48 @@ export class DirectHttpClient {
       selfCheckDone = true;
       this.selfCheck();
     }
+  }
+
+  /**
+   * 获取代理会话（懒创建；代理地址变更时关闭旧会话重建）
+   * 代理链路下 HTTPS 走 CONNECT 隧道，TLS 与真实域名端到端握手，使用默认证书校验
+   */
+  private getProxySession(proxyUrl: string): rcp.Session {
+    if (this.proxySession !== undefined && this.proxySessionKey === proxyUrl) {
+      return this.proxySession;
+    }
+    if (this.proxySession !== undefined) {
+      this.proxySession.close();
+    }
+    this.proxySession = rcp.createSession({
+      requestConfiguration: {
+        proxy: { url: proxyUrl, createTunnel: 'auto' },
+        processing: {
+          validateResponse: (_response: rcp.Response): boolean => true
+        },
+        transfer: {
+          timeout: { connectMs: 15000, transferMs: 30000 }
+        }
+      }
+    });
+    this.proxySessionKey = proxyUrl;
+    logger.info(`proxy session created for ${proxyUrl}`);
+    return this.proxySession;
+  }
+
+  /**
+   * 代理模式会话解析：配置了代理地址时返回代理会话，否则回退系统网络会话
+   * proxyServer 由设置层组装为完整 URL（类型://地址:端口）
+   */
+  private pickProxySession(mode: NetworkMode, fallback: rcp.Session): rcp.Session {
+    if (mode !== NetworkMode.PROXY) {
+      return fallback;
+    }
+    const proxy = networkModeState.proxyServer;
+    if (proxy.length === 0) {
+      return fallback;
+    }
+    return this.getProxySession(proxy);
   }
 
   get<T>(url: string, config: HttpConfig = {}): Promise<HttpResponse<T>> {
@@ -347,7 +393,9 @@ export class DirectHttpClient {
     pixivHosts.ensureRefreshed();
     const host = extractHost(url);
     const mode = networkModeState.getModeForHost(host);
-    const isDirect = mode !== NetworkMode.STANDARD && PIXIV_DIRECT_DOMAINS.includes(host);
+    // 代理模式不做 SNI-less 直连（CONNECT 隧道走真实域名 + 正常证书校验）
+    const isDirect = (mode === NetworkMode.ECH || mode === NetworkMode.COMPAT)
+      && PIXIV_DIRECT_DOMAINS.includes(host);
 
     // 解析调用方声明的区间（bytes=START-END / bytes=START-），续传时按已收字节数前移本次请求起点
     const rangeHeader = headers['Range'] ?? '';
@@ -377,7 +425,7 @@ export class DirectHttpClient {
     }
 
     const rcRequest = new rcp.Request(requestUrl, 'GET', merged as rcp.RequestHeaders);
-    const session = isDirect ? this.downloadSession : this.systemSession;
+    const session = isDirect ? this.downloadSession : this.pickProxySession(mode, this.systemSession);
 
     // 进度回调路径：用 destination 流式接收（官方语义：注册回调后 response.body 不再携带数据，须自行拼接）；
     // onProgress 上报跨尝试累计字节数（含历史尝试已收部分），供上层做单调进度
@@ -512,6 +560,7 @@ export class DirectHttpClient {
    * - standard：系统网络（系统 DNS / 代理 / 正常证书校验）
    * - ech：ECH 域名优先 ECH 链路，失败回退 SNI-less
    * - compat：SNI-less + Host 头路由（用户自定义 hosts 优先）
+   * - proxy：标准链路 + 用户代理服务器（CONNECT 隧道，未配置地址时回退系统网络）
    */
   private async doFetch(
     method: rcp.HttpMethod,
@@ -524,7 +573,9 @@ export class DirectHttpClient {
     const fullUrl = this.buildFullUrl(url, config.params);
     const host = extractHost(fullUrl);
     const mode = networkModeState.getModeForHost(host);
-    const isDirect = mode !== NetworkMode.STANDARD && PIXIV_DIRECT_DOMAINS.includes(host);
+    // 代理模式不做 SNI-less 直连（CONNECT 隧道走真实域名 + 正常证书校验）
+    const isDirect = (mode === NetworkMode.ECH || mode === NetworkMode.COMPAT)
+      && PIXIV_DIRECT_DOMAINS.includes(host);
 
     const headers: Record<string, string> = { ...(this.options.defaultHeaders || {}) };
     mergeHeaders(headers, config.headers);
@@ -553,7 +604,7 @@ export class DirectHttpClient {
 
     try {
       const rcRequest = new rcp.Request(requestUrl, method, headers as rcp.RequestHeaders, data);
-      const session = isDirect ? this.directSession : this.systemSession;
+      const session = isDirect ? this.directSession : this.pickProxySession(mode, this.systemSession);
       const response = await session.fetch(rcRequest);
       if (response.statusCode < 400) {
         pixivHosts.reportSuccess(host);

@@ -1292,6 +1292,22 @@
     {
       "name": "manga_history_delete_confirm",
       "value": "确定要删除这条漫画历史记录吗？"
+    },
+    {
+      "name": "ugoira_gif_menu",
+      "value": "下载动图 (GIF)"
+    },
+    {
+      "name": "ugoira_gif_processing",
+      "value": "正在合成动图 GIF…"
+    },
+    {
+      "name": "ugoira_gif_busy",
+      "value": "正在处理上一个动图，请稍候"
+    },
+    {
+      "name": "ugoira_gif_failed",
+      "value": "动图合成失败"
     }
   ]
 }

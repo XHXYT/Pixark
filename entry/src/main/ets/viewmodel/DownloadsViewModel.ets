@@ -12,6 +12,8 @@ import { ImageUtils } from "../common/utils/ImageUtils";
 import { DEFAULT_IMAGE_HOST, NetworkMode, networkModeState } from "../services/direct/NetworkModeState";
 import { PIXIV_DIRECT_DOMAINS } from "../services/direct/PixivHosts";
 import { pixiv } from "../services/PixivService";
+import { ugoiraCache } from "../services/direct/UgoiraCache";
+import { encodeAnimatedGif } from "../common/utils/GifEncoder";
 import { _PixState } from "../entryability/AppState";
 import { downloadNotifier } from "../common/utils/DownloadNotifier";
 
@@ -45,6 +47,8 @@ export class DownloadsViewModel {
   private directCancelled: Set<string> = new Set()
   // 相册保存串行队列：多个任务相继完成时保存弹窗依次弹出，不互相叠加
   private saveChain: Promise<void> = Promise.resolve()
+  // 动图（ugoira）转 GIF 导出进行中标记（合成占 CPU，同一时间只允许一个）
+  private ugoiraGifRunning: boolean = false
 
   // 公共请求头
   private readonly PIXIV_HEADERS: Record<string, string> = {
@@ -654,6 +658,60 @@ export class DownloadsViewModel {
   async attachSysTask(id: string) {
     const task = await this.getSysTask(id);
     if (task) this.attachTask(task);
+  }
+
+  /**
+   * 动图（ugoira）转 GIF 导出：
+   * 复用 ugoiraCache 磁盘帧序列 → GIF89a 编码 → 写入下载目录 →
+   * 以“已完成”状态进下载管理列表，并串行走相册保存弹窗（与普通下载完成一致）
+   */
+  async addUgoiraGifTask(context: common.Context, illustInfo: PixivIllust) {
+    if (!this.context) this.context = context;
+    if (this.ugoiraGifRunning) {
+      toastUtil.showToast({ message: $r('app.string.ugoira_gif_busy') });
+      return;
+    }
+    this.ugoiraGifRunning = true;
+    try {
+      if (!this.downloadDir) await this.initDownLoad(context);
+      toastUtil.showToast({ message: $r('app.string.ugoira_gif_processing') });
+      // 等一帧让 toast 先渲染（GIF 编码是同步 CPU 任务，会短暂占住 UI 线程）
+      await new Promise<void>(res => setTimeout(res, 50));
+      const frames = await ugoiraCache.loadGifFrames(illustInfo.id);
+      const gifBytes = encodeAnimatedGif(frames);
+      const fileName = this._generateSafeFileName(illustInfo, `ugoira_p0_${illustInfo.id}.gif`);
+      const filePath = `${this.downloadDir}/${fileName}`;
+      const file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+      try {
+        fs.writeSync(file.fd, gifBytes);
+      } finally {
+        fs.closeSync(file);
+      }
+      // 已完成状态入下载管理列表（page=0 与静态首帧下载共用查重键位）
+      const record = new DownloadRecordInfo();
+      record.task_id = `ugoiragif-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+      record.illust_id = illustInfo.id;
+      record.page = 0;
+      record.title = illustInfo.title;
+      record.artistName = illustInfo.user?.name;
+      record.artist_avatar = illustInfo.user?.profile_image_urls?.medium;
+      record.thumbnail = illustInfo.image_urls?.medium || illustInfo.image_urls?.large;
+      record.filePath = filePath;
+      record.url = `ugoira://${illustInfo.id}`;
+      record.status = request.agent.State.COMPLETED;
+      record.progress = 100;
+      record.create_time = Date.now();
+      await getDownloadRecordTable(this.context).insert(record);
+      this.tasks.unshift(record);
+      this.completedHandled.add(record.task_id);
+      this.saveChain = this.saveChain.then((): Promise<void> => this.saveImageToGallery(record))
+        .catch((e: Error): void => logger.warn(`ugoira gif save to gallery failed: ${record.task_id}`, e));
+    } catch (e) {
+      logger.error(`ugoira gif export failed: ${illustInfo.id}`, e);
+      toastUtil.showToast({ message: $r('app.string.ugoira_gif_failed') });
+    } finally {
+      this.ugoiraGifRunning = false;
+    }
   }
 
   /**

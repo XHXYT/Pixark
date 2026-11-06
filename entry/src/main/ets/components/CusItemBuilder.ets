@@ -173,6 +173,7 @@ export struct CustomListItem {
         }
         .enabled(this.item.enabled)
         .alignItems(HorizontalAlign.Start)
+        .layoutWeight(this.item.type === ItemActionType.INPUT ? 1 : undefined)
       }.layoutWeight(1)
 
       if (this.item.type !== ItemActionType.INPUT) {
@@ -270,6 +271,13 @@ export struct ListItemRightAction {
       } else if (this.item.type == ItemActionType.TEXT) {
         Text(this.item.value as ResourceStr)
           .fontSize(15)
+      } else if (this.item.type == ItemActionType.BUTTON) {
+        // 按钮行右侧展示操作文案（如"开始检测"/"检测中…"），未设置 value 时不展示
+        if (this.item.value) {
+          Text(this.item.value as ResourceStr)
+            .fontSize(14)
+            .fontColor(this.item.iconColor)
+        }
       } else if (this.item.type == ItemActionType.RADIO) {
         Radio({ value: this.item.radioConfig?.value || '', group: this.item.radioConfig?.group || '' })
           .size({ width: 24, height: 24 })

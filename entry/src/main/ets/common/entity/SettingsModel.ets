@@ -104,6 +104,12 @@ export class AppSettings {
   @Trace custom_hosts: string = ''
   /** 图片 CDN 测速排序池（逗号分隔 IP，按实测吞吐降序，「CDN IP 测速」完成后写入） */
   @Trace speed_test_pool: string = ''
+  /** 代理类型（http / socks5，代理模式用） */
+  @Trace proxy_type: string = 'http'
+  /** 代理服务器地址（域名或 IP，代理模式用；未填时代理模式回退系统网络） */
+  @Trace proxy_host: string = ''
+  /** 代理端口（1-65535） */
+  @Trace proxy_port: string = ''
   /** 图片缓存总大小上限（MB，imgcache + ImageKnife 合计），'0' 表示不限制 */
   @Trace image_cache_limit_mb: string = '512'
 
@@ -139,6 +145,9 @@ export class AppSettings {
       this.picture_source = (json["picture_source"] as string) ?? this.picture_source;
       this.custom_hosts = (json["custom_hosts"] as string) ?? this.custom_hosts;
       this.speed_test_pool = (json["speed_test_pool"] as string) ?? this.speed_test_pool;
+      this.proxy_type = (json["proxy_type"] as string) ?? this.proxy_type;
+      this.proxy_host = (json["proxy_host"] as string) ?? this.proxy_host;
+      this.proxy_port = (json["proxy_port"] as string) ?? this.proxy_port;
       this.image_cache_limit_mb = (json["image_cache_limit_mb"] as string) ?? this.image_cache_limit_mb;
 
       console.info("[AppSettings] App配置加载成功");
@@ -177,6 +186,9 @@ export class AppSettings {
         "picture_source": this.picture_source,
         "custom_hosts": this.custom_hosts,
         "speed_test_pool": this.speed_test_pool,
+        "proxy_type": this.proxy_type,
+        "proxy_host": this.proxy_host,
+        "proxy_port": this.proxy_port,
         "image_cache_limit_mb": this.image_cache_limit_mb
       };
       const jsonStr: string = JSON.stringify(data);
@@ -194,8 +206,26 @@ export class AppSettings {
     networkModeState.setAuthMode(parseNetworkMode(this.network_mode_auth));
     networkModeState.setApiMode(parseNetworkMode(this.network_mode_api));
     networkModeState.setPictureSource(this.picture_source);
+    networkModeState.setProxyServer(this.buildProxyUrl());
     this.applyCustomHosts();
     this.applySpeedPool();
+  }
+
+  /**
+   * 组装代理完整 URL（类型://地址:端口）
+   * 地址为空或端口非法（非 1-65535）时返回空串，代理模式回退系统网络
+   */
+  private buildProxyUrl(): string {
+    const host = this.proxy_host.trim();
+    const port = this.proxy_port.trim();
+    if (host.length === 0 || !/^\d+$/.test(port)) {
+      return '';
+    }
+    const portNum = parseInt(port);
+    if (portNum <= 0 || portNum > 65535) {
+      return '';
+    }
+    return `${this.proxy_type}://${host}:${port}`;
   }
 
   /**
@@ -268,6 +298,9 @@ export class AppSettings {
       this.picture_source = DEFAULT_IMAGE_HOST;
       this.custom_hosts = '';
       this.speed_test_pool = '';
+      this.proxy_type = 'http';
+      this.proxy_host = '';
+      this.proxy_port = '';
       this.image_cache_limit_mb = '512';
 
       this.syncNetworkState();

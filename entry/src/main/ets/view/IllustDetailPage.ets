@@ -1,7 +1,9 @@
 import { PixivImageComponent } from "../components/PixivImage";
-import { PixState } from "../entryability/AppState";
+import { UgoiraPlayer } from "../components/UgoiraPlayer";
+import { PixState, _PixState } from "../entryability/AppState";
 import { GridColumnsTemplate } from "../common/utils/breakpoint/BreakPoint";
 import { IllustDetailViewModel } from "../viewmodel/IllustDetailViewModel";
+import { downloaderVM } from "../viewmodel/DownloadsViewModel";
 import { SnapShotUtils } from "../common/utils/SnapShotUtils";
 import { PixivIllust, PixivImage, PixivTag } from "../services/PixivTypes";
 import { LengthMetrics, SymbolGlyphModifier } from "@kit.ArkUI";
@@ -99,6 +101,14 @@ struct IllustDetail {
             this.watchCurrentSeries()
           })
       }
+      // 动图作品：转 GIF 下载（复用播放器帧缓存合成）
+      if (this.currentIllust?.type === 'ugoira') {
+        MenuItem({ content: $r('app.string.ugoira_gif_menu') })
+          .onClick(() => {
+            this.showMenu = false
+            this.downloadUgoiraGif()
+          })
+      }
       MenuItem({ content: $r('app.string.mute_this_illust') })
         .enabled(!!this.currentIllust)
         .onClick(() => {
@@ -133,6 +143,13 @@ struct IllustDetail {
     muteFilter.addRule('user', String(illust.user.id), illust.user.name).then((ok: boolean) => {
       toastUtil.showToast({ message: ok ? $r('app.string.mute_added') : $r('app.string.mute_add_failed') })
     })
+  }
+
+  /** 下载动图（ugoira 转 GIF 合成，走下载管理 + 相册保存流程） */
+  private downloadUgoiraGif(): void {
+    const illust = this.currentIllust
+    if (!illust) return
+    downloaderVM.addUgoiraGifTask(_PixState.Context, illust)
   }
 
   /** 追更当前作品所属的漫画系列（成功后漫画页在追列表会同步刷新） */
@@ -285,12 +302,22 @@ struct IllustDetailContent {
         List({ space: 10 }) {
           ForEach(this.iDV.imageList, (illust: PixivImage, index: number) => {
             ListItem() {
-              PixivImageComponent({
-                imageUrl: this.iDV.detailImageUrls[index] || illust.medium,
-                imageObjectFit: ImageFit.Auto,
-                imageBorder: { radius: 0 },
-              })
-                .id(index === 0 ? this.sharedId : illust.medium)
+              // 动图（ugoira）作品：逐帧轮播播放器
+              if (index === 0 && this.iDV.isUgoira) {
+                UgoiraPlayer({
+                  illustId: this.iDV.detailData?.id ?? 0,
+                  placeholderUrl: this.iDV.detailImageUrls[index] || illust.medium,
+                  imageObjectFit: ImageFit.Auto
+                })
+                  .id(this.sharedId)
+              } else {
+                PixivImageComponent({
+                  imageUrl: this.iDV.detailImageUrls[index] || illust.medium,
+                  imageObjectFit: ImageFit.Auto,
+                  imageBorder: { radius: 0 },
+                })
+                  .id(index === 0 ? this.sharedId : illust.medium)
+              }
             }
             .onClick(() => {
               this.currentImageIndex = index
@@ -338,6 +365,8 @@ struct IllustDetailContent {
         PixivImageViewer({
           imageUrls: this.iDV.imageList,
           startIndex: this.currentImageIndex,
+          isUgoira: this.iDV.isUgoira,
+          illustId: this.iDV.detailData?.id ?? 0,
           onClose: () => {
             this.onImageLarge(false)
           },
