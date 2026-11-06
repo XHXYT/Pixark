@@ -118,6 +118,13 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "✅ Will create release: tag=$TAG, title=$VERSION"
 
+      # 只提取 CHANGELOG.md 中最新版本的段落作为发布说明
+      - name: Extract release notes
+        run: |
+          awk '/^## \[/{n++} n==1{print} n==2{exit}' CHANGELOG.md > RELEASE_BODY.md
+          echo "===== Release Notes ====="
+          cat RELEASE_BODY.md
+
       # 下载构建产物
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -131,7 +138,7 @@ jobs:
         with:
           tag_name: ${{ steps.release_info.outputs.tag }}
           name: ${{ steps.release_info.outputs.version }}
-          body_path: CHANGELOG.md
+          body_path: RELEASE_BODY.md
           draft: false
           prerelease: false
           files: |
